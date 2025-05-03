@@ -14,6 +14,8 @@ export default function Dashboard() {
   const [filters, setFilters] = React.useState<TaskFilterValues>({
     assigneeId: -2,
     projectId: -2,
+    categoryId: -2,
+    department: 'all',
     status: 'all',
     priority: 'all',
     search: '',
