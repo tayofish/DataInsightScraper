@@ -29,6 +29,7 @@ export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull().default('#6b7280'), // Default gray color
+  department: text("department"), // Department field for custom categorization
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

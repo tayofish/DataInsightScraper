@@ -133,6 +133,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to create category" });
     }
   });
+  
+  // Update category
+  app.patch("/api/categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      const categoryData = categoryInsertSchema.partial().parse(req.body);
+      const updatedCategory = await storage.updateCategory(id, categoryData);
+      
+      if (!updatedCategory) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+
+      return res.status(200).json(updatedCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      console.error("Error updating category:", error);
+      return res.status(500).json({ message: "Failed to update category" });
+    }
+  });
+  
+  // Delete category
+  app.delete("/api/categories/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid category ID" });
+      }
+
+      await storage.deleteCategory(id);
+      return res.status(200).json({ message: "Category deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      return res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
 
   // === TASK ROUTES ===
   // Get all tasks with optional filters

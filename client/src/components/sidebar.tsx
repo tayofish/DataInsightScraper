@@ -7,6 +7,7 @@ import {
   LayoutDashboard, 
   CheckSquare, 
   FolderKanban, 
+  Tag,
   Globe,
   Database,
   Users,
@@ -67,6 +68,9 @@ export function Sidebar() {
         </NavItem>
         <NavItem href="/projects" icon={<FolderKanban size={20} />} isActive={location === '/projects'}>
           Projects
+        </NavItem>
+        <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
+          Categories
         </NavItem>
         <NavItem href="#" icon={<Globe size={20} />} isActive={false}>
           Web Scraping
