@@ -46,6 +46,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
+  
+  // Get departments for categorizing
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ['/api/departments'],
+  });
 
   // Setup form with default values
   const form = useForm<TaskFormValues>({
@@ -292,7 +297,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           const departmentsById: Record<number, string> = {};
                           
                           // Create a mapping of department IDs to names
-                          departments.forEach(dept => {
+                          departments.forEach((dept: Department) => {
                             departmentsById[dept.id] = dept.name;
                           });
                           

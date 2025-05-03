@@ -61,7 +61,7 @@ import { type Category } from '@shared/schema';
 const categoryFormSchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Must be a valid hex color'),
-  department: z.string().optional().nullable(), // Make department optional and nullable
+  departmentId: z.number().optional().nullable(), // Make departmentId optional and nullable
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
@@ -129,7 +129,7 @@ export default function Categories() {
     defaultValues: {
       name: '',
       color: '#3b82f6',
-      department: '',
+      departmentId: null,
     }
   });
 
