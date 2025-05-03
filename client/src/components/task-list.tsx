@@ -20,6 +20,11 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { TaskFilterValues } from './task-filters';
 import TaskForm from './task-form';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -276,14 +281,21 @@ export default function TaskList({ filters }: TaskListProps) {
                               </Badge>
                             )}
                             {task.category && (
-                              <Badge 
-                                variant="secondary" 
-                                className="ml-2 flex items-center gap-1"
-                                style={{ backgroundColor: task.category.color, color: 'white' }}
-                              >
-                                <div className="w-2 h-2 rounded-full bg-white/80"></div>
-                                {task.category.name}
-                              </Badge>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge 
+                                    variant="secondary" 
+                                    className="ml-2 flex items-center gap-1"
+                                    style={{ backgroundColor: task.category.color, color: 'white' }}
+                                  >
+                                    <div className="w-2 h-2 rounded-full bg-white/80"></div>
+                                    {task.category.name}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p><span className="font-semibold">Department:</span> {task.category.department || 'General'}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </div>
