@@ -61,7 +61,7 @@ import { type Category } from '@shared/schema';
 const categoryFormSchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Must be a valid hex color'),
-  department: z.string().min(1, 'Department name is required'),
+  department: z.string().optional().nullable(), // Make department optional and nullable
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
@@ -149,7 +149,7 @@ export default function Categories() {
     form.reset({
       name: category.name,
       color: category.color || '#3b82f6',
-      department: category.department || '',
+      department: category.department ?? '', // Use null coalescing to handle null properly
     });
     setCurrentCategory(category);
     setIsFormOpen(true);
@@ -163,7 +163,16 @@ export default function Categories() {
 
   // Handle form submission
   const onSubmit = (values: CategoryFormValues) => {
-    categoryMutation.mutate(values);
+    // If department is an empty string, omit it (will be null in database)
+    const { department, ...rest } = values;
+    const trimmedDepartment = department?.trim() || '';
+    
+    const formattedValues = {
+      ...rest,
+      ...(trimmedDepartment !== '' && { department: trimmedDepartment })
+    };
+    
+    categoryMutation.mutate(formattedValues as CategoryFormValues);
   };
 
   // Group categories by department
