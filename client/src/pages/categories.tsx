@@ -138,7 +138,7 @@ export default function Categories() {
     form.reset({
       name: '',
       color: '#3b82f6',
-      department: '',
+      department: '', // Empty by default - will be categorized under "General"
     });
     setCurrentCategory(null);
     setIsFormOpen(true);
@@ -171,14 +171,28 @@ export default function Categories() {
     const grouped: Record<string, Category[]> = {};
     
     categories.forEach(category => {
-      const dept = category.department || 'Uncategorized';
+      const dept = category.department || 'General';
       if (!grouped[dept]) {
         grouped[dept] = [];
       }
       grouped[dept].push(category);
     });
     
-    return grouped;
+    // Make sure General appears first in the order
+    const orderedGrouped: Record<string, Category[]> = {};
+    if (grouped['General']) {
+      orderedGrouped['General'] = grouped['General'];
+    }
+    
+    // Add all other departments in alphabetical order
+    Object.keys(grouped)
+      .filter(dept => dept !== 'General')
+      .sort()
+      .forEach(dept => {
+        orderedGrouped[dept] = grouped[dept];
+      });
+    
+    return orderedGrouped;
   }, [categories]);
 
   if (isLoading) {
@@ -199,7 +213,7 @@ export default function Categories() {
           <div>
             <CardTitle>Categories</CardTitle>
             <CardDescription>
-              Manage task categories by department
+              Manage task categories with optional department grouping
             </CardDescription>
           </div>
           <Button onClick={handleOpenNewForm} className="ml-auto">
@@ -320,7 +334,7 @@ export default function Categories() {
                       <Input placeholder="Department" {...field} />
                     </FormControl>
                     <FormDescription>
-                      Categorize by department (e.g., Marketing, Engineering, Finance)
+                      Optional: Categorize by department (e.g., Marketing, Engineering, Finance)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
