@@ -1,8 +1,8 @@
 import { db } from "@db";
 import { 
-  users, tasks, projects, 
-  type User, type Task, type Project, 
-  type InsertUser, type InsertTask, type InsertProject,
+  users, tasks, projects, categories,
+  type User, type Task, type Project, type Category,
+  type InsertUser, type InsertTask, type InsertProject, type InsertCategory,
   type UpdateTask 
 } from "@shared/schema";
 import { eq, and, or, desc, asc, isNull, sql } from "drizzle-orm";
@@ -49,12 +49,42 @@ export const storage = {
     return true;
   },
 
+  // Category operations
+  getAllCategories: async (): Promise<Category[]> => {
+    return db.query.categories.findMany();
+  },
+
+  getCategoryById: async (id: number): Promise<Category | undefined> => {
+    return db.query.categories.findFirst({
+      where: eq(categories.id, id)
+    });
+  },
+
+  createCategory: async (categoryData: InsertCategory): Promise<Category> => {
+    const [newCategory] = await db.insert(categories).values(categoryData).returning();
+    return newCategory;
+  },
+
+  updateCategory: async (id: number, categoryData: Partial<InsertCategory>): Promise<Category | undefined> => {
+    const [updatedCategory] = await db.update(categories)
+      .set(categoryData)
+      .where(eq(categories.id, id))
+      .returning();
+    return updatedCategory;
+  },
+
+  deleteCategory: async (id: number): Promise<boolean> => {
+    await db.delete(categories).where(eq(categories.id, id));
+    return true;
+  },
+
   // Task operations
   getAllTasks: async (filters?: {
     status?: string,
     priority?: string,
     projectId?: number,
     assigneeId?: number,
+    categoryId?: number,
     search?: string
   }): Promise<Task[]> => {
     const conditions = [];
@@ -81,6 +111,10 @@ export const storage = {
       }
     }
     
+    if (filters?.categoryId && filters.categoryId !== -1) {
+      conditions.push(eq(tasks.categoryId, filters.categoryId));
+    }
+    
     if (filters?.search) {
       conditions.push(
         or(
@@ -95,13 +129,15 @@ export const storage = {
           where: and(...conditions),
           with: {
             project: true,
-            assignee: true
+            assignee: true,
+            category: true
           }
         })
       : db.query.tasks.findMany({
           with: {
             project: true,
-            assignee: true
+            assignee: true,
+            category: true
           }
         });
   },

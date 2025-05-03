@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { taskInsertSchema, taskUpdateSchema, projectInsertSchema } from "@shared/schema";
+import { taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -107,6 +107,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === CATEGORY ROUTES ===
+  // Get all categories
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getAllCategories();
+      return res.status(200).json(categories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      return res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  // Create category
+  app.post("/api/categories", async (req, res) => {
+    try {
+      const categoryData = categoryInsertSchema.parse(req.body);
+      const newCategory = await storage.createCategory(categoryData);
+      return res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid category data", errors: error.errors });
+      }
+      console.error("Error creating category:", error);
+      return res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
   // === TASK ROUTES ===
   // Get all tasks with optional filters
   app.get("/api/tasks", async (req, res) => {
@@ -116,6 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: req.query.priority as string | undefined,
         projectId: req.query.projectId ? parseInt(req.query.projectId as string) : undefined,
         assigneeId: req.query.assigneeId ? parseInt(req.query.assigneeId as string) : undefined,
+        categoryId: req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined,
         search: req.query.search as string | undefined
       };
 
