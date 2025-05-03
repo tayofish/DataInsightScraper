@@ -14,6 +14,7 @@ interface TaskFiltersProps {
 export interface TaskFilterValues {
   assigneeId: number | null;
   projectId: number | null;
+  categoryId: number | null;
   status: string;
   priority: string;
   search: string;
@@ -24,11 +25,16 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
 
   const form = useForm<TaskFilterValues>({
     defaultValues: {
       assigneeId: -2, // -2 means "All Users"
       projectId: -2,  // -2 means "All Projects"
+      categoryId: -2, // -2 means "All Categories"
       status: 'all',
       priority: 'all',
       search: '',
@@ -103,6 +109,42 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 <SelectItem value="todo">To Do</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-full sm:w-auto">
+            <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700">
+              Category
+            </label>
+            <Select
+              value={form.watch("categoryId")?.toString() || "-2"}
+              onValueChange={(value) => {
+                if (value === "-2") {
+                  form.setValue("categoryId", -2);
+                } else if (value === "-1") {
+                  form.setValue("categoryId", -1);
+                } else {
+                  form.setValue("categoryId", parseInt(value));
+                }
+              }}
+            >
+              <SelectTrigger id="category-filter" className="w-[180px]">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-2">All Categories</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    <div className="flex items-center">
+                      <div 
+                        className="w-3 h-3 rounded-full mr-2" 
+                        style={{ backgroundColor: category.color }}
+                      />
+                      {category.name}
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

@@ -31,11 +31,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { type Task, type User, type Project } from '@shared/schema';
+import { type Task, type User, type Project, type Category } from '@shared/schema';
 
 interface TaskWithRelations extends Task {
   project?: Project;
   assignee?: User;
+  category?: Category;
 }
 
 interface TaskListProps {
@@ -65,6 +66,10 @@ export default function TaskList({ filters }: TaskListProps) {
     
     if (filters.assigneeId && filters.assigneeId !== -2) {
       params.append('assigneeId', filters.assigneeId.toString());
+    }
+    
+    if (filters.categoryId && filters.categoryId !== -2) {
+      params.append('categoryId', filters.categoryId.toString());
     }
     
     if (filters.search) {
@@ -160,7 +165,7 @@ export default function TaskList({ filters }: TaskListProps) {
   };
   
   // Helper function to get priority badge styling
-  const getPriorityBadge = (priority: string) => {
+  const getPriorityBadge = (priority: string | null) => {
     switch (priority) {
       case 'high':
         return { color: 'destructive', label: 'High Priority' };
@@ -268,6 +273,16 @@ export default function TaskList({ filters }: TaskListProps) {
                             {task.project && (
                               <Badge variant="outline" className="ml-2">
                                 {task.project.name}
+                              </Badge>
+                            )}
+                            {task.category && (
+                              <Badge 
+                                variant="secondary" 
+                                className="ml-2 flex items-center gap-1"
+                                style={{ backgroundColor: task.category.color, color: 'white' }}
+                              >
+                                <div className="w-2 h-2 rounded-full bg-white/80"></div>
+                                {task.category.name}
                               </Badge>
                             )}
                           </div>
