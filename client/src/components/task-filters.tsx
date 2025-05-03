@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AvatarField } from '@/components/ui/avatar-field';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { type Project, type Category } from '@shared/schema';
+import { type Project, type Category, type Department } from '@shared/schema';
 import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
 
@@ -29,6 +29,10 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
   
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+  });
+  
+  const { data: departmentsData = [] } = useQuery<Department[]>({
+    queryKey: ['/api/departments'],
   });
 
   const form = useForm<TaskFilterValues>({
@@ -143,12 +147,19 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                   // Create a map of departments to categories
                   const departmentMap: Record<string, Category[]> = {};
                   
+                  // Create a mapping of department IDs to names
+                  const departmentsById: Record<number, string> = {};
+                  
+                  departmentsData.forEach(dept => {
+                    departmentsById[dept.id] = dept.name;
+                  });
+                  
                   categories.forEach(category => {
-                    const dept = category.department || 'General';
-                    if (!departmentMap[dept]) {
-                      departmentMap[dept] = [];
+                    const deptName = category.departmentId ? (departmentsById[category.departmentId] || 'Unknown') : 'General';
+                    if (!departmentMap[deptName]) {
+                      departmentMap[deptName] = [];
                     }
-                    departmentMap[dept].push(category);
+                    departmentMap[deptName].push(category);
                   });
                   
                   // Return the grouped categories
