@@ -163,16 +163,13 @@ export default function Categories() {
 
   // Handle form submission
   const onSubmit = (values: CategoryFormValues) => {
-    // If department is an empty string, omit it (will be null in database)
-    const { department, ...rest } = values;
-    const trimmedDepartment = department?.trim() || '';
-    
+    // If department is an empty string, set it to null
     const formattedValues = {
-      ...rest,
-      ...(trimmedDepartment !== '' && { department: trimmedDepartment })
+      ...values,
+      department: values.department?.trim() === '' ? null : values.department?.trim() || null
     };
     
-    categoryMutation.mutate(formattedValues as CategoryFormValues);
+    categoryMutation.mutate(formattedValues);
   };
 
   // Group categories by department
@@ -336,18 +333,30 @@ export default function Categories() {
               <FormField
                 control={form.control}
                 name="department"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Department" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Optional: Categorize by department (e.g., Marketing, Engineering, Finance)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Handle the field value to ensure it's a string
+                  const inputValue = field.value === null ? '' : field.value;
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Department" 
+                          value={inputValue}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Optional: Categorize by department (e.g., Marketing, Engineering, Finance)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
