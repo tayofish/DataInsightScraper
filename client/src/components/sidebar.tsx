@@ -12,7 +12,8 @@ import {
   Database,
   Users,
   Settings,
-  Menu
+  Menu,
+  Building2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +72,9 @@ export function Sidebar() {
         </NavItem>
         <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
           Categories
+        </NavItem>
+        <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
+          Departments
         </NavItem>
         <NavItem href="#" icon={<Globe size={20} />} isActive={false}>
           Web Scraping

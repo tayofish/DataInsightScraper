@@ -199,22 +199,12 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Departments</SelectItem>
-                {/* Get unique departments from categories */}
-                {(() => {
-                  const departments = new Set<string>();
-                  
-                  categories.forEach(category => {
-                    if (category.department) {
-                      departments.add(category.department);
-                    }
-                  });
-                  
-                  return Array.from(departments).map(department => (
-                    <SelectItem key={department} value={department}>
-                      {department}
-                    </SelectItem>
-                  ));
-                })()}
+                {/* List all departments */}
+                {departmentsData.map((department) => (
+                  <SelectItem key={department.id} value={department.id.toString()}>
+                    {department.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
