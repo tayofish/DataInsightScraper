@@ -34,9 +34,9 @@ import {
 import { type Task, type User, type Project, type Category } from '@shared/schema';
 
 interface TaskWithRelations extends Task {
-  project?: Project;
-  assignee?: User;
-  category?: Category;
+  project?: Project | null;
+  assignee?: User | null;
+  category?: Category | null;
 }
 
 interface TaskListProps {

@@ -86,7 +86,7 @@ export const storage = {
     assigneeId?: number,
     categoryId?: number,
     search?: string
-  }): Promise<Task[]> => {
+  }): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null })[]> => {
     const conditions = [];
 
     if (filters?.status && filters.status !== 'all') {
@@ -111,8 +111,14 @@ export const storage = {
       }
     }
     
-    if (filters?.categoryId && filters.categoryId !== -1) {
-      conditions.push(eq(tasks.categoryId, filters.categoryId));
+    if (filters?.categoryId) {
+      if (filters.categoryId === -1) {
+        // Tasks with no category
+        conditions.push(isNull(tasks.categoryId));
+      } else if (filters.categoryId !== -2) { // -2 means all categories
+        // Tasks with specific category
+        conditions.push(eq(tasks.categoryId, filters.categoryId));
+      }
     }
     
     if (filters?.search) {
@@ -124,8 +130,8 @@ export const storage = {
       );
     }
 
-    return conditions.length > 0 
-      ? db.query.tasks.findMany({
+    const result = conditions.length > 0 
+      ? await db.query.tasks.findMany({
           where: and(...conditions),
           with: {
             project: true,
@@ -133,17 +139,19 @@ export const storage = {
             category: true
           }
         })
-      : db.query.tasks.findMany({
+      : await db.query.tasks.findMany({
           with: {
             project: true,
             assignee: true,
             category: true
           }
         });
+        
+    return result;
   },
 
-  getTaskById: async (id: number): Promise<(Task & { project?: Project, assignee?: User, category?: Category }) | undefined> => {
-    return db.query.tasks.findFirst({
+  getTaskById: async (id: number): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null }) | undefined> => {
+    const result = await db.query.tasks.findFirst({
       where: eq(tasks.id, id),
       with: {
         project: true,
@@ -151,6 +159,9 @@ export const storage = {
         category: true
       }
     });
+    
+    // Converting the result to the expected type
+    return result;
   },
 
   createTask: async (taskData: InsertTask): Promise<Task> => {
