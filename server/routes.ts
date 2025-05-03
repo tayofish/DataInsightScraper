@@ -174,6 +174,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to delete category" });
     }
   });
+  
+  // === DEPARTMENT ROUTES ===
+  // Get all departments
+  app.get("/api/departments", async (req, res) => {
+    try {
+      const departments = await storage.getAllDepartments();
+      return res.status(200).json(departments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      return res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+  
+  // Get department by ID
+  app.get("/api/departments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid department ID" });
+      }
+
+      const department = await storage.getDepartmentById(id);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+
+      return res.status(200).json(department);
+    } catch (error) {
+      console.error("Error fetching department:", error);
+      return res.status(500).json({ message: "Failed to fetch department" });
+    }
+  });
+  
+  // Create department
+  app.post("/api/departments", async (req, res) => {
+    try {
+      const departmentData = departmentInsertSchema.parse(req.body);
+      const newDepartment = await storage.createDepartment(departmentData);
+      return res.status(201).json(newDepartment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid department data", errors: error.errors });
+      }
+      console.error("Error creating department:", error);
+      return res.status(500).json({ message: "Failed to create department" });
+    }
+  });
+  
+  // Update department
+  app.patch("/api/departments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid department ID" });
+      }
+
+      const departmentData = departmentInsertSchema.partial().parse(req.body);
+      const updatedDepartment = await storage.updateDepartment(id, departmentData);
+      
+      if (!updatedDepartment) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+
+      return res.status(200).json(updatedDepartment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid department data", errors: error.errors });
+      }
+      console.error("Error updating department:", error);
+      return res.status(500).json({ message: "Failed to update department" });
+    }
+  });
+  
+  // Delete department
+  app.delete("/api/departments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid department ID" });
+      }
+
+      await storage.deleteDepartment(id);
+      return res.status(200).json({ message: "Department deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      return res.status(500).json({ message: "Failed to delete department" });
+    }
+  });
 
   // === TASK ROUTES ===
   // Get all tasks with optional filters

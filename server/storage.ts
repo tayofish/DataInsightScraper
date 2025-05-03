@@ -152,15 +152,18 @@ export const storage = {
     }
     
     if (filters?.department && filters.department !== 'all') {
-      // When filtering by department, we need to join with the categories table
-      const departmentFilter = sql`
-        EXISTS (
-          SELECT 1 FROM ${categories}
-          WHERE ${categories.id} = ${tasks.categoryId}
-          AND ${categories.department} = ${filters.department}
-        )
-      `;
-      conditions.push(departmentFilter);
+      const departmentId = parseInt(filters.department);
+      if (!isNaN(departmentId)) {
+        // When filtering by department, we need to join with the categories table
+        const departmentFilter = sql`
+          EXISTS (
+            SELECT 1 FROM ${categories}
+            WHERE ${categories.id} = ${tasks.categoryId}
+            AND ${categories.departmentId} = ${departmentId}
+          )
+        `;
+        conditions.push(departmentFilter);
+      }
     }
     
     if (filters?.search) {
