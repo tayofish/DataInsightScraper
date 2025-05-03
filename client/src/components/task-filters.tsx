@@ -15,6 +15,7 @@ export interface TaskFilterValues {
   assigneeId: number | null;
   projectId: number | null;
   categoryId: number | null;
+  department: string;
   status: string;
   priority: string;
   search: string;
@@ -35,6 +36,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
       assigneeId: -2, // -2 means "All Users"
       projectId: -2,  // -2 means "All Projects"
       categoryId: -2, // -2 means "All Categories"
+      department: 'all',
       status: 'all',
       priority: 'all',
       search: '',
@@ -167,6 +169,39 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                         </SelectItem>
                       ))}
                     </React.Fragment>
+                  ));
+                })()}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="w-full sm:w-auto">
+            <label htmlFor="department-filter" className="block text-sm font-medium text-gray-700">
+              Department
+            </label>
+            <Select
+              value={form.watch("department")}
+              onValueChange={(value) => form.setValue("department", value)}
+            >
+              <SelectTrigger id="department-filter" className="w-[180px]">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {/* Get unique departments from categories */}
+                {(() => {
+                  const departments = new Set<string>();
+                  
+                  categories.forEach(category => {
+                    if (category.department) {
+                      departments.add(category.department);
+                    }
+                  });
+                  
+                  return Array.from(departments).map(department => (
+                    <SelectItem key={department} value={department}>
+                      {department}
+                    </SelectItem>
                   ));
                 })()}
               </SelectContent>

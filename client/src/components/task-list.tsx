@@ -77,6 +77,10 @@ export default function TaskList({ filters }: TaskListProps) {
       params.append('categoryId', filters.categoryId.toString());
     }
     
+    if (filters.department && filters.department !== 'all') {
+      params.append('department', filters.department);
+    }
+    
     if (filters.search) {
       params.append('search', filters.search);
     }

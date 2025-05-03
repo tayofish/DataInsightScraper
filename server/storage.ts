@@ -85,6 +85,7 @@ export const storage = {
     projectId?: number,
     assigneeId?: number,
     categoryId?: number,
+    department?: string,
     search?: string
   }): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null })[]> => {
     const conditions = [];
@@ -119,6 +120,18 @@ export const storage = {
         // Tasks with specific category
         conditions.push(eq(tasks.categoryId, filters.categoryId));
       }
+    }
+    
+    if (filters?.department && filters.department !== 'all') {
+      // When filtering by department, we need to join with the categories table
+      const departmentFilter = sql`
+        EXISTS (
+          SELECT 1 FROM ${categories}
+          WHERE ${categories.id} = ${tasks.categoryId}
+          AND ${categories.department} = ${filters.department}
+        )
+      `;
+      conditions.push(departmentFilter);
     }
     
     if (filters?.search) {
