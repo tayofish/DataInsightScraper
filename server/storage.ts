@@ -142,12 +142,13 @@ export const storage = {
         });
   },
 
-  getTaskById: async (id: number): Promise<(Task & { project?: Project, assignee?: User }) | undefined> => {
+  getTaskById: async (id: number): Promise<(Task & { project?: Project, assignee?: User, category?: Category }) | undefined> => {
     return db.query.tasks.findFirst({
       where: eq(tasks.id, id),
       with: {
         project: true,
-        assignee: true
+        assignee: true,
+        category: true
       }
     });
   },

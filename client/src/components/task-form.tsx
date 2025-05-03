@@ -24,7 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
-import { taskFormSchema, type TaskFormValues, type Task, type Project } from '@shared/schema';
+import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 
 interface TaskFormProps {
@@ -41,6 +41,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+  
+  // Get categories for select dropdown
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
 
   // Setup form with default values
   const form = useForm<TaskFormValues>({
@@ -54,6 +59,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       status: task?.status || 'todo',
       projectId: task?.projectId || null,
       assigneeId: task?.assigneeId || null,
+      categoryId: task?.categoryId || null,
     },
   });
 
@@ -226,33 +232,76 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
               />
             </div>
             
-            {isEditMode && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {isEditMode && (
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
               <FormField
                 control={form.control}
-                name="status"
+                name="categoryId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>Category</FormLabel>
                     <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
+                      value={field.value?.toString() || '-1'}
+                      onValueChange={(value) => {
+                        if (value === '-1') {
+                          field.onChange(null);
+                        } else {
+                          field.onChange(parseInt(value));
+                        }
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="todo">To Do</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="-1">No Category</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            <div className="flex items-center">
+                              <div 
+                                className="w-3 h-3 rounded-full mr-2" 
+                                style={{ backgroundColor: category.color || '#6b7280' }}
+                              />
+                              {category.name}
+                            </div>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
+            </div>
             
             <DialogFooter>
               <Button 

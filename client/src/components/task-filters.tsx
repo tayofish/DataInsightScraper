@@ -3,7 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AvatarField } from '@/components/ui/avatar-field';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
-import { type Project } from '@shared/schema';
+import { type Project, type Category } from '@shared/schema';
 import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
 
