@@ -24,7 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
-import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category } from '@shared/schema';
+import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 
 interface TaskFormProps {
@@ -289,13 +289,22 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         {(() => {
                           // Create a map of departments to categories
                           const departmentMap: Record<string, typeof categories> = {};
+                          const departmentsById: Record<number, string> = {};
+                          
+                          // Create a mapping of department IDs to names
+                          departments.forEach(dept => {
+                            departmentsById[dept.id] = dept.name;
+                          });
                           
                           categories.forEach(category => {
-                            const dept = category.department || 'General';
-                            if (!departmentMap[dept]) {
-                              departmentMap[dept] = [];
+                            const deptName = category.departmentId 
+                              ? (departmentsById[category.departmentId] || 'Unknown') 
+                              : 'General';
+                            
+                            if (!departmentMap[deptName]) {
+                              departmentMap[deptName] = [];
                             }
-                            departmentMap[dept].push(category);
+                            departmentMap[deptName].push(category);
                           });
                           
                           // Return the grouped categories

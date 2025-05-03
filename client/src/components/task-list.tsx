@@ -36,7 +36,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { type Task, type User, type Project, type Category } from '@shared/schema';
+import { type Task, type User, type Project, type Category, type Department } from '@shared/schema';
 
 interface TaskWithRelations extends Task {
   project?: Project | null;
@@ -87,6 +87,11 @@ export default function TaskList({ filters }: TaskListProps) {
     
     return params.toString() ? `?${params.toString()}` : '';
   };
+  
+  // Fetch departments for reference
+  const { data: departments = [] } = useQuery<Department[]>({
+    queryKey: ['/api/departments'],
+  });
   
   // Fetch tasks based on filters
   const { data: tasks = [], isLoading } = useQuery<TaskWithRelations[]>({
@@ -297,7 +302,11 @@ export default function TaskList({ filters }: TaskListProps) {
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p><span className="font-semibold">Department:</span> {task.category.department || 'General'}</p>
+                                  <p><span className="font-semibold">Department:</span> {
+                                    task.category && task.category.departmentId 
+                                      ? departments.find((d: Department) => d.id === task.category?.departmentId)?.name || 'Unknown'
+                                      : 'General'
+                                  }</p>
                                 </TooltipContent>
                               </Tooltip>
                             )}
