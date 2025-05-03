@@ -23,9 +23,8 @@ export default function Departments() {
   const { toast } = useToast();
   
   // Fetch departments
-  const { data: departments = [], isLoading } = useQuery({
-    queryKey: ['/api/departments'],
-    staleTime: 5000
+  const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
+    queryKey: ['/api/departments']
   });
   
   // Create department form
@@ -59,16 +58,10 @@ export default function Departments() {
     mutationFn: async (values: DepartmentFormValues) => {
       if (editingDepartment) {
         // Update existing department
-        return apiRequest(`/api/departments/${editingDepartment.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(values)
-        });
+        return apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, values);
       } else {
         // Create new department
-        return apiRequest('/api/departments', {
-          method: 'POST',
-          body: JSON.stringify(values)
-        });
+        return apiRequest('POST', '/api/departments', values);
       }
     },
     onSuccess: () => {
@@ -99,9 +92,7 @@ export default function Departments() {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (departmentId: number) => {
-      return apiRequest(`/api/departments/${departmentId}`, {
-        method: 'DELETE'
-      });
+      return apiRequest('DELETE', `/api/departments/${departmentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
