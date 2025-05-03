@@ -37,7 +37,7 @@ export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull().default('#6b7280'), // Default gray color
-  departmentId: integer("department_id").references(() => departments.id), // Reference to department
+  department: text("department"), // Department field for custom categorization  
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -65,16 +65,8 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
 }));
 
-export const departmentsRelations = relations(departments, ({ many }) => ({
-  categories: many(categories),
-}));
-
-export const categoriesRelations = relations(categories, ({ many, one }) => ({
+export const categoriesRelations = relations(categories, ({ many }) => ({
   tasks: many(tasks),
-  department: one(departments, {
-    fields: [categories.departmentId],
-    references: [departments.id],
-  }),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({

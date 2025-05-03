@@ -1,8 +1,8 @@
 import { db } from "@db";
 import { 
-  users, tasks, projects, categories,
-  type User, type Task, type Project, type Category,
-  type InsertUser, type InsertTask, type InsertProject, type InsertCategory,
+  users, tasks, projects, categories, departments,
+  type User, type Task, type Project, type Category, type Department,
+  type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment,
   type UpdateTask 
 } from "@shared/schema";
 import { eq, and, or, desc, asc, isNull, sql } from "drizzle-orm";
@@ -75,6 +75,35 @@ export const storage = {
 
   deleteCategory: async (id: number): Promise<boolean> => {
     await db.delete(categories).where(eq(categories.id, id));
+    return true;
+  },
+  
+  // Department operations
+  getAllDepartments: async (): Promise<Department[]> => {
+    return db.query.departments.findMany();
+  },
+
+  getDepartmentById: async (id: number): Promise<Department | undefined> => {
+    return db.query.departments.findFirst({
+      where: eq(departments.id, id)
+    });
+  },
+
+  createDepartment: async (departmentData: InsertDepartment): Promise<Department> => {
+    const [newDepartment] = await db.insert(departments).values(departmentData).returning();
+    return newDepartment;
+  },
+
+  updateDepartment: async (id: number, departmentData: Partial<InsertDepartment>): Promise<Department | undefined> => {
+    const [updatedDepartment] = await db.update(departments)
+      .set(departmentData)
+      .where(eq(departments.id, id))
+      .returning();
+    return updatedDepartment;
+  },
+
+  deleteDepartment: async (id: number): Promise<boolean> => {
+    await db.delete(departments).where(eq(departments.id, id));
     return true;
   },
 
