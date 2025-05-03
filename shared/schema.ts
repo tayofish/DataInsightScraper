@@ -24,12 +24,20 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Departments table
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Categories table
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull().default('#6b7280'), // Default gray color
-  department: text("department"), // Department field for custom categorization
+  departmentId: integer("department_id").references(() => departments.id), // Reference to department
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -57,8 +65,16 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
 }));
 
-export const categoriesRelations = relations(categories, ({ many }) => ({
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  categories: many(categories),
+}));
+
+export const categoriesRelations = relations(categories, ({ many, one }) => ({
   tasks: many(tasks),
+  department: one(departments, {
+    fields: [categories.departmentId],
+    references: [departments.id],
+  }),
 }));
 
 export const tasksRelations = relations(tasks, ({ one }) => ({
@@ -87,6 +103,10 @@ export const projectInsertSchema = createInsertSchema(projects, {
   name: (schema) => schema.min(3, "Project name must be at least 3 characters"),
 });
 
+export const departmentInsertSchema = createInsertSchema(departments, {
+  name: (schema) => schema.min(2, "Department name must be at least 2 characters"),
+});
+
 export const categoryInsertSchema = createInsertSchema(categories, {
   name: (schema) => schema.min(2, "Category name must be at least 2 characters"),
 });
@@ -106,6 +126,11 @@ export type InsertUser = z.infer<typeof userInsertSchema>;
 export const projectSelectSchema = createSelectSchema(projects);
 export type Project = z.infer<typeof projectSelectSchema>;
 export type InsertProject = z.infer<typeof projectInsertSchema>;
+
+// Define department schemas
+export const departmentSelectSchema = createSelectSchema(departments);
+export type Department = z.infer<typeof departmentSelectSchema>;
+export type InsertDepartment = z.infer<typeof departmentInsertSchema>;
 
 // Define category schemas
 export const categorySelectSchema = createSelectSchema(categories);
