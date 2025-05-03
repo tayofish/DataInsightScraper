@@ -24,6 +24,14 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Categories table
+export const categories = pgTable("categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull().default('#6b7280'), // Default gray color
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Tasks table with relations to users and projects
 export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
@@ -34,6 +42,7 @@ export const tasks = pgTable("tasks", {
   status: statusEnum("status").default('todo'),
   projectId: integer("project_id").references(() => projects.id),
   assigneeId: integer("assignee_id").references(() => users.id),
+  categoryId: integer("category_id").references(() => categories.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -47,6 +56,10 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   tasks: many(tasks),
 }));
 
+export const categoriesRelations = relations(categories, ({ many }) => ({
+  tasks: many(tasks),
+}));
+
 export const tasksRelations = relations(tasks, ({ one }) => ({
   project: one(projects, {
     fields: [tasks.projectId],
@@ -55,6 +68,10 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
   assignee: one(users, {
     fields: [tasks.assigneeId],
     references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [tasks.categoryId],
+    references: [categories.id],
   }),
 }));
 
@@ -67,6 +84,10 @@ export const userInsertSchema = createInsertSchema(users, {
 
 export const projectInsertSchema = createInsertSchema(projects, {
   name: (schema) => schema.min(3, "Project name must be at least 3 characters"),
+});
+
+export const categoryInsertSchema = createInsertSchema(categories, {
+  name: (schema) => schema.min(2, "Category name must be at least 2 characters"),
 });
 
 export const taskInsertSchema = createInsertSchema(tasks, {
@@ -85,6 +106,11 @@ export const projectSelectSchema = createSelectSchema(projects);
 export type Project = z.infer<typeof projectSelectSchema>;
 export type InsertProject = z.infer<typeof projectInsertSchema>;
 
+// Define category schemas
+export const categorySelectSchema = createSelectSchema(categories);
+export type Category = z.infer<typeof categorySelectSchema>;
+export type InsertCategory = z.infer<typeof categoryInsertSchema>;
+
 // Define task schemas
 export const taskSelectSchema = createSelectSchema(tasks);
 export type Task = z.infer<typeof taskSelectSchema>;
@@ -101,6 +127,7 @@ export const taskFormSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'completed']).default('todo'),
   projectId: z.number().optional().nullable(),
   assigneeId: z.number().optional().nullable(),
+  categoryId: z.number().optional().nullable(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;

@@ -1,5 +1,7 @@
 import { db } from "./index";
 import * as schema from "@shared/schema";
+import { priorityEnum, statusEnum } from "@shared/schema";
+import { type InsertTask } from "@shared/schema";
 
 async function seed() {
   try {
@@ -35,6 +37,38 @@ async function seed() {
 
       const insertedUsers = await db.insert(schema.users).values(users).returning();
       console.log(`Inserted ${insertedUsers.length} users`);
+
+      // Check if there are already categories
+      const existingCategories = await db.query.categories.findMany();
+      if (existingCategories.length === 0) {
+        console.log("Seeding categories...");
+        // Create categories
+        const categories = [
+          {
+            name: "Feature",
+            color: "#3b82f6", // blue
+          },
+          {
+            name: "Bug",
+            color: "#ef4444", // red
+          },
+          {
+            name: "Documentation",
+            color: "#8b5cf6", // purple
+          },
+          {
+            name: "Research",
+            color: "#10b981", // green
+          },
+          {
+            name: "Design",
+            color: "#f59e0b", // amber
+          },
+        ];
+
+        const insertedCategories = await db.insert(schema.categories).values(categories).returning();
+        console.log(`Inserted ${insertedCategories.length} categories`);
+      }
 
       // Check if there are already projects
       const existingProjects = await db.query.projects.findMany();
@@ -75,43 +109,50 @@ async function seed() {
           const pastDue = new Date(now);
           pastDue.setDate(pastDue.getDate() - 2);
           
-          // Create tasks
+          // Get categories
+          const categories = await db.query.categories.findMany();
+          
+          // Create tasks with type-safe values
           const tasks = [
             {
               title: "Create web scraper for competitor analysis",
               description: "Build a scraper to extract product data from competitor websites",
               dueDate: tomorrow,
-              priority: "high",
-              status: "todo",
+              priority: "high" as const,
+              status: "todo" as const,
               projectId: insertedProjects[0].id,
               assigneeId: insertedUsers[0].id,
+              categoryId: categories[3].id, // Research
             },
             {
               title: "Analyze social media sentiment for Product X",
               description: "Collect and analyze social media posts about our latest product",
               dueDate: nextWeek,
-              priority: "medium",
-              status: "todo",
+              priority: "medium" as const,
+              status: "todo" as const,
               projectId: insertedProjects[1].id,
               assigneeId: insertedUsers[1].id,
+              categoryId: categories[0].id, // Feature
             },
             {
               title: "Create SQL query templates for monthly reports",
               description: "Develop reusable SQL templates for generating monthly sales reports",
               dueDate: nextWeek,
-              priority: "low",
-              status: "todo",
+              priority: "low" as const,
+              status: "todo" as const,
               projectId: insertedProjects[2].id,
               assigneeId: null,
+              categoryId: categories[2].id, // Documentation
             },
             {
               title: "Set up data extraction from Instagram",
               description: "Configure APIs to extract engagement metrics from Instagram",
               dueDate: pastDue,
-              priority: "medium",
-              status: "completed",
+              priority: "medium" as const,
+              status: "completed" as const,
               projectId: insertedProjects[0].id,
               assigneeId: insertedUsers[0].id,
+              categoryId: categories[1].id, // Bug
             },
           ];
 
