@@ -95,6 +95,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+          <p className="text-sm text-gray-500 mt-2">
+            {isEditMode ? 'Edit task details below.' : 'Fill out the form below to create a new task.'}
+          </p>
         </DialogHeader>
         
         <Form {...form}>
@@ -186,8 +189,14 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                   <FormItem>
                     <FormLabel>Project</FormLabel>
                     <Select
-                      value={field.value?.toString() || ''}
-                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                      value={field.value?.toString() || '-1'}
+                      onValueChange={(value) => {
+                        if (value === '-1') {
+                          field.onChange(null);
+                        } else {
+                          field.onChange(parseInt(value));
+                        }
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -195,7 +204,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No Project</SelectItem>
+                        <SelectItem value="-1">No Project</SelectItem>
                         {projects.map((project) => (
                           <SelectItem key={project.id} value={project.id.toString()}>
                             {project.name}
