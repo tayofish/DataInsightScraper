@@ -284,17 +284,40 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="-1">No Category</SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            <div className="flex items-center">
-                              <div 
-                                className="w-3 h-3 rounded-full mr-2" 
-                                style={{ backgroundColor: category.color || '#6b7280' }}
-                              />
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        
+                        {/* Group categories by department */}
+                        {(() => {
+                          // Create a map of departments to categories
+                          const departmentMap: Record<string, typeof categories> = {};
+                          
+                          categories.forEach(category => {
+                            const dept = category.department || 'General';
+                            if (!departmentMap[dept]) {
+                              departmentMap[dept] = [];
+                            }
+                            departmentMap[dept].push(category);
+                          });
+                          
+                          // Return the grouped categories
+                          return Object.entries(departmentMap).map(([department, deptCategories]) => (
+                            <React.Fragment key={department}>
+                              <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                                {department}
+                              </SelectItem>
+                              {deptCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                                  <div className="flex items-center">
+                                    <div 
+                                      className="w-3 h-3 rounded-full mr-2" 
+                                      style={{ backgroundColor: category.color || '#6b7280' }}
+                                    />
+                                    {category.name}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </React.Fragment>
+                          ));
+                        })()}
                       </SelectContent>
                     </Select>
                     <FormMessage />

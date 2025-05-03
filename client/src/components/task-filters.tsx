@@ -134,17 +134,41 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="-2">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    <div className="flex items-center">
-                      <div 
-                        className="w-3 h-3 rounded-full mr-2" 
-                        style={{ backgroundColor: category.color }}
-                      />
-                      {category.name}
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="-1">Uncategorized</SelectItem>
+                
+                {/* Group categories by department */}
+                {(() => {
+                  // Create a map of departments to categories
+                  const departmentMap: Record<string, Category[]> = {};
+                  
+                  categories.forEach(category => {
+                    const dept = category.department || 'General';
+                    if (!departmentMap[dept]) {
+                      departmentMap[dept] = [];
+                    }
+                    departmentMap[dept].push(category);
+                  });
+                  
+                  // Return the grouped categories
+                  return Object.entries(departmentMap).map(([department, deptCategories]) => (
+                    <React.Fragment key={department}>
+                      <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                        {department}
+                      </SelectItem>
+                      {deptCategories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                          <div className="flex items-center">
+                            <div 
+                              className="w-3 h-3 rounded-full mr-2" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </React.Fragment>
+                  ));
+                })()}
               </SelectContent>
             </Select>
           </div>
