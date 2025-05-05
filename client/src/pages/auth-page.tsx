@@ -149,7 +149,12 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="••••••••" 
+                                className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -238,7 +243,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="John Doe" {...field} />
+                              <Input 
+                                placeholder="John Doe" 
+                                className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -252,7 +261,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="johndoe" {...field} />
+                              <Input 
+                                placeholder="johndoe" 
+                                className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -266,7 +279,12 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input type="password" placeholder="••••••••" {...field} />
+                              <Input 
+                                type="password" 
+                                placeholder="••••••••" 
+                                className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
