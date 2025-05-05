@@ -15,7 +15,7 @@ interface StatCardProps {
 
 const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false }: StatCardProps) => {
   return (
-    <Card className="dashboard-stat-card hover:scale-102 overflow-hidden">
+    <Card className="dashboard-stat-card hover:scale-105 overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-center">
           <div className={`flex-shrink-0 ${iconBgColor} rounded-xl p-3 shadow-sm`}>
@@ -45,8 +45,15 @@ const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = fals
   );
 };
 
+interface TaskStatistics {
+  total: number;
+  completed: number;
+  pending: number;
+  overdue: number;
+}
+
 export default function DashboardStats() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<TaskStatistics>({
     queryKey: ['/api/tasks/statistics'],
   });
 

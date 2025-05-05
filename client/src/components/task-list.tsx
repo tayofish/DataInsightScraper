@@ -232,17 +232,19 @@ export default function TaskList({ filters }: TaskListProps) {
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Tasks</CardTitle>
-          <CardDescription>
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <div className="px-3 py-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
             {sortedTasks.length === 0
-              ? "No tasks found. Try adjusting your filters or create a new task."
-              : `Showing ${sortedTasks.length} task${sortedTasks.length === 1 ? '' : 's'}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ul className="divide-y divide-gray-200">
+              ? "No tasks found"
+              : `${sortedTasks.length} task${sortedTasks.length === 1 ? '' : 's'}`}
+          </div>
+          <div className="text-xs text-gray-500">
+            {sortedTasks.length === 0 ? "Try adjusting your filters or create a new task" : ""}
+          </div>
+        </div>
+        
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm">
             {sortedTasks.map((task) => {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);
@@ -368,14 +370,14 @@ export default function TaskList({ filters }: TaskListProps) {
                 </li>
               );
             })}
-          </ul>
-        </CardContent>
+        </ul>
+        
         {sortedTasks.length === 0 && (
-          <CardFooter className="flex justify-center border-t pt-6">
+          <div className="flex justify-center py-8 bg-white dark:bg-gray-900 rounded-xl mt-4 shadow-sm">
             <p className="text-center text-gray-500">No tasks match your current filters.</p>
-          </CardFooter>
+          </div>
         )}
-      </Card>
+      </div>
       
       {isTaskFormOpen && (
         <TaskForm
