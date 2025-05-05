@@ -213,7 +213,8 @@ export const taskInsertSchema = createInsertSchema(tasks, {
   title: (schema) => schema.min(3, "Task title must be at least 3 characters"),
 });
 
-export const taskUpdateSchema = taskInsertSchema.partial().required({ id: true });
+// Update schema doesn't need the ID to be required in the body since it's passed in the URL
+export const taskUpdateSchema = taskInsertSchema.partial();
 
 // Define user schemas
 export const userSelectSchema = createSelectSchema(users);

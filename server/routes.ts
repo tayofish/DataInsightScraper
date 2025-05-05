@@ -577,11 +577,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid task ID" });
       }
 
+      // Get current task data to track changes
+      const currentTask = await storage.getTaskById(id);
+      if (!currentTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
       const taskData = taskUpdateSchema.omit({ id: true }).partial().parse(req.body);
       const updatedTask = await storage.updateTask(id, taskData);
       
       if (!updatedTask) {
         return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Only log updates if user is authenticated
+      if (req.isAuthenticated()) {
+        const userId = req.user.id;
+        
+        // Log changes for tracked fields
+        const trackedFields = [
+          { field: 'status', label: 'Status' },
+          { field: 'priority', label: 'Priority' },
+          { field: 'assigneeId', label: 'Assignee' },
+          { field: 'title', label: 'Title' },
+          { field: 'description', label: 'Description' },
+          { field: 'dueDate', label: 'Due Date' },
+          { field: 'categoryId', label: 'Category' }
+        ];
+
+        for (const { field, label } of trackedFields) {
+          if (taskData[field] !== undefined && taskData[field] !== currentTask[field]) {
+            // Create task update record
+            await storage.createTaskUpdate({
+              taskId: id,
+              userId: userId,
+              updateType: `${label} Changed`,
+              previousValue: currentTask[field]?.toString() || null,
+              newValue: taskData[field]?.toString() || null,
+              comment: `${label} updated`
+            });
+          }
+        }
+
+        // Handle mentions in description or comments
+        if (taskData.description && taskData.description !== currentTask.description) {
+          const mentions = extractMentions(taskData.description);
+          if (mentions.length > 0) {
+            // Process mentions (e.g. notify mentioned users)
+            for (const username of mentions) {
+              // Record mention update
+              await storage.createTaskUpdate({
+                taskId: id,
+                userId: userId,
+                updateType: 'Mention',
+                previousValue: null,
+                newValue: username,
+                comment: `@${username} mentioned in task description`
+              });
+            }
+          }
+        }
       }
 
       return res.status(200).json(updatedTask);
@@ -593,6 +648,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to update task" });
     }
   });
+  
+  // Helper function to extract @mentions from text
+  function extractMentions(text: string): string[] {
+    if (!text) return [];
+    const mentionPattern = /@([a-zA-Z0-9_]+)/g;
+    const matches = text.match(mentionPattern) || [];
+    return matches.map(mention => mention.substring(1)); // Remove the @ symbol
+  }
 
   // Delete task
   app.delete("/api/tasks/:id", async (req, res) => {
@@ -677,6 +740,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching task updates:", error);
       return res.status(500).json({ message: "Failed to fetch task updates" });
+    }
+  });
+  
+  // Get mentions from task updates for a specific task
+  app.get("/api/tasks/:taskId/mentions", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      
+      // Only get updates with type 'Mention'
+      const updates = await storage.getTaskUpdatesWithType(taskId, 'Mention');
+      return res.status(200).json(updates);
+    } catch (error) {
+      console.error("Error fetching task mentions:", error);
+      return res.status(500).json({ message: "Failed to fetch task mentions" });
     }
   });
 
