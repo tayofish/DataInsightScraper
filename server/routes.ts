@@ -1,7 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema } from "@shared/schema";
+import { 
+  taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
+  projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema
+} from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 
@@ -604,6 +607,424 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting task:", error);
       return res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // === PROJECT ASSIGNMENT ROUTES ===
+  // Get project assignments (can filter by projectId or userId)
+  app.get("/api/project-assignments", async (req, res) => {
+    try {
+      const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      
+      const assignments = await storage.getProjectAssignments(projectId, userId);
+      return res.status(200).json(assignments);
+    } catch (error) {
+      console.error("Error fetching project assignments:", error);
+      return res.status(500).json({ message: "Failed to fetch project assignments" });
+    }
+  });
+
+  // Create project assignment
+  app.post("/api/project-assignments", async (req, res) => {
+    try {
+      const assignmentData = projectAssignmentInsertSchema.parse(req.body);
+      
+      // Check if the assignment already exists
+      const existingAssignments = await storage.getProjectAssignments(assignmentData.projectId, assignmentData.userId);
+      if (existingAssignments.length > 0) {
+        return res.status(400).json({ message: "User is already assigned to this project" });
+      }
+      
+      const newAssignment = await storage.createProjectAssignment(assignmentData);
+      return res.status(201).json(newAssignment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assignment data", errors: error.errors });
+      }
+      console.error("Error creating project assignment:", error);
+      return res.status(500).json({ message: "Failed to create project assignment" });
+    }
+  });
+
+  // Delete project assignment
+  app.delete("/api/project-assignments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid assignment ID" });
+      }
+
+      await storage.deleteProjectAssignment(id);
+      return res.status(200).json({ message: "Project assignment removed successfully" });
+    } catch (error) {
+      console.error("Error removing project assignment:", error);
+      return res.status(500).json({ message: "Failed to remove project assignment" });
+    }
+  });
+
+  // === TASK UPDATE ROUTES ===
+  // Get task updates for a specific task
+  app.get("/api/tasks/:taskId/updates", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      const updates = await storage.getTaskUpdates(taskId);
+      return res.status(200).json(updates);
+    } catch (error) {
+      console.error("Error fetching task updates:", error);
+      return res.status(500).json({ message: "Failed to fetch task updates" });
+    }
+  });
+
+  // Create task update
+  app.post("/api/tasks/:taskId/updates", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      const updateData = {
+        ...taskUpdateInsertSchema.parse(req.body),
+        taskId,
+        userId: req.user.id
+      };
+
+      const newUpdate = await storage.createTaskUpdate(updateData);
+      return res.status(201).json(newUpdate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid update data", errors: error.errors });
+      }
+      console.error("Error creating task update:", error);
+      return res.status(500).json({ message: "Failed to create task update" });
+    }
+  });
+
+  // === TASK COLLABORATOR ROUTES ===
+  // Get collaborators for a task
+  app.get("/api/tasks/:taskId/collaborators", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      const collaborators = await storage.getTaskCollaborators(taskId);
+      return res.status(200).json(collaborators);
+    } catch (error) {
+      console.error("Error fetching collaborators:", error);
+      return res.status(500).json({ message: "Failed to fetch collaborators" });
+    }
+  });
+
+  // Invite collaborator to a task
+  app.post("/api/tasks/:taskId/collaborators", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Check if user can invite collaborators (assignee or creator)
+      if (task.assigneeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to invite collaborators to this task" });
+      }
+
+      const { userId, role } = req.body;
+      
+      // Validate required fields
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+
+      // Check if collaborator already exists
+      const existingCollaborators = await storage.getTaskCollaborators(taskId);
+      if (existingCollaborators.some(c => c.userId === userId)) {
+        return res.status(400).json({ message: "User is already a collaborator on this task" });
+      }
+
+      const collaboratorData = {
+        ...taskCollaboratorInsertSchema.parse({
+          taskId,
+          userId,
+          role: role || "viewer"
+        }),
+        invitedBy: req.user.id
+      };
+
+      const newCollaborator = await storage.createTaskCollaborator(collaboratorData);
+      return res.status(201).json(newCollaborator);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid collaborator data", errors: error.errors });
+      }
+      console.error("Error creating collaborator:", error);
+      return res.status(500).json({ message: "Failed to create collaborator" });
+    }
+  });
+
+  // Update collaborator status (accept/decline)
+  app.patch("/api/task-collaborators/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid collaborator ID" });
+      }
+
+      // Check if invitation exists
+      const collaborator = await storage.getTaskCollaboratorById(id);
+      if (!collaborator) {
+        return res.status(404).json({ message: "Collaboration invitation not found" });
+      }
+
+      // Check if user can update this invitation (must be the invitee)
+      if (collaborator.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this invitation" });
+      }
+
+      const { status } = req.body;
+      if (!status || !["accepted", "declined"].includes(status)) {
+        return res.status(400).json({ message: "Valid status (accepted/declined) is required" });
+      }
+
+      const updatedCollaborator = await storage.updateTaskCollaborator(id, { status });
+      return res.status(200).json(updatedCollaborator);
+    } catch (error) {
+      console.error("Error updating collaborator:", error);
+      return res.status(500).json({ message: "Failed to update collaborator" });
+    }
+  });
+
+  // Remove collaborator
+  app.delete("/api/task-collaborators/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid collaborator ID" });
+      }
+
+      // Check if collaborator exists
+      const collaborator = await storage.getTaskCollaboratorById(id);
+      if (!collaborator) {
+        return res.status(404).json({ message: "Collaborator not found" });
+      }
+
+      // Check if user can remove this collaborator (must be either the task assignee, the inviter, or the collaborator themselves)
+      const task = await storage.getTaskById(collaborator.taskId);
+      if (collaborator.userId !== req.user.id && 
+          collaborator.invitedBy !== req.user.id && 
+          task?.assigneeId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to remove this collaborator" });
+      }
+
+      await storage.deleteTaskCollaborator(id);
+      return res.status(200).json({ message: "Collaborator removed successfully" });
+    } catch (error) {
+      console.error("Error removing collaborator:", error);
+      return res.status(500).json({ message: "Failed to remove collaborator" });
+    }
+  });
+
+  // === REPORT ROUTES ===
+  // Get all reports
+  app.get("/api/reports", async (req, res) => {
+    try {
+      const reports = await storage.getAllReports();
+      return res.status(200).json(reports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      return res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  // Get report by ID
+  app.get("/api/reports/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      return res.status(200).json(report);
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      return res.status(500).json({ message: "Failed to fetch report" });
+    }
+  });
+
+  // Create report
+  app.post("/api/reports", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const reportData = {
+        ...reportInsertSchema.parse(req.body),
+        createdBy: req.user.id
+      };
+
+      const newReport = await storage.createReport(reportData);
+      return res.status(201).json(newReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid report data", errors: error.errors });
+      }
+      console.error("Error creating report:", error);
+      return res.status(500).json({ message: "Failed to create report" });
+    }
+  });
+
+  // Update report
+  app.patch("/api/reports/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      // Check if report exists
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Check if user can update this report (must be the creator)
+      if (report.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this report" });
+      }
+
+      const reportData = reportInsertSchema.partial().parse(req.body);
+      const updatedReport = await storage.updateReport(id, reportData);
+      
+      if (!updatedReport) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      return res.status(200).json(updatedReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid report data", errors: error.errors });
+      }
+      console.error("Error updating report:", error);
+      return res.status(500).json({ message: "Failed to update report" });
+    }
+  });
+
+  // Delete report
+  app.delete("/api/reports/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      // Check if report exists
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Check if user can delete this report (must be the creator)
+      if (report.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to delete this report" });
+      }
+
+      await storage.deleteReport(id);
+      return res.status(200).json({ message: "Report deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      return res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
+  // Generate report results
+  app.post("/api/reports/:id/generate", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      // Check if report exists
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Generate report results based on report type
+      let results;
+      switch (report.type) {
+        case "tasks_by_project":
+          results = await storage.generateTasksByProjectReport(report.parameters);
+          break;
+        case "user_performance":
+          results = await storage.generateUserPerformanceReport(report.parameters);
+          break;
+        case "task_status_summary":
+          results = await storage.generateTaskStatusSummaryReport(report.parameters);
+          break;
+        default:
+          return res.status(400).json({ message: "Unsupported report type" });
+      }
+
+      // Update the last run timestamp
+      await storage.updateReport(id, { lastRunAt: new Date() });
+
+      return res.status(200).json(results);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      return res.status(500).json({ message: "Failed to generate report" });
     }
   });
 
