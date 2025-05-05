@@ -14,7 +14,8 @@ import {
   Settings,
   Menu,
   Building2,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -96,6 +97,12 @@ export function Sidebar() {
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings
         </NavItem>
+        {/* Only show admin link for admin user (id 4) */}
+        {user?.id === 4 && (
+          <NavItem href="/admin" icon={<Shield size={20} />} isActive={location === '/admin'}>
+            Admin Dashboard
+          </NavItem>
+        )}
       </nav>
     </>
   );

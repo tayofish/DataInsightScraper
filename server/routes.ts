@@ -126,6 +126,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to change password" });
     }
   });
+  
+  // === ADMIN ROUTES ===
+  // Admin middleware to check if user is an admin
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
+    // For now, we're considering user with ID 4 (admin) as the admin user
+    // In a production system, you'd have a proper role system
+    if (req.user.id !== 4) {
+      return res.status(403).json({ message: "Admin privileges required" });
+    }
+    
+    next();
+  };
+  
+  // Admin: Get all users (with sensitive info)
+  app.get("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      return res.status(200).json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+  
+  // Admin: Create user
+  app.post("/api/admin/users", isAdmin, async (req, res) => {
+    try {
+      const { username, password, name, avatar, isAdmin } = req.body;
+      
+      // Validate required fields
+      if (!username || !password || !name) {
+        return res.status(400).json({ message: "Username, password, and name are required" });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Hash the password
+      const { hashPassword } = await import('./auth');
+      const hashedPassword = await hashPassword(password);
+      
+      // Create the user
+      const newUser = await storage.createUser({
+        username,
+        password: hashedPassword,
+        name,
+        avatar: avatar || null
+      });
+      
+      return res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      return res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+  
+  // Admin: Update user
+  app.patch("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const { username, password, name, avatar, isAdmin } = req.body;
+      let userData: any = {};
+      
+      // Only include fields that were provided
+      if (username !== undefined) userData.username = username;
+      if (name !== undefined) userData.name = name;
+      if (avatar !== undefined) userData.avatar = avatar;
+      
+      // If password was provided, hash it
+      if (password) {
+        const { hashPassword } = await import('./auth');
+        userData.password = await hashPassword(password);
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(id, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+  
+  // Admin: Delete user
+  app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Don't allow deleting the admin user
+      if (id === 4) {
+        return res.status(400).json({ message: "Cannot delete the admin user" });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Delete the user
+      await storage.deleteUser(id);
+      
+      return res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
 
   // === PROJECT ROUTES ===
   // Get all projects

@@ -58,6 +58,11 @@ export const storage = {
       .returning();
     return updatedUser;
   },
+  
+  deleteUser: async (id: number): Promise<boolean> => {
+    await db.delete(users).where(eq(users.id, id));
+    return true;
+  },
 
   // Project operations
   getAllProjects: async (): Promise<Project[]> => {

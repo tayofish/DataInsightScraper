@@ -9,6 +9,7 @@ import Projects from "@/pages/projects";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
 import Settings from "@/pages/settings";
+import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
 import { Sidebar } from "@/components/sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -65,6 +66,12 @@ function Router() {
       <ProtectedRoute path="/settings" component={() => (
         <AppLayout>
           <Settings />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/admin" component={() => (
+        <AppLayout>
+          <AdminPage />
         </AppLayout>
       )} />
       
