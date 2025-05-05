@@ -3,9 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
+  // Setup authentication routes and middleware
+  setupAuth(app);
+  
+  // Application API routes
   // prefix all routes with /api
 
   // === USER ROUTES ===

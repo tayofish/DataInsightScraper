@@ -1,4 +1,5 @@
 import { db } from "@db";
+import { pool } from "@db";
 import { 
   users, tasks, projects, categories, departments,
   type User, type Task, type Project, type Category, type Department,
@@ -6,9 +7,22 @@ import {
   type UpdateTask 
 } from "@shared/schema";
 import { eq, and, or, desc, asc, isNull, sql } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+
+// Setup PostgreSQL session store
+const PostgresSessionStore = connectPg(session);
+const sessionStore = new PostgresSessionStore({
+  pool,
+  createTableIfMissing: true,
+  tableName: 'session'
+});
 
 // User-related operations
 export const storage = {
+  // Session store for authentication
+  sessionStore,
+  
   // User operations
   getAllUsers: async (): Promise<User[]> => {
     return db.query.users.findMany();
@@ -18,6 +32,31 @@ export const storage = {
     return db.query.users.findFirst({
       where: eq(users.id, id)
     });
+  },
+  
+  getUser: async (id: number): Promise<User | undefined> => {
+    return db.query.users.findFirst({
+      where: eq(users.id, id)
+    });
+  },
+  
+  getUserByUsername: async (username: string): Promise<User | undefined> => {
+    return db.query.users.findFirst({
+      where: eq(users.username, username)
+    });
+  },
+  
+  createUser: async (userData: InsertUser): Promise<User> => {
+    const [newUser] = await db.insert(users).values(userData).returning();
+    return newUser;
+  },
+  
+  updateUser: async (id: number, userData: Partial<InsertUser>): Promise<User | undefined> => {
+    const [updatedUser] = await db.update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
   },
 
   // Project operations
