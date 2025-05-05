@@ -8,33 +8,71 @@ import Tasks from "@/pages/tasks";
 import Projects from "@/pages/projects";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
+import AuthPage from "@/pages/auth-page";
 import { Sidebar } from "@/components/sidebar";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 
-function Router() {
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/tasks" component={Tasks} />
-            <Route path="/projects" component={Projects} />
-            <Route path="/categories" component={Categories} />
-            <Route path="/departments" component={Departments} />
-            <Route component={NotFound} />
-          </Switch>
+          {children}
         </main>
       </div>
     </div>
   );
 }
 
+function Router() {
+  return (
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      
+      <ProtectedRoute path="/" component={() => (
+        <AppLayout>
+          <Dashboard />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/tasks" component={() => (
+        <AppLayout>
+          <Tasks />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/projects" component={() => (
+        <AppLayout>
+          <Projects />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/categories" component={() => (
+        <AppLayout>
+          <Categories />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/departments" component={() => (
+        <AppLayout>
+          <Departments />
+        </AppLayout>
+      )} />
+      
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <AuthProvider>
+        <Router />
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -13,8 +13,10 @@ import {
   Users,
   Settings,
   Menu,
-  Building2
+  Building2,
+  LogOut
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 
 interface NavItemProps {
@@ -50,9 +52,14 @@ export function Sidebar() {
   const [location] = useLocation();
   const isMobile = useMobile();
   const [showMobileSidebar, setShowMobileSidebar] = React.useState(false);
+  const { user, logoutMutation } = useAuth();
 
   const toggleMobileSidebar = () => {
     setShowMobileSidebar(!showMobileSidebar);
+  };
+  
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
   const sidebarContent = (
@@ -120,18 +127,28 @@ export function Sidebar() {
                 {sidebarContent}
               </div>
               <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-                <div className="flex-shrink-0 group block">
-                  <div className="flex items-center">
-                    <div>
-                      <Avatar>
-                        <AvatarImage src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Profile" />
-                        <AvatarFallback>TC</AvatarFallback>
-                      </Avatar>
+                <div className="flex-shrink-0 group block w-full">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div>
+                        <Avatar>
+                          <AvatarImage src={user?.avatar || undefined} alt="Profile" />
+                          <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{user?.name || 'User'}</p>
+                        <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">{user?.username}</p>
+                      </div>
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">Tom Cook</p>
-                      <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">Product Manager</p>
-                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={handleLogout}
+                      disabled={logoutMutation.isPending}
+                    >
+                      <LogOut size={18} className="text-gray-500" />
+                    </Button>
                   </div>
                 </div>
               </div>
