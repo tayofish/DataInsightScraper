@@ -52,7 +52,7 @@ type ProjectAssignmentFormValues = z.infer<typeof projectAssignmentSchema>;
 export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("projects");
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -335,6 +335,195 @@ export default function AdminPage() {
   // Handle assignment form submission
   const onAssignmentSubmit = (values: ProjectAssignmentFormValues) => {
     createAssignmentMutation.mutate(values);
+  };
+  
+  // Render project assignments tab
+  const renderProjectAssignmentsTab = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Project Assignments</h2>
+          <Button onClick={() => openAssignmentDialog()}>
+            <UserPlus className="mr-2 h-4 w-4" /> Assign User to Project
+          </Button>
+        </div>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Project</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingAssignments ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4">
+                      <RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" />
+                    </TableCell>
+                  </TableRow>
+                ) : projectAssignments && projectAssignments.length > 0 ? (
+                  projectAssignments.map((assignment) => (
+                    <TableRow key={assignment.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={assignment.user?.avatar || undefined} alt={assignment.user?.name || "User"} />
+                            <AvatarFallback>{assignment.user?.name?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{assignment.user?.name || "Unnamed User"}</p>
+                            <p className="text-sm text-muted-foreground">{assignment.user?.username}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-4 w-4 text-muted-foreground" />
+                          <span>{assignment.project?.name || "Unknown Project"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{assignment.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteAssignmentMutation.mutate(assignment.id)}
+                          disabled={deleteAssignmentMutation.isPending}
+                        >
+                          {deleteAssignmentMutation.isPending ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Link2Off className="h-4 w-4 text-red-500" />
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4">
+                      No project assignments found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        
+        {/* Project Assignment Dialog */}
+        <Dialog open={isAssignmentDialogOpen} onOpenChange={setIsAssignmentDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign User to Project</DialogTitle>
+              <DialogDescription>
+                Select a user and project to create an assignment.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...assignmentForm}>
+              <form onSubmit={assignmentForm.handleSubmit(onAssignmentSubmit)} className="space-y-4">
+                <FormField
+                  control={assignmentForm.control}
+                  name="userId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users?.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.name || user.username}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={assignmentForm.control}
+                  name="projectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        defaultValue={field.value.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {projects?.map((project) => (
+                            <SelectItem key={project.id} value={project.id.toString()}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={assignmentForm.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Member" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsAssignmentDialogOpen(false)}
+                    type="button"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createAssignmentMutation.isPending}
+                  >
+                    {createAssignmentMutation.isPending ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Assigning...
+                      </>
+                    ) : (
+                      "Assign to Project"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
   };
 
   // Create dashboard stats cards for admin overview
