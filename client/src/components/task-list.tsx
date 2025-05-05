@@ -4,17 +4,10 @@ import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
+// Card imports removed as they're no longer needed
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserPlus, ClipboardX } from 'lucide-react';
+import { Pencil, Trash2, UserPlus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -204,29 +197,39 @@ export default function TaskList({ filters }: TaskListProps) {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Tasks</CardTitle>
-          <CardDescription>Loading tasks...</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="w-full">
+        <div className="flex items-center justify-between mb-4">
+          <div className="px-3 py-1">
+            <Skeleton className="h-6 w-24" />
+          </div>
+          <div>
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        
+        <div className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-800">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="mb-4 p-4 border-b border-gray-200">
-              <div className="flex items-start">
-                <Skeleton className="h-4 w-4 mt-1 mr-3" />
+            <div key={i} className="p-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-start animate-pulse">
+                <Skeleton className="h-5 w-5 mt-1 mr-3 rounded-full" />
                 <div className="w-full">
-                  <Skeleton className="h-5 w-3/4 mb-2" />
-                  <div className="flex space-x-2 mb-2">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-5 w-3/4 mb-2 rounded-md" />
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-32 rounded-full" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
                   </div>
+                </div>
+                <div className="flex ml-4 space-x-2">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-8 w-8 rounded-full" />
                 </div>
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -380,7 +383,7 @@ export default function TaskList({ filters }: TaskListProps) {
           </ul>
         ) : (
           <div className="flex flex-col items-center justify-center py-10 bg-white dark:bg-gray-900 rounded-xl mt-4 shadow-sm transition-all duration-300 border border-gray-100 dark:border-gray-800">
-            <ClipboardX className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+            <Trash2 className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
             <p className="text-center text-gray-500 dark:text-gray-400 font-medium">No tasks match your current filters.</p>
             <p className="text-center text-gray-400 dark:text-gray-500 text-sm mt-1">Try adjusting your filters or create a new task.</p>
           </div>
