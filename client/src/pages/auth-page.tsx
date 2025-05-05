@@ -98,8 +98,8 @@ export default function AuthPage() {
       <div className="flex flex-col justify-center flex-1 px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="w-full max-w-md mx-auto lg:w-96">
           <div className="mb-8">
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-              Welcome to Task Manager
+            <h2 className="mt-6 text-3xl font-extrabold gradient-heading">
+              Welcome to TaskScout
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               {activeTab === "login" ? "Sign in to your account" : "Create a new account"}
@@ -107,16 +107,16 @@ export default function AuthPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-gray-100/80 rounded-xl">
+              <TabsTrigger value="login" className="rounded-lg text-sm font-medium">Login</TabsTrigger>
+              <TabsTrigger value="register" className="rounded-lg text-sm font-medium">Register</TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
             <TabsContent value="login">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Login</CardTitle>
+              <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden hover-card">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl text-gray-800">Welcome Back</CardTitle>
                   <CardDescription>
                     Enter your credentials to access your account
                   </CardDescription>
@@ -131,7 +131,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="username" {...field} />
+                              <Input 
+                                placeholder="username" 
+                                className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                {...field} 
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -154,12 +158,12 @@ export default function AuthPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             Logging in...
                           </>
                         ) : (
@@ -217,9 +221,9 @@ export default function AuthPage() {
 
             {/* Register Tab */}
             <TabsContent value="register">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create an account</CardTitle>
+              <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden hover-card">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl text-gray-800">Join TaskScout</CardTitle>
                   <CardDescription>
                     Enter your information to create a new account
                   </CardDescription>
@@ -271,12 +275,12 @@ export default function AuthPage() {
 
                       <Button 
                         type="submit" 
-                        className="w-full" 
+                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" 
                         disabled={registerMutation.isPending}
                       >
                         {registerMutation.isPending ? (
                           <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                             Creating account...
                           </>
                         ) : (
@@ -337,28 +341,73 @@ export default function AuthPage() {
 
       {/* Right side - Hero */}
       <div className="relative hidden w-0 flex-1 lg:block">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700 flex flex-col justify-center p-12">
-          <div className="max-w-2xl mx-auto text-white">
-            <h1 className="text-4xl font-bold mb-6">Streamline Your Workflow</h1>
-            <p className="text-xl mb-8">
-              Track tasks, collaborate with team members, and boost productivity with our intuitive task management platform.
-            </p>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                <h3 className="font-semibold text-lg mb-2">Organize Tasks</h3>
-                <p>Categorize and prioritize tasks to stay on top of your workload</p>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 flex flex-col justify-center p-12">
+          <div className="relative">
+            {/* Abstract circles background */}
+            <div className="absolute top-[-100px] right-[-50px] w-[300px] h-[300px] rounded-full bg-white/5 backdrop-blur-xl"></div>
+            <div className="absolute bottom-[-150px] left-[-100px] w-[400px] h-[400px] rounded-full bg-white/5 backdrop-blur-sm"></div>
+            <div className="absolute top-[30%] left-[20%] w-[200px] h-[200px] rounded-full bg-white/5 backdrop-blur-md"></div>
+            
+            {/* Content */}
+            <div className="max-w-2xl mx-auto text-white relative z-10">
+              <div className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-md mb-3 text-sm font-medium">
+                Modern Task Management
               </div>
-              <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                <h3 className="font-semibold text-lg mb-2">Track Progress</h3>
-                <p>Monitor task status and deadlines in real-time</p>
-              </div>
-              <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                <h3 className="font-semibold text-lg mb-2">Team Collaboration</h3>
-                <p>Assign tasks and communicate with team members</p>
-              </div>
-              <div className="bg-white/10 p-4 rounded-lg backdrop-blur-sm">
-                <h3 className="font-semibold text-lg mb-2">Custom Categories</h3>
-                <p>Create department-specific categories for better organization</p>
+              <h1 className="text-5xl font-bold mb-6 leading-tight">
+                Streamline Your <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">Workflow</span>
+              </h1>
+              <p className="text-xl mb-10 text-blue-50 font-light leading-relaxed">
+                Track tasks, collaborate with team members, and boost productivity with our intuitive task management platform.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-6">
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="18" x="3" y="3" rx="2" />
+                      <path d="m9 15 3-3 3 3" />
+                      <path d="M9 9h6" />
+                    </svg>
+                    Organize Tasks
+                  </h3>
+                  <p className="text-blue-100">Categorize and prioritize tasks to stay on top of your workload</p>
+                </div>
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20v-6" />
+                      <path d="M6 20v-6" />
+                      <path d="M18 20v-6" />
+                      <path d="M6 14v-4" />
+                      <path d="M18 14v-4" />
+                      <path d="M12 14V4" />
+                    </svg>
+                    Track Progress
+                  </h3>
+                  <p className="text-blue-100">Monitor task status and deadlines in real-time</p>
+                </div>
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8c0-3.3-2.7-6-6-6s-6 2.7-6 6 2.7 6 6 6h10" />
+                      <path d="M18 16v-2" />
+                      <path d="M18 20v-2" />
+                    </svg>
+                    Team Collaboration
+                  </h3>
+                  <p className="text-blue-100">Assign tasks and communicate with team members</p>
+                </div>
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
+                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 2h8" />
+                      <path d="M9 2v6.4a3 3 0 0 1-.8 2l-6.8 6.2a1 1 0 0 0 .8 1.8h8.8" />
+                      <path d="M15 2v7.6a3 3 0 0 0 .8 2l6.8 6.2a1 1 0 0 1-.8 1.8H5.1" />
+                    </svg>
+                    Custom Categories
+                  </h3>
+                  <p className="text-blue-100">Create department-specific categories for better organization</p>
+                </div>
               </div>
             </div>
           </div>
