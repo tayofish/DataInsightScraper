@@ -1,6 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { BearerStrategy } from "passport-azure-ad";
+import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -58,6 +59,55 @@ export function setupAuth(app: Express) {
         return done(err);
       }
     }),
+  );
+
+  // Microsoft Entra ID (Azure AD) OAuth Strategy
+  const entraOptions = {
+    identityMetadata: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0/.well-known/openid-configuration`,
+    clientID: process.env.ENTRA_CLIENT_ID,
+    responseType: 'code',
+    responseMode: 'query',
+    redirectUrl: process.env.NODE_ENV === 'production' 
+      ? 'https://yourdomain.com/api/auth/entra/callback' 
+      : 'http://localhost:5000/api/auth/entra/callback',
+    clientSecret: process.env.ENTRA_CLIENT_SECRET,
+    validateIssuer: true,
+    issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
+    passReqToCallback: false,
+    scope: ['profile', 'email', 'openid']
+  };
+
+  passport.use(
+    new BearerStrategy({
+      identityMetadata: entraOptions.identityMetadata,
+      clientID: process.env.ENTRA_CLIENT_ID as string,
+      validateIssuer: entraOptions.validateIssuer,
+      issuer: entraOptions.issuer,
+      passReqToCallback: true,
+      loggingLevel: 'info',
+      loggingNoPII: false,
+    }, async (req: Request, profile: any, done: any) => {
+      try {
+        // Find user by email or entraId
+        const email = profile._json.preferred_username || profile._json.email;
+        let user = await storage.getUserByUsername(email);
+        
+        // User doesn't exist, create a new one
+        if (!user) {
+          const displayName = profile._json.name || email.split('@')[0];
+          user = await storage.createUser({
+            username: email,
+            name: displayName,
+            password: await hashPassword(randomBytes(16).toString('hex')), // Generate random password for OAuth users
+            avatar: null
+          });
+        }
+        
+        return done(null, user);
+      } catch (err) {
+        return done(err);
+      }
+    })
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
