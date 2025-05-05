@@ -594,8 +594,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.isAuthenticated()) {
         const userId = req.user.id;
         
-        // Log changes for tracked fields
-        const trackedFields = [
+        // Log changes for tracked fields using type-safe approach
+        // Import the UpdateTask type from the schema
+        type TrackedFieldType = 'status' | 'priority' | 'assigneeId' | 'title' | 'description' | 'dueDate' | 'categoryId';
+        interface TrackedField {
+          field: TrackedFieldType;
+          label: string;
+        }
+        
+        const trackedFields: TrackedField[] = [
           { field: 'status', label: 'Status' },
           { field: 'priority', label: 'Priority' },
           { field: 'assigneeId', label: 'Assignee' },
@@ -606,14 +613,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         for (const { field, label } of trackedFields) {
-          if (taskData[field] !== undefined && taskData[field] !== currentTask[field]) {
+          // Type-safe check if the field exists and has changed
+          if (field in taskData && taskData[field] !== currentTask[field as keyof typeof currentTask]) {
+            const previousValue = currentTask[field as keyof typeof currentTask];
+            const newValue = taskData[field];
+            
             // Create task update record
             await storage.createTaskUpdate({
               taskId: id,
               userId: userId,
               updateType: `${label} Changed`,
-              previousValue: currentTask[field]?.toString() || null,
-              newValue: taskData[field]?.toString() || null,
+              previousValue: previousValue !== null ? String(previousValue) : "",
+              newValue: newValue !== null && newValue !== undefined ? String(newValue) : "",
               comment: `${label} updated`
             });
           }
@@ -630,7 +641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 taskId: id,
                 userId: userId,
                 updateType: 'Mention',
-                previousValue: null,
+                previousValue: "",
                 newValue: username,
                 comment: `@${username} mentioned in task description`
               });

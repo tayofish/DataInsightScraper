@@ -372,6 +372,20 @@ export const storage = {
     });
   },
   
+  // Get task updates of a specific type (e.g., Mention)
+  getTaskUpdatesWithType: async (taskId: number, updateType: string): Promise<(TaskUpdate & { user?: User })[]> => {
+    return db.query.taskUpdates.findMany({
+      where: and(
+        eq(taskUpdates.taskId, taskId),
+        eq(taskUpdates.updateType, updateType)
+      ),
+      with: {
+        user: true
+      },
+      orderBy: desc(taskUpdates.createdAt)
+    });
+  },
+  
   getTaskUpdateById: async (id: number): Promise<(TaskUpdate & { user?: User }) | undefined> => {
     return db.query.taskUpdates.findFirst({
       where: eq(taskUpdates.id, id),
