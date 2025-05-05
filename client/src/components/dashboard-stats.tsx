@@ -15,10 +15,10 @@ interface StatCardProps {
 
 const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false }: StatCardProps) => {
   return (
-    <Card>
+    <Card className="dashboard-stat-card hover:scale-102 overflow-hidden">
       <CardContent className="p-6">
         <div className="flex items-center">
-          <div className={`flex-shrink-0 ${iconBgColor} rounded-md p-3`}>
+          <div className={`flex-shrink-0 ${iconBgColor} rounded-xl p-3 shadow-sm`}>
             <div className={iconColor}>{icon}</div>
           </div>
           <div className="ml-5 w-0 flex-1">
@@ -26,14 +26,20 @@ const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = fals
               <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
               <dd>
                 {isLoading ? (
-                  <Skeleton className="h-7 w-16 mt-1" />
+                  <Skeleton className="h-8 w-20 mt-1" />
                 ) : (
-                  <div className="text-xl font-semibold text-gray-900">{value}</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
                 )}
               </dd>
             </dl>
           </div>
         </div>
+        <div className="absolute bottom-0 left-0 w-full h-1" style={{ 
+          background: `linear-gradient(to right, ${iconColor.includes('blue') ? '#3b82f6' : 
+                                             iconColor.includes('green') ? '#10b981' : 
+                                             iconColor.includes('amber') ? '#f59e0b' : 
+                                             '#ef4444'}, transparent)` 
+        }}></div>
       </CardContent>
     </Card>
   );
