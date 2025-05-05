@@ -62,6 +62,26 @@ export default function AdminPage() {
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  
+  // Fetch project assignments
+  const { data: projectAssignments, isLoading: isLoadingAssignments } = useQuery({
+    queryKey: ["/api/project-assignments"],
+    queryFn: async () => {
+      const res = await fetch("/api/project-assignments");
+      if (!res.ok) throw new Error("Failed to fetch project assignments");
+      return res.json() as Promise<(ProjectAssignment & { user?: User, project?: Project })[]>;
+    }
+  });
+  
+  // Project assignment form
+  const assignmentForm = useForm<ProjectAssignmentFormValues>({
+    resolver: zodResolver(projectAssignmentSchema),
+    defaultValues: {
+      userId: 0,
+      projectId: 0,
+      role: "Member"
+    }
+  });
 
   // Fetch users
   const { data: users, isLoading: isLoadingUsers } = useQuery({
@@ -239,6 +259,82 @@ export default function AdminPage() {
     if (userToDelete) {
       deleteUserMutation.mutate(userToDelete.id);
     }
+  };
+  
+  // Reset assignment form
+  const resetAssignmentForm = () => {
+    assignmentForm.reset({
+      userId: 0,
+      projectId: 0,
+      role: "Member"
+    });
+    setSelectedUser(null);
+    setSelectedProject(null);
+  };
+  
+  // Open assignment dialog
+  const openAssignmentDialog = (project?: Project, user?: User) => {
+    if (project) setSelectedProject(project);
+    if (user) setSelectedUser(user);
+    
+    assignmentForm.reset({
+      userId: user?.id || 0,
+      projectId: project?.id || 0,
+      role: "Member"
+    });
+    
+    setIsAssignmentDialogOpen(true);
+  };
+  
+  // Create project assignment mutation
+  const createAssignmentMutation = useMutation({
+    mutationFn: async (data: ProjectAssignmentFormValues) => {
+      const res = await apiRequest("POST", "/api/project-assignments", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project-assignments"] });
+      toast({
+        title: "Project assignment created",
+        description: "The user has been assigned to the project successfully.",
+      });
+      setIsAssignmentDialogOpen(false);
+      resetAssignmentForm();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to create project assignment",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Delete project assignment mutation
+  const deleteAssignmentMutation = useMutation({
+    mutationFn: async (assignmentId: number) => {
+      const res = await apiRequest("DELETE", `/api/project-assignments/${assignmentId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/project-assignments"] });
+      toast({
+        title: "Project assignment removed",
+        description: "The user has been unassigned from the project successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to remove project assignment",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle assignment form submission
+  const onAssignmentSubmit = (values: ProjectAssignmentFormValues) => {
+    createAssignmentMutation.mutate(values);
   };
 
   // Create dashboard stats cards for admin overview
@@ -558,13 +654,18 @@ export default function AdminPage() {
         
         {/* Admin Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-2 w-[400px]">
+          <TabsList className="grid grid-cols-3 w-[600px]">
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="projects">Project Assignments</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
           
           <TabsContent value="users" className="mt-6">
             {renderUsersTab()}
+          </TabsContent>
+          
+          <TabsContent value="projects" className="mt-6">
+            {renderProjectAssignmentsTab()}
           </TabsContent>
           
           <TabsContent value="system" className="mt-6">
