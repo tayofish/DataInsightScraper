@@ -16,10 +16,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, Users } from "lucide-react";
+import { 
+  CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
+  Users, Briefcase, Link, Link2, Link2Off, UserPlus
+} from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { User, Project, Category, Department } from "@shared/schema";
+import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as TabsComponentList, TabsTrigger as TabsComponentTrigger } from "@/components/ui/tabs";
+import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
 
 // User management form schema
 const userFormSchema = z.object({
@@ -32,6 +36,19 @@ const userFormSchema = z.object({
 
 type UserFormValues = z.infer<typeof userFormSchema>;
 
+// Project assignment form schema
+const projectAssignmentSchema = z.object({
+  userId: z.number({
+    required_error: "Please select a user",
+  }),
+  projectId: z.number({
+    required_error: "Please select a project",
+  }),
+  role: z.string().min(2, "Role must be at least 2 characters").default("Member"),
+});
+
+type ProjectAssignmentFormValues = z.infer<typeof projectAssignmentSchema>;
+
 export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,6 +57,11 @@ export default function AdminPage() {
   const [userToEdit, setUserToEdit] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  
+  // Project assignment states
+  const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   // Fetch users
   const { data: users, isLoading: isLoadingUsers } = useQuery({
