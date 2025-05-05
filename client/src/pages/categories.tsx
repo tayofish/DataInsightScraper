@@ -52,10 +52,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil, Trash2, Plus } from 'lucide-react';
-import { type Category } from '@shared/schema';
+import { type Category, type Department } from '@shared/schema';
 
 // Form schema for category creation/editing
 const categoryFormSchema = z.object({
@@ -72,8 +79,13 @@ export default function Categories() {
   const [currentCategory, setCurrentCategory] = React.useState<Category | null>(null);
 
   // Fetch categories
-  const { data: categories = [], isLoading } = useQuery<Category[]>({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
+  });
+  
+  // Fetch departments
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
+    queryKey: ['/api/departments'],
   });
 
   // Create/Update category mutation
@@ -138,7 +150,7 @@ export default function Categories() {
     form.reset({
       name: '',
       color: '#3b82f6',
-      department: '', // Empty by default - will be categorized under "General"
+      departmentId: null, // No department by default - will be categorized under "General"
     });
     setCurrentCategory(null);
     setIsFormOpen(true);
@@ -149,7 +161,7 @@ export default function Categories() {
     form.reset({
       name: category.name,
       color: category.color || '#3b82f6',
-      department: category.department ?? '', // Use null coalescing to handle null properly
+      departmentId: category.departmentId, // Use the departmentId from the category
     });
     setCurrentCategory(category);
     setIsFormOpen(true);
@@ -163,30 +175,37 @@ export default function Categories() {
 
   // Handle form submission
   const onSubmit = (values: CategoryFormValues) => {
-    // If department is an empty string, set it to null
-    const formattedValues = {
-      ...values,
-      department: values.department?.trim() === '' ? null : values.department?.trim() || null
-    };
-    
-    categoryMutation.mutate(formattedValues);
+    categoryMutation.mutate(values);
+  };
+
+  // Find department name by id
+  const getDepartmentName = (departmentId: number | null): string => {
+    if (!departmentId) return 'General';
+    const department = departments.find(d => d.id === departmentId);
+    return department ? department.name : 'General';
   };
 
   // Group categories by department
   const categoriesByDepartment = React.useMemo(() => {
     const grouped: Record<string, Category[]> = {};
     
+    // First add the "General" category for null departmentId
+    grouped['General'] = categories.filter(c => c.departmentId === null);
+    
+    // Then group by department name for other categories
     categories.forEach(category => {
-      const dept = category.department || 'General';
-      if (!grouped[dept]) {
-        grouped[dept] = [];
+      if (category.departmentId !== null) {
+        const deptName = getDepartmentName(category.departmentId);
+        if (!grouped[deptName]) {
+          grouped[deptName] = [];
+        }
+        grouped[deptName].push(category);
       }
-      grouped[dept].push(category);
     });
     
     // Make sure General appears first in the order
     const orderedGrouped: Record<string, Category[]> = {};
-    if (grouped['General']) {
+    if (grouped['General'] && grouped['General'].length > 0) {
       orderedGrouped['General'] = grouped['General'];
     }
     
@@ -195,18 +214,22 @@ export default function Categories() {
       .filter(dept => dept !== 'General')
       .sort()
       .forEach(dept => {
-        orderedGrouped[dept] = grouped[dept];
+        if (grouped[dept].length > 0) {
+          orderedGrouped[dept] = grouped[dept];
+        }
       });
     
     return orderedGrouped;
-  }, [categories]);
+  }, [categories, departments]);
 
+  const isLoading = categoriesLoading || departmentsLoading;
+  
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
           <CardTitle>Categories</CardTitle>
-          <CardDescription>Loading categories...</CardDescription>
+          <CardDescription>Loading data...</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -332,26 +355,33 @@ export default function Categories() {
               
               <FormField
                 control={form.control}
-                name="department"
+                name="departmentId"
                 render={({ field }) => {
-                  // Handle the field value to ensure it's a string
-                  const inputValue = field.value === null ? '' : field.value;
-                  
                   return (
                     <FormItem>
                       <FormLabel>Department</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Department" 
-                          value={inputValue}
-                          onChange={field.onChange}
-                          onBlur={field.onBlur}
-                          name={field.name}
-                          ref={field.ref}
-                        />
+                        <Select
+                          value={field.value?.toString() || ""}
+                          onValueChange={(value) => {
+                            field.onChange(value === "" ? null : parseInt(value));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a department (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">General (No Department)</SelectItem>
+                            {departments.map((department) => (
+                              <SelectItem key={department.id} value={department.id.toString()}>
+                                {department.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormDescription>
-                        Optional: Categorize by department (e.g., Marketing, Engineering, Finance)
+                        Optional: Assign this category to a department
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
