@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { FaMicrosoft } from "react-icons/fa";
 
 // Login form schema
 const loginSchema = z.object({
@@ -31,8 +34,26 @@ type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [location] = useLocation();
+  const search = useSearch();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Get error message from URL if present
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const error = params.get('error');
+    
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        'microsoft_auth_error': 'An error occurred during Microsoft authentication. Please try again.',
+        'microsoft_auth_failed': 'Microsoft authentication failed. Please try again or use another login method.',
+        'microsoft_login_error': 'Unable to log you in with Microsoft account. Please try again later.'
+      };
+      
+      setAuthError(errorMessages[error] || 'An authentication error occurred.');
+    }
+  }, [search]);
 
   // Redirect if already logged in
   if (user) {
@@ -144,6 +165,41 @@ export default function AuthPage() {
                           "Sign in"
                         )}
                       </Button>
+
+                      {/* Error Alert */}
+                      {authError && (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{authError}</AlertDescription>
+                        </Alert>
+                      )}
+
+                      {/* Separator */}
+                      <div className="relative mt-6">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            Or continue with
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Microsoft Login Button */}
+                      <a 
+                        href="/api/auth/entra" 
+                        className="inline-block w-full mt-4"
+                      >
+                        <Button 
+                          variant="outline"
+                          className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                          type="button"
+                        >
+                          <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
+                          Sign in with Microsoft
+                        </Button>
+                      </a>
                     </form>
                   </Form>
                 </CardContent>
@@ -226,6 +282,41 @@ export default function AuthPage() {
                           "Sign up"
                         )}
                       </Button>
+
+                      {/* Error Alert */}
+                      {authError && (
+                        <Alert variant="destructive" className="mt-3">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{authError}</AlertDescription>
+                        </Alert>
+                      )}
+
+                      {/* Separator */}
+                      <div className="relative mt-6">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                            Or continue with
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Microsoft Login Button */}
+                      <a 
+                        href="/api/auth/entra" 
+                        className="inline-block w-full mt-4"
+                      >
+                        <Button 
+                          variant="outline"
+                          className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                          type="button"
+                        >
+                          <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
+                          Sign up with Microsoft
+                        </Button>
+                      </a>
                     </form>
                   </Form>
                 </CardContent>

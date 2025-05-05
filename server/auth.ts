@@ -1,7 +1,13 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { BearerStrategy } from "passport-azure-ad";
+import { OIDCStrategy } from "passport-azure-ad";
 import { Express, Request } from "express";
+// Extend passport types
+declare module 'passport' {
+  interface PassportStatic {
+    use(name: string, strategy: any): PassportStatic;
+  }
+}
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -46,7 +52,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  passport.use(
+  passport.use('local',
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
@@ -62,31 +68,45 @@ export function setupAuth(app: Express) {
   );
 
   // Microsoft Entra ID (Azure AD) OAuth Strategy
+  // Check if required environment variables are set
+  const hasEntraConfig = process.env.ENTRA_TENANT_ID && process.env.ENTRA_CLIENT_ID && process.env.ENTRA_CLIENT_SECRET;
+  
+  if (hasEntraConfig) {
+    console.log("Microsoft Entra ID configuration detected. Setting up authentication.");
+  } else {
+    console.warn("Microsoft Entra ID configuration not found. OAuth login will not be available.");
+    console.warn("Set ENTRA_TENANT_ID, ENTRA_CLIENT_ID, and ENTRA_CLIENT_SECRET environment variables to enable it.");
+  }
+  
   const entraOptions = {
-    identityMetadata: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0/.well-known/openid-configuration`,
-    clientID: process.env.ENTRA_CLIENT_ID,
+    identityMetadata: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID || 'common'}/v2.0/.well-known/openid-configuration`,
+    clientID: process.env.ENTRA_CLIENT_ID || '',
     responseType: 'code',
     responseMode: 'query',
     redirectUrl: process.env.NODE_ENV === 'production' 
       ? 'https://yourdomain.com/api/auth/entra/callback' 
       : 'http://localhost:5000/api/auth/entra/callback',
-    clientSecret: process.env.ENTRA_CLIENT_SECRET,
+    clientSecret: process.env.ENTRA_CLIENT_SECRET || '',
     validateIssuer: true,
-    issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID}/v2.0`,
+    issuer: `https://login.microsoftonline.com/${process.env.ENTRA_TENANT_ID || 'common'}/v2.0`,
     passReqToCallback: false,
     scope: ['profile', 'email', 'openid']
   };
 
-  passport.use(
-    new BearerStrategy({
+  passport.use('azuread-openidconnect',
+    new OIDCStrategy({
       identityMetadata: entraOptions.identityMetadata,
       clientID: process.env.ENTRA_CLIENT_ID as string,
+      clientSecret: process.env.ENTRA_CLIENT_SECRET as string,
+      responseType: entraOptions.responseType,
+      responseMode: entraOptions.responseMode,
+      redirectUrl: entraOptions.redirectUrl,
+      allowHttpForRedirectUrl: process.env.NODE_ENV !== 'production',
       validateIssuer: entraOptions.validateIssuer,
       issuer: entraOptions.issuer,
-      passReqToCallback: true,
-      loggingLevel: 'info',
-      loggingNoPII: false,
-    }, async (req: Request, profile: any, done: any) => {
+      passReqToCallback: false,
+      scope: entraOptions.scope,
+    }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {
         // Find user by email or entraId
         const email = profile._json.preferred_username || profile._json.email;
@@ -142,7 +162,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: Express.User, info: any) => {
+    passport.authenticate('local', (err: any, user: Express.User, info: any) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ error: "Invalid credentials" });
       
@@ -163,5 +183,37 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+  
+  // Microsoft Entra ID routes
+  app.get('/api/auth/entra', passport.authenticate('azuread-openidconnect', {
+    session: true,
+    failureRedirect: '/auth',
+    failureFlash: false
+  }));
+
+  app.get('/api/auth/entra/callback', (req, res, next) => {
+    passport.authenticate('azuread-openidconnect', {
+      session: true,
+      failureRedirect: '/auth',
+      failureFlash: false
+    }, (err: any, user: any) => {
+      if (err) {
+        console.error('Microsoft Entra authentication error:', err);
+        return res.redirect('/auth?error=microsoft_auth_error');
+      }
+      
+      if (!user) {
+        return res.redirect('/auth?error=microsoft_auth_failed');
+      }
+      
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error('Login error after Microsoft authentication:', loginErr);
+          return res.redirect('/auth?error=microsoft_login_error');
+        }
+        return res.redirect('/');
+      });
+    })(req, res, next);
   });
 }
