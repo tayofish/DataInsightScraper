@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, ClipboardX } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -244,7 +244,8 @@ export default function TaskList({ filters }: TaskListProps) {
           </div>
         </div>
         
-        <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm">
+        {sortedTasks.length > 0 ? (
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm">
             {sortedTasks.map((task) => {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);
@@ -255,13 +256,14 @@ export default function TaskList({ filters }: TaskListProps) {
                 <li 
                   key={task.id} 
                   className={`
-                    hover:bg-gray-50 relative 
+                    hover:bg-gray-50 dark:hover:bg-gray-800 relative 
                     ${isCompleted ? 'opacity-70' : ''} 
                     ${priorityClass} 
                     border-l-4 
                     ${task.priority === 'high' ? 'border-red-500' : 
                       task.priority === 'medium' ? 'border-amber-500' : 
                       'border-green-500'}
+                    transition-all duration-200 hover:shadow-md
                   `}
                 >
                   <div className="px-4 py-4 flex items-center sm:px-6">
@@ -270,10 +272,10 @@ export default function TaskList({ filters }: TaskListProps) {
                         <Checkbox
                           checked={isCompleted}
                           onCheckedChange={() => toggleTaskMutation.mutate(task)}
-                          className="h-4 w-4 text-blue-600 mr-3 cursor-pointer"
+                          className="h-5 w-5 text-blue-600 mr-3 cursor-pointer rounded-full border-2 transition-all"
                         />
                         <div>
-                          <p className={`text-sm font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900'} truncate`}>
+                          <p className={`text-base font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'} truncate`}>
                             {task.title}
                           </p>
                           <div className="mt-1 flex flex-wrap items-center gap-y-1 text-sm text-gray-500">
@@ -336,13 +338,18 @@ export default function TaskList({ filters }: TaskListProps) {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditTask(task)}
+                            className="rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors"
                           >
-                            <Pencil className="h-4 w-4 text-gray-500" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4 text-gray-500" />
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -370,11 +377,12 @@ export default function TaskList({ filters }: TaskListProps) {
                 </li>
               );
             })}
-        </ul>
-        
-        {sortedTasks.length === 0 && (
-          <div className="flex justify-center py-8 bg-white dark:bg-gray-900 rounded-xl mt-4 shadow-sm">
-            <p className="text-center text-gray-500">No tasks match your current filters.</p>
+          </ul>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-10 bg-white dark:bg-gray-900 rounded-xl mt-4 shadow-sm transition-all duration-300 border border-gray-100 dark:border-gray-800">
+            <ClipboardX className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+            <p className="text-center text-gray-500 dark:text-gray-400 font-medium">No tasks match your current filters.</p>
+            <p className="text-center text-gray-400 dark:text-gray-500 text-sm mt-1">Try adjusting your filters or create a new task.</p>
           </div>
         )}
       </div>
