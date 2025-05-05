@@ -2,6 +2,7 @@ import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { Button } from "@/components/ui/button";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks";
@@ -17,10 +18,23 @@ import { ProtectedRoute } from "@/lib/protected-route";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
-        <main className="flex-1 relative overflow-y-auto focus:outline-none">
+        <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white/60 backdrop-blur-sm z-10">
+          <div className="flex items-center">
+            <h1 className="text-xl font-semibold gradient-heading">Task Management System</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" className="rounded-full hover:bg-primary/10 shadow-sm">
+              <span className="mr-2">🎯</span> Quick Add
+            </Button>
+            <div className="bg-primary/10 rounded-full px-3 py-1.5 flex items-center text-xs font-medium shadow-inner text-primary">
+              <span className="mr-1">✨</span> Modern UI activated
+            </div>
+          </div>
+        </header>
+        <main className="flex-1 relative overflow-y-auto focus:outline-none custom-scrollbar">
           {children}
         </main>
       </div>

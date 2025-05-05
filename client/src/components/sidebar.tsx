@@ -32,19 +32,19 @@ const NavItem = ({ href, icon, children, isActive }: NavItemProps) => {
     <Link href={href}>
       <div
         className={cn(
-          "group flex items-center px-2 py-2 text-sm font-medium rounded-md cursor-pointer",
+          "group flex items-center px-4 py-3 text-sm font-medium rounded-xl cursor-pointer transition-all duration-200",
           isActive 
-            ? "bg-blue-600 text-white" 
-            : "text-gray-700 hover:bg-gray-50"
+            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20" 
+            : "text-gray-700 hover:bg-gray-100/60"
         )}
       >
         <div className={cn(
-          "mr-3",
-          isActive ? "text-white" : "text-gray-500"
+          "mr-3 flex items-center justify-center",
+          isActive ? "text-white" : "text-blue-600"
         )}>
           {icon}
         </div>
-        {children}
+        <span className="font-medium">{children}</span>
       </div>
     </Link>
   );
@@ -66,10 +66,10 @@ export function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center flex-shrink-0 px-4 mb-5">
-        <span className="text-xl font-semibold text-blue-600">TaskScout</span>
+      <div className="flex items-center flex-shrink-0 px-6 py-6">
+        <span className="text-2xl font-bold gradient-heading">TaskScout</span>
       </div>
-      <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
+      <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">
         <NavItem href="/" icon={<LayoutDashboard size={20} />} isActive={location === '/'}>
           Dashboard
         </NavItem>
@@ -112,12 +112,12 @@ export function Sidebar() {
       <>
         {/* Mobile menu button */}
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="icon" 
-          className="md:hidden fixed top-4 left-4 z-50"
+          className="md:hidden fixed top-4 left-4 z-50 shadow-md rounded-full bg-white h-10 w-10"
           onClick={toggleMobileSidebar}
         >
-          <Menu />
+          <Menu className="text-blue-600" />
         </Button>
 
         {/* Mobile sidebar */}
@@ -125,37 +125,53 @@ export function Sidebar() {
           <div className="fixed inset-0 flex z-40">
             {/* Backdrop */}
             <div 
-              className="fixed inset-0 bg-gray-600 bg-opacity-75"
+              className="fixed inset-0 bg-gray-800/70 backdrop-blur-sm"
               onClick={() => setShowMobileSidebar(false)}
             />
 
             {/* Sidebar */}
-            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white">
-              <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
+            <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white shadow-xl">
+              <div className="absolute right-0 p-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="rounded-full"
+                  onClick={() => setShowMobileSidebar(false)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+              <div className="flex flex-col flex-grow h-full overflow-y-auto custom-scrollbar">
                 {sidebarContent}
               </div>
-              <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 p-4">
                 <div className="flex-shrink-0 group block w-full">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm border border-gray-100">
                     <div className="flex items-center">
-                      <div>
-                        <Avatar>
+                      <div className="relative">
+                        <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                           <AvatarImage src={user?.avatar || undefined} alt="Profile" />
-                          <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                            {user?.name?.substring(0, 2).toUpperCase() || 'U'}
+                          </AvatarFallback>
                         </Avatar>
+                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
                       </div>
                       <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{user?.name || 'User'}</p>
-                        <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">{user?.username}</p>
+                        <p className="text-sm font-medium text-gray-800">{user?.name || 'User'}</p>
+                        <p className="text-xs text-gray-500">{user?.username}</p>
                       </div>
                     </div>
                     <Button 
                       variant="ghost" 
-                      size="icon" 
+                      size="icon"
+                      className="rounded-full hover:bg-gray-200"
                       onClick={handleLogout}
                       disabled={logoutMutation.isPending}
                     >
-                      <LogOut size={18} className="text-gray-500" />
+                      <LogOut size={18} className="text-gray-600" />
                     </Button>
                   </div>
                 </div>
@@ -169,32 +185,36 @@ export function Sidebar() {
 
   return (
     <div className="hidden md:flex md:flex-shrink-0">
-      <div className="flex flex-col w-64 border-r border-gray-200 bg-white">
-        <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
+      <div className="flex flex-col w-72 border-r border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-col flex-grow h-full overflow-y-auto custom-scrollbar">
           {sidebarContent}
         </div>
-        <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+        <div className="flex-shrink-0 px-4 py-4">
           <div className="flex-shrink-0 group block w-full">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-sm border border-gray-100">
               <div className="flex items-center">
-                <div>
-                  <Avatar>
+                <div className="relative">
+                  <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
                     <AvatarImage src={user?.avatar || undefined} alt="Profile" />
-                    <AvatarFallback>{user?.name?.substring(0, 2).toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                      {user?.name?.substring(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
                   </Avatar>
+                  <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></div>
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{user?.name || 'User'}</p>
-                  <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">{user?.username}</p>
+                  <p className="text-sm font-medium text-gray-800">{user?.name || 'User'}</p>
+                  <p className="text-xs text-gray-500">{user?.username}</p>
                 </div>
               </div>
               <Button 
                 variant="ghost" 
-                size="icon" 
+                size="icon"
+                className="rounded-full hover:bg-gray-200"
                 onClick={handleLogout}
                 disabled={logoutMutation.isPending}
               >
-                <LogOut size={18} className="text-gray-500" />
+                <LogOut size={18} className="text-gray-600" />
               </Button>
             </div>
           </div>
