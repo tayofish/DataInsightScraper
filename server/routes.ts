@@ -22,6 +22,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to fetch users" });
     }
   });
+  
+  // Get user by ID
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await storage.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+  
+  // Update user profile
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if the authenticated user is updating their own profile
+      if (!req.isAuthenticated() || req.user?.id !== id) {
+        return res.status(403).json({ message: "Not authorized to update this user" });
+      }
+      
+      // Only allow updating name, username, and avatar - not password
+      const userData = {
+        name: req.body.name,
+        username: req.body.username,
+        avatar: req.body.avatar
+      };
+      
+      const updatedUser = await storage.updateUser(id, userData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+  
+  // Change password
+  app.post("/api/users/:id/change-password", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if the authenticated user is changing their own password
+      if (!req.isAuthenticated() || req.user?.id !== id) {
+        return res.status(403).json({ message: "Not authorized to change this user's password" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      // Get the user with their current password hash
+      const user = await storage.getUserById(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Import the password comparison function from auth.ts
+      const { comparePasswords, hashPassword } = await import('./auth');
+      
+      // Verify current password
+      const isPasswordValid = await comparePasswords(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await hashPassword(newPassword);
+      
+      // Update the password
+      const updatedUser = await storage.updateUser(id, { password: hashedPassword });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      return res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      return res.status(500).json({ message: "Failed to change password" });
+    }
+  });
 
   // === PROJECT ROUTES ===
   // Get all projects
