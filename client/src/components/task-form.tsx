@@ -18,6 +18,12 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from "@/components/ui/tabs";
 import { AvatarField } from './ui/avatar-field';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +32,7 @@ import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import TaskUpdateHistory from './task-update-history';
 
 interface TaskFormProps {
   isOpen: boolean;
@@ -103,7 +110,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Task' : 'Create New Task'}</DialogTitle>
           <p className="text-sm text-gray-500 mt-2">
@@ -111,51 +118,298 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
           </p>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Task Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter task title..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        {isEditMode && task?.id ? (
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Task Details</TabsTrigger>
+              <TabsTrigger value="history">History & Updates</TabsTrigger>
+            </TabsList>
             
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Describe the task..." 
-                      rows={3} 
-                      {...field} 
-                      value={field.value || ''}
+            <TabsContent value="details">
+              <div className="py-2">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Task Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter task title..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Describe the task..." 
+                              rows={3} 
+                              {...field} 
+                              value={field.value || ''}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="dueDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Due Date</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="date" 
+                                {...field} 
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="priority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Priority</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select priority" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="projectId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Project</FormLabel>
+                            <Select
+                              value={field.value?.toString() || '-1'}
+                              onValueChange={(value) => {
+                                if (value === '-1') {
+                                  field.onChange(null);
+                                } else {
+                                  field.onChange(parseInt(value));
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select project" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="-1">No Project</SelectItem>
+                                {projects.map((project) => (
+                                  <SelectItem key={project.id} value={project.id.toString()}>
+                                    {project.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <AvatarField
+                        control={form.control}
+                        name="assigneeId"
+                        label="Assign To"
+                        placeholder="Select assignee"
+                        includeUnassigned
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="todo">To Do</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select
+                              value={field.value?.toString() || '-1'}
+                              onValueChange={(value) => {
+                                if (value === '-1') {
+                                  field.onChange(null);
+                                } else {
+                                  field.onChange(parseInt(value));
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="-1">No Category</SelectItem>
+                                
+                                {(() => {
+                                  // Create a map of departments to categories
+                                  const departmentMap: Record<string, typeof categories> = {};
+                                  const departmentsById: Record<number, string> = {};
+                                  
+                                  // Create a mapping of department IDs to names
+                                  departments.forEach((dept: Department) => {
+                                    departmentsById[dept.id] = dept.name;
+                                  });
+                                  
+                                  categories.forEach(category => {
+                                    const deptName = category.departmentId 
+                                      ? (departmentsById[category.departmentId] || 'Unknown') 
+                                      : 'General';
+                                    
+                                    if (!departmentMap[deptName]) {
+                                      departmentMap[deptName] = [];
+                                    }
+                                    departmentMap[deptName].push(category);
+                                  });
+                                  
+                                  // Return the grouped categories
+                                  return Object.entries(departmentMap).map(([department, deptCategories]) => (
+                                    <React.Fragment key={department}>
+                                      <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                                        {department}
+                                      </SelectItem>
+                                      {deptCategories.map((category) => (
+                                        <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                                          <div className="flex items-center">
+                                            <div 
+                                              className="w-3 h-3 rounded-full mr-2" 
+                                              style={{ backgroundColor: category.color || '#6b7280' }}
+                                            />
+                                            {category.name}
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </React.Fragment>
+                                  ));
+                                })()}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <DialogFooter>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={onClose}
+                        disabled={taskMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit"
+                        disabled={taskMutation.isPending}
+                      >
+                        {taskMutation.isPending 
+                          ? 'Saving...' 
+                          : 'Update Task'
+                        }
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </div>
+            </TabsContent>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <TabsContent value="history">
+              <div className="py-2">
+                <TaskUpdateHistory taskId={task.id} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
-                name="dueDate"
+                name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Due Date</FormLabel>
+                    <FormLabel>Task Title</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="date" 
+                      <Input placeholder="Enter task title..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the task..." 
+                        rows={3} 
                         {...field} 
                         value={field.value || ''}
                       />
@@ -165,204 +419,223 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Priority</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="projectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project</FormLabel>
-                    <Select
-                      value={field.value?.toString() || '-1'}
-                      onValueChange={(value) => {
-                        if (value === '-1') {
-                          field.onChange(null);
-                        } else {
-                          field.onChange(parseInt(value));
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="-1">No Project</SelectItem>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id.toString()}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <AvatarField
-                control={form.control}
-                name="assigneeId"
-                label="Assign To"
-                placeholder="Select assignee"
-                includeUnassigned
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {isEditMode && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="dueDate"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Status</FormLabel>
+                      <FormLabel>Due Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="priority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Priority</FormLabel>
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
+                            <SelectValue placeholder="Select priority" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="todo">To Do</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
+              </div>
               
-              <FormField
-                control={form.control}
-                name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select
-                      value={field.value?.toString() || '-1'}
-                      onValueChange={(value) => {
-                        if (value === '-1') {
-                          field.onChange(null);
-                        } else {
-                          field.onChange(parseInt(value));
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="-1">No Category</SelectItem>
-                        
-                        {/* Group categories by department */}
-                        {(() => {
-                          // Create a map of departments to categories
-                          const departmentMap: Record<string, typeof categories> = {};
-                          const departmentsById: Record<number, string> = {};
-                          
-                          // Create a mapping of department IDs to names
-                          departments.forEach((dept: Department) => {
-                            departmentsById[dept.id] = dept.name;
-                          });
-                          
-                          categories.forEach(category => {
-                            const deptName = category.departmentId 
-                              ? (departmentsById[category.departmentId] || 'Unknown') 
-                              : 'General';
-                            
-                            if (!departmentMap[deptName]) {
-                              departmentMap[deptName] = [];
-                            }
-                            departmentMap[deptName].push(category);
-                          });
-                          
-                          // Return the grouped categories
-                          return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                            <React.Fragment key={department}>
-                              <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
-                                {department}
-                              </SelectItem>
-                              {deptCategories.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
-                                  <div className="flex items-center">
-                                    <div 
-                                      className="w-3 h-3 rounded-full mr-2" 
-                                      style={{ backgroundColor: category.color || '#6b7280' }}
-                                    />
-                                    {category.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </React.Fragment>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="projectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project</FormLabel>
+                      <Select
+                        value={field.value?.toString() || '-1'}
+                        onValueChange={(value) => {
+                          if (value === '-1') {
+                            field.onChange(null);
+                          } else {
+                            field.onChange(parseInt(value));
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="-1">No Project</SelectItem>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id.toString()}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <AvatarField
+                  control={form.control}
+                  name="assigneeId"
+                  label="Assign To"
+                  placeholder="Select assignee"
+                  includeUnassigned
+                />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isEditMode && (
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="todo">To Do</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
-            </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                disabled={taskMutation.isPending}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={taskMutation.isPending}
-              >
-                {taskMutation.isPending 
-                  ? 'Saving...' 
-                  : isEditMode 
-                    ? 'Update Task' 
-                    : 'Create Task'
-                }
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select
+                        value={field.value?.toString() || '-1'}
+                        onValueChange={(value) => {
+                          if (value === '-1') {
+                            field.onChange(null);
+                          } else {
+                            field.onChange(parseInt(value));
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="-1">No Category</SelectItem>
+                          
+                          {(() => {
+                            // Create a map of departments to categories
+                            const departmentMap: Record<string, typeof categories> = {};
+                            const departmentsById: Record<number, string> = {};
+                            
+                            // Create a mapping of department IDs to names
+                            departments.forEach((dept: Department) => {
+                              departmentsById[dept.id] = dept.name;
+                            });
+                            
+                            categories.forEach(category => {
+                              const deptName = category.departmentId 
+                                ? (departmentsById[category.departmentId] || 'Unknown') 
+                                : 'General';
+                              
+                              if (!departmentMap[deptName]) {
+                                departmentMap[deptName] = [];
+                              }
+                              departmentMap[deptName].push(category);
+                            });
+                            
+                            // Return the grouped categories
+                            return Object.entries(departmentMap).map(([department, deptCategories]) => (
+                              <React.Fragment key={department}>
+                                <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                                  {department}
+                                </SelectItem>
+                                {deptCategories.map((category) => (
+                                  <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                                    <div className="flex items-center">
+                                      <div 
+                                        className="w-3 h-3 rounded-full mr-2" 
+                                        style={{ backgroundColor: category.color || '#6b7280' }}
+                                      />
+                                      {category.name}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </React.Fragment>
+                            ));
+                          })()}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={taskMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={taskMutation.isPending}
+                >
+                  {taskMutation.isPending 
+                    ? 'Saving...' 
+                    : isEditMode 
+                      ? 'Update Task' 
+                      : 'Create Task'
+                  }
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );
