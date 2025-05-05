@@ -583,7 +583,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
 
-      const taskData = taskUpdateSchema.omit({ id: true }).partial().parse(req.body);
+      // Process request data to handle nulls consistently
+      const requestData = {
+        ...req.body,
+        // Convert empty strings to null
+        description: req.body.description === '' ? null : req.body.description,
+        dueDate: req.body.dueDate === '' ? null : req.body.dueDate,
+      };
+      
+      const taskData = taskUpdateSchema.omit({ id: true }).partial().parse(requestData);
       const updatedTask = await storage.updateTask(id, taskData);
       
       if (!updatedTask) {

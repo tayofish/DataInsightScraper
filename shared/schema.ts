@@ -271,8 +271,8 @@ export type InsertReport = z.infer<typeof reportInsertSchema>;
 export const taskFormSchema = z.object({
   id: z.number().optional(),
   title: z.string().min(3, "Task title must be at least 3 characters"),
-  description: z.string().optional(),
-  dueDate: z.string().optional().nullable(),
+  description: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   status: z.enum(['todo', 'in_progress', 'completed']).default('todo'),
   projectId: z.number().optional().nullable(),

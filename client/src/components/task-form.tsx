@@ -77,8 +77,8 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   // Create/Update task mutation
   const taskMutation = useMutation({
-    mutationFn: async (values: TaskFormValues) => {
-      if (isEditMode) {
+    mutationFn: async (values: TaskFormValues) => {      
+      if (isEditMode && task) {
         return apiRequest('PATCH', `/api/tasks/${task.id}`, values);
       } else {
         return apiRequest('POST', '/api/tasks', values);
@@ -105,7 +105,15 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   });
 
   const onSubmit = (values: TaskFormValues) => {
-    taskMutation.mutate(values);
+    // Process the form values for API submission with proper typing
+    const processedValues: TaskFormValues = {
+      ...values,
+      // Make sure empty strings are converted to null for optional fields
+      dueDate: values.dueDate && values.dueDate.trim() !== '' ? values.dueDate : null,
+      description: values.description && values.description.trim() !== '' ? values.description : null
+    };
+    
+    taskMutation.mutate(processedValues);
   };
 
   return (
