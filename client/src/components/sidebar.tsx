@@ -93,7 +93,7 @@ export function Sidebar() {
         <NavItem href="#" icon={<Users size={20} />} isActive={false}>
           Team
         </NavItem>
-        <NavItem href="#" icon={<Settings size={20} />} isActive={false}>
+        <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings
         </NavItem>
       </nav>

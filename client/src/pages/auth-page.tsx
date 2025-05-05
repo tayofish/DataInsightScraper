@@ -56,10 +56,11 @@ export default function AuthPage() {
   }, [search]);
 
   // Redirect if already logged in
-  if (user) {
-    window.location.href = "/";
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      window.location.href = "/";
+    }
+  }, [user]);
 
   // Login form
   const loginForm = useForm<LoginValues>({

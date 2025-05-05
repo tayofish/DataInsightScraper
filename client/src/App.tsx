@@ -8,6 +8,7 @@ import Tasks from "@/pages/tasks";
 import Projects from "@/pages/projects";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
+import Settings from "@/pages/settings";
 import AuthPage from "@/pages/auth-page";
 import { Sidebar } from "@/components/sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -58,6 +59,12 @@ function Router() {
       <ProtectedRoute path="/departments" component={() => (
         <AppLayout>
           <Departments />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/settings" component={() => (
+        <AppLayout>
+          <Settings />
         </AppLayout>
       )} />
       
