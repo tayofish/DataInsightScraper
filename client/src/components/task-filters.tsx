@@ -20,6 +20,7 @@ export interface TaskFilterValues {
   priority: string;
   search: string;
   sortBy: string;
+  customFilter?: string; // For special filters like 'overdue'
 }
 
 export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {

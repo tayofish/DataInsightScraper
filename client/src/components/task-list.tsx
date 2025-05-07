@@ -98,11 +98,29 @@ export default function TaskList({ filters }: TaskListProps) {
     queryKey: [`/api/tasks${getQueryString()}`],
   });
   
-  // Sort tasks based on the selected sort option
+  // Apply custom filters (like overdue) and sort tasks
   const sortedTasks = React.useMemo(() => {
     if (!tasks) return [];
     
-    return [...tasks].sort((a, b) => {
+    // Apply custom filters first
+    let filteredTasks = [...tasks];
+    
+    // Handle overdue tasks filter
+    if (filters.customFilter === 'overdue') {
+      const now = new Date();
+      filteredTasks = filteredTasks.filter(task => {
+        // A task is overdue if:
+        // 1. It has a due date
+        // 2. The due date is in the past
+        // 3. The task is not completed
+        return task.dueDate && 
+               new Date(task.dueDate) < now && 
+               task.status !== 'completed';
+      });
+    }
+    
+    // Sort tasks
+    return filteredTasks.sort((a, b) => {
       if (filters.sortBy === 'dueDate') {
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
@@ -121,7 +139,7 @@ export default function TaskList({ filters }: TaskListProps) {
       
       return 0;
     });
-  }, [tasks, filters.sortBy]);
+  }, [tasks, filters.sortBy, filters.customFilter]);
   
   // Calculate pagination
   const totalPages = Math.ceil(sortedTasks.length / tasksPerPage);

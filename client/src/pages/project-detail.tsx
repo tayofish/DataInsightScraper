@@ -161,16 +161,16 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Completion</CardTitle>
           </CardHeader>
           <CardContent>
-            <Link
-              href={`/tasks?projectId=${projectId}&status=completed`}
-              className="flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
+            <button
+              onClick={() => setTaskFilters(prev => ({ ...prev, status: 'completed' }))}
+              className="w-full flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
             >
               <div className="text-3xl font-bold mb-2">{completionPercentage}%</div>
               <Progress value={completionPercentage} className="h-2 w-full" />
               <div className="text-sm text-muted-foreground mt-2">
                 {completedTasks} of {totalTasks} tasks complete
               </div>
-            </Link>
+            </button>
           </CardContent>
         </Card>
         
@@ -180,27 +180,27 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <Link 
-                href={`/tasks?projectId=${projectId}&status=todo`} 
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'todo' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-yellow-500">{todoTasks}</div>
                 <div className="text-xs text-muted-foreground">To Do</div>
-              </Link>
-              <Link 
-                href={`/tasks?projectId=${projectId}&status=in_progress`}
+              </button>
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'in_progress' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-blue-500">{inProgressTasks}</div>
                 <div className="text-xs text-muted-foreground">In Progress</div>
-              </Link>
-              <Link 
-                href={`/tasks?projectId=${projectId}&status=completed`}
+              </button>
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'completed' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-green-500">{completedTasks}</div>
                 <div className="text-xs text-muted-foreground">Completed</div>
-              </Link>
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -211,27 +211,27 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <Link 
-                href={`/tasks?projectId=${projectId}&priority=high`}
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'high' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-red-500">{highPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">High</div>
-              </Link>
-              <Link 
-                href={`/tasks?projectId=${projectId}&priority=medium`}
+              </button>
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'medium' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-orange-500">{mediumPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">Medium</div>
-              </Link>
-              <Link 
-                href={`/tasks?projectId=${projectId}&priority=low`}
+              </button>
+              <button 
+                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'low' }))}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-green-500">{lowPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">Low</div>
-              </Link>
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -241,9 +241,17 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <Link 
-              href={`/tasks?projectId=${projectId}&overdue=true`}
-              className="flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
+            <button 
+              onClick={() => {
+                // Custom filter for overdue tasks
+                const now = new Date();
+                setTaskFilters(prev => ({ 
+                  ...prev, 
+                  // We'll use a custom filter function in TaskList component to show only overdue tasks
+                  customFilter: 'overdue'
+                }));
+              }}
+              className="w-full flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
             >
               <div className={`text-3xl font-bold mb-1 ${overdueTasks > 0 ? "text-red-500" : ""}`}>
                 {overdueTasks}
@@ -251,7 +259,7 @@ export default function ProjectDetailPage() {
               <div className="text-sm text-muted-foreground">
                 {overdueTasks === 1 ? 'task is overdue' : 'tasks are overdue'}
               </div>
-            </Link>
+            </button>
           </CardContent>
         </Card>
       </div>
