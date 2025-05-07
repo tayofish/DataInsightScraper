@@ -247,12 +247,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       });
       
       if (!res.ok) {
-        throw new Error('Failed to upload file');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to upload file');
       }
       
-      // Just check if response is ok, don't try to parse as JSON
-      // The server might not return valid JSON for file uploads
-      return { success: true };
+      return await res.json().catch(() => ({ success: true }));
     },
     onSuccess: () => {
       toast({
@@ -273,6 +272,41 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         variant: 'destructive',
       });
       setFileUploading(false);
+    },
+  });
+  
+  // File deletion mutation
+  const fileDeleteMutation = useMutation({
+    mutationFn: async (fileId: number) => {
+      if (!task?.id) return null;
+      
+      const res = await fetch(`/api/tasks/${task.id}/files/${fileId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete file');
+      }
+      
+      return await res.json().catch(() => ({ success: true }));
+    },
+    onSuccess: () => {
+      toast({
+        title: 'File deleted successfully',
+        variant: 'default',
+      });
+      
+      // Invalidate the query and refetch to ensure latest files are displayed
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks', task?.id, 'files'] });
+      refetchFiles();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to delete file',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
   
@@ -844,16 +878,14 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                                   size="icon" 
                                   variant="ghost" 
                                   className="text-destructive"
-                                  onClick={() => {
-                                    // In a real app, this would delete the file
-                                    toast({
-                                      title: "File deletion",
-                                      description: "File deletion is not implemented in this demo.",
-                                      variant: "default"
-                                    });
-                                  }}
+                                  onClick={() => fileDeleteMutation.mutate(file.id)}
+                                  disabled={fileDeleteMutation.isPending}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  {fileDeleteMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4" />
+                                  )}
                                 </Button>
                               </div>
                             </CardContent>
