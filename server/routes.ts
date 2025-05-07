@@ -1201,6 +1201,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === FILE UPLOAD ROUTES ===
+  
+  // Get all files for a task
+  app.get("/api/tasks/:taskId/files", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Get files for this task (or return empty array if none)
+      const files = taskFiles[taskId.toString()] || [];
+      return res.status(200).json(files);
+    } catch (error) {
+      console.error("Error fetching task files:", error);
+      return res.status(500).json({ message: "Failed to fetch task files" });
+    }
+  });
+
+  // Upload a file for a task
+  app.post("/api/tasks/:taskId/files", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const taskId = parseInt(req.params.taskId);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Create file record
+      const fileInfo = {
+        id: Date.now(), // Use timestamp as ID
+        name: req.file.originalname,
+        filename: req.file.filename,
+        size: req.file.size,
+        uploadedAt: new Date().toISOString()
+      };
+
+      // Add file to task files
+      if (!taskFiles[taskId.toString()]) {
+        taskFiles[taskId.toString()] = [];
+      }
+      taskFiles[taskId.toString()].push(fileInfo);
+
+      // Record file upload in task updates
+      await storage.createTaskUpdate({
+        taskId: taskId,
+        userId: req.user.id,
+        updateType: 'File Upload',
+        previousValue: null,
+        newValue: req.file.originalname,
+        comment: `File uploaded: ${req.file.originalname} (${formatFileSize(req.file.size)})`
+      });
+
+      return res.status(201).json(fileInfo);
+    } catch (error) {
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ message: "File too large. Maximum file size is 10MB." });
+        }
+        return res.status(400).json({ message: `File upload error: ${error.message}` });
+      }
+      
+      console.error("Error uploading file:", error);
+      return res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Get a specific file
+  app.get("/api/tasks/:taskId/files/:fileId", async (req, res) => {
+    try {
+      const taskId = parseInt(req.params.taskId);
+      const fileId = parseInt(req.params.fileId);
+      
+      if (isNaN(taskId) || isNaN(fileId)) {
+        return res.status(400).json({ message: "Invalid task ID or file ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Find the file
+      const taskFileList = taskFiles[taskId.toString()] || [];
+      const file = taskFileList.find(f => f.id === fileId);
+      
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      // Send the file
+      const filePath = path.join(uploadDir, file.filename);
+      return res.download(filePath, file.name);
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      return res.status(500).json({ message: "Failed to download file" });
+    }
+  });
+
+  // Delete a specific file
+  app.delete("/api/tasks/:taskId/files/:fileId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const taskId = parseInt(req.params.taskId);
+      const fileId = parseInt(req.params.fileId);
+      
+      if (isNaN(taskId) || isNaN(fileId)) {
+        return res.status(400).json({ message: "Invalid task ID or file ID" });
+      }
+
+      // Check if task exists
+      const task = await storage.getTaskById(taskId);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Find the file
+      const taskFileList = taskFiles[taskId.toString()] || [];
+      const fileIndex = taskFileList.findIndex(f => f.id === fileId);
+      
+      if (fileIndex === -1) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const file = taskFileList[fileIndex];
+
+      // Delete file from disk
+      const filePath = path.join(uploadDir, file.filename);
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error("Failed to delete file from disk:", err);
+        // Continue even if physical file deletion fails
+      }
+
+      // Remove file from task files
+      taskFiles[taskId.toString()].splice(fileIndex, 1);
+
+      // Record file deletion in task updates
+      await storage.createTaskUpdate({
+        taskId: taskId,
+        userId: req.user.id,
+        updateType: 'File Deleted',
+        previousValue: file.name,
+        newValue: null,
+        comment: `File deleted: ${file.name}`
+      });
+
+      return res.status(200).json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      return res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
+  // Helper function to format file size
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
   const httpServer = createServer(app);
 
   return httpServer;
