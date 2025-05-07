@@ -161,13 +161,16 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Completion</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center">
+            <Link
+              href={`/tasks?projectId=${projectId}&status=completed`}
+              className="flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
+            >
               <div className="text-3xl font-bold mb-2">{completionPercentage}%</div>
               <Progress value={completionPercentage} className="h-2 w-full" />
               <div className="text-sm text-muted-foreground mt-2">
                 {completedTasks} of {totalTasks} tasks complete
               </div>
-            </div>
+            </Link>
           </CardContent>
         </Card>
         
@@ -177,18 +180,27 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
+              <Link 
+                href={`/tasks?projectId=${projectId}&status=todo`} 
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-yellow-500">{todoTasks}</div>
                 <div className="text-xs text-muted-foreground">To Do</div>
-              </div>
-              <div>
+              </Link>
+              <Link 
+                href={`/tasks?projectId=${projectId}&status=in_progress`}
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-blue-500">{inProgressTasks}</div>
                 <div className="text-xs text-muted-foreground">In Progress</div>
-              </div>
-              <div>
+              </Link>
+              <Link 
+                href={`/tasks?projectId=${projectId}&status=completed`}
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-green-500">{completedTasks}</div>
                 <div className="text-xs text-muted-foreground">Completed</div>
-              </div>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -199,18 +211,27 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
+              <Link 
+                href={`/tasks?projectId=${projectId}&priority=high`}
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-red-500">{highPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">High</div>
-              </div>
-              <div>
+              </Link>
+              <Link 
+                href={`/tasks?projectId=${projectId}&priority=medium`}
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-orange-500">{mediumPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">Medium</div>
-              </div>
-              <div>
+              </Link>
+              <Link 
+                href={`/tasks?projectId=${projectId}&priority=low`}
+                className="hover:bg-gray-50 p-2 rounded-md transition-colors"
+              >
                 <div className="text-xl font-bold text-green-500">{lowPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">Low</div>
-              </div>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -220,14 +241,17 @@ export default function ProjectDetailPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center">
+            <Link 
+              href={`/tasks?projectId=${projectId}&overdue=true`}
+              className="flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
+            >
               <div className={`text-3xl font-bold mb-1 ${overdueTasks > 0 ? "text-red-500" : ""}`}>
                 {overdueTasks}
               </div>
               <div className="text-sm text-muted-foreground">
                 {overdueTasks === 1 ? 'task is overdue' : 'tasks are overdue'}
               </div>
-            </div>
+            </Link>
           </CardContent>
         </Card>
       </div>
