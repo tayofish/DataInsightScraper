@@ -277,11 +277,10 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
  * Send notification for task assignment
  */
 export async function notifyTaskAssignment(task: any, assignee: any, assignedBy: any) {
-  if (!assignee || !assignee.email) {
-    console.log('Cannot send task assignment notification: assignee missing or has no email', {
+  if (!assignee) {
+    console.log('Cannot send task assignment notification: assignee missing', {
       taskId: task?.id,
-      assigneeId: assignee?.id,
-      hasEmail: Boolean(assignee?.email)
+      assigneeId: assignee?.id
     });
     return;
   }
@@ -297,31 +296,43 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
   const assigneeName = assignee.name || assignee.username || 'User';
   const assignerName = assignedBy?.name || assignedBy?.username || 'Admin';
   
-  await sendEmail({
-    to: assignee.email,
-    subject: `[TaskScout] You've been assigned a task: ${task.title}`,
-    html: `
-      <h2>Task Assignment</h2>
-      <p>Hello ${assigneeName},</p>
-      <p>You have been assigned to a task by ${assignerName}:</p>
-      <p><strong>${task.title}</strong></p>
-      <p>${task.description || ''}</p>
-      <p>Priority: ${task.priority}</p>
-      <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-      <p><a href="${taskUrl}">View Task</a></p>
-    `,
-  });
+  // Create in-app notification
+  await createNotification(
+    assignee.id,
+    `Task assigned: ${task.title}`,
+    `You have been assigned to a task by ${assignerName} with priority ${task.priority}${task.dueDate ? ` due on ${new Date(task.dueDate).toLocaleDateString()}` : ''}.`,
+    'task_assignment',
+    task.id,
+    'task'
+  );
+  
+  // Send email notification if email is available
+  if (assignee.email) {
+    await sendEmail({
+      to: assignee.email,
+      subject: `[TaskScout] You've been assigned a task: ${task.title}`,
+      html: `
+        <h2>Task Assignment</h2>
+        <p>Hello ${assigneeName},</p>
+        <p>You have been assigned to a task by ${assignerName}:</p>
+        <p><strong>${task.title}</strong></p>
+        <p>${task.description || ''}</p>
+        <p>Priority: ${task.priority}</p>
+        <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+        <p><a href="${taskUrl}">View Task</a></p>
+      `,
+    });
+  }
 }
 
 /**
  * Send notification for mention in task
  */
 export async function notifyMention(task: any, mentionedUser: any, mentionedBy: any, comment: string) {
-  if (!mentionedUser || !mentionedUser.email) {
-    console.log('Cannot send mention notification: mentioned user missing or has no email', {
+  if (!mentionedUser) {
+    console.log('Cannot send mention notification: mentioned user missing', {
       taskId: task?.id,
-      mentionedUserId: mentionedUser?.id,
-      hasEmail: Boolean(mentionedUser?.email)
+      mentionedUserId: mentionedUser?.id
     });
     return;
   }
@@ -337,18 +348,31 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
   const userName = mentionedUser.name || mentionedUser.username || 'User';
   const mentionerName = mentionedBy?.name || mentionedBy?.username || 'Admin';
   
-  await sendEmail({
-    to: mentionedUser.email,
-    subject: `[TaskScout] You were mentioned in a task: ${task.title}`,
-    html: `
-      <h2>Mention in Task</h2>
-      <p>Hello ${userName},</p>
-      <p>${mentionerName} mentioned you in a task:</p>
-      <p><strong>${task.title}</strong></p>
-      <p>Comment: ${comment}</p>
-      <p><a href="${taskUrl}">View Task</a></p>
-    `,
-  });
+  // Create in-app notification
+  await createNotification(
+    mentionedUser.id,
+    `Mentioned in task: ${task.title}`,
+    `${mentionerName} mentioned you in a task: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
+    'task_mention',
+    task.id,
+    'task'
+  );
+  
+  // Send email notification if email is available
+  if (mentionedUser.email) {
+    await sendEmail({
+      to: mentionedUser.email,
+      subject: `[TaskScout] You were mentioned in a task: ${task.title}`,
+      html: `
+        <h2>Mention in Task</h2>
+        <p>Hello ${userName},</p>
+        <p>${mentionerName} mentioned you in a task:</p>
+        <p><strong>${task.title}</strong></p>
+        <p>Comment: ${comment}</p>
+        <p><a href="${taskUrl}">View Task</a></p>
+      `,
+    });
+  }
 }
 
 /**
@@ -370,36 +394,55 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
   const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
   const commenterName = commentBy?.name || commentBy?.username || 'Admin';
   let emailsSent = 0;
+  let notificationsSent = 0;
   
   for (const user of notifyUsers) {
     // Don't notify the commenter about their own comment
-    if (user.id === commentBy.id || !user.email) {
-      console.log(`Skipping notification for user ${user.id}: ${!user.email ? 'no email' : 'is commenter'}`);
+    if (user.id === commentBy.id) {
+      console.log(`Skipping notification for user ${user.id}: is commenter`);
       continue;
     }
     
     const userName = user.name || user.username || 'User';
     
+    // Create in-app notification
     try {
-      await sendEmail({
-        to: user.email,
-        subject: `[TaskScout] New comment on task: ${task.title}`,
-        html: `
-          <h2>New Comment on Task</h2>
-          <p>Hello ${userName},</p>
-          <p>${commenterName} commented on a task:</p>
-          <p><strong>${task.title}</strong></p>
-          <p>Comment: ${comment}</p>
-          <p><a href="${taskUrl}">View Task</a></p>
-        `,
-      });
-      emailsSent++;
+      await createNotification(
+        user.id,
+        `New comment on task: ${task.title}`,
+        `${commenterName} commented: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
+        'task_comment',
+        task.id,
+        'task'
+      );
+      notificationsSent++;
     } catch (err) {
-      console.error(`Failed to send comment notification to user ${user.id}:`, err);
+      console.error(`Failed to create in-app comment notification for user ${user.id}:`, err);
+    }
+    
+    // Send email notification if email is available
+    if (user.email) {
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: `[TaskScout] New comment on task: ${task.title}`,
+          html: `
+            <h2>New Comment on Task</h2>
+            <p>Hello ${userName},</p>
+            <p>${commenterName} commented on a task:</p>
+            <p><strong>${task.title}</strong></p>
+            <p>Comment: ${comment}</p>
+            <p><a href="${taskUrl}">View Task</a></p>
+          `,
+        });
+        emailsSent++;
+      } catch (err) {
+        console.error(`Failed to send comment notification email to user ${user.id}:`, err);
+      }
     }
   }
   
-  console.log(`Sent ${emailsSent} comment notification emails`);
+  console.log(`Sent ${emailsSent} comment notification emails and ${notificationsSent} in-app notifications`);
 }
 
 /**
@@ -478,11 +521,10 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
  * Send notification for task collaboration invitation
  */
 export async function notifyTaskCollaboration(task: any, user: any, inviter: any, role: string = 'viewer') {
-  if (!user || !user.email) {
-    console.log('Cannot send task collaboration notification: user missing or has no email', {
+  if (!user) {
+    console.log('Cannot send task collaboration notification: user missing', {
       taskId: task?.id,
-      userId: user?.id,
-      hasEmail: Boolean(user?.email)
+      userId: user?.id
     });
     return;
   }
@@ -500,28 +542,46 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
   const userName = user.name || user.username || 'User';
   const inviterName = inviter?.name || inviter?.username || 'Administrator';
   
+  // Create in-app notification
   try {
-    const success = await sendEmail({
-      to: user.email,
-      subject: `[TaskScout] You've been invited to collaborate on: ${task.title}`,
-      html: `
-        <h2>Task Collaboration Invitation</h2>
-        <p>Hello ${userName},</p>
-        <p>You have been invited by ${inviterName} to collaborate on a task:</p>
-        <p><strong>${task.title}</strong></p>
-        <p>${task.description || ''}</p>
-        <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
-        <p>Priority: ${task.priority}</p>
-        <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-        <p><a href="${taskUrl}">View Task</a></p>
-      `,
-    });
-    
-    if (success) {
-      console.log(`Successfully sent task collaboration invitation to ${user.email}`);
-    }
+    await createNotification(
+      user.id,
+      `Task collaboration invitation: ${task.title}`,
+      `${inviterName} invited you to collaborate on a task as a ${role}.`,
+      'task_collaboration',
+      task.id,
+      'task'
+    );
+    console.log(`Successfully created in-app task collaboration notification for user ${user.id}`);
   } catch (err) {
-    console.error(`Failed to send task collaboration invitation to user ${user.id}:`, err);
+    console.error(`Failed to create in-app task collaboration notification for user ${user.id}:`, err);
+  }
+  
+  // Send email notification if email is available
+  if (user.email) {
+    try {
+      const success = await sendEmail({
+        to: user.email,
+        subject: `[TaskScout] You've been invited to collaborate on: ${task.title}`,
+        html: `
+          <h2>Task Collaboration Invitation</h2>
+          <p>Hello ${userName},</p>
+          <p>You have been invited by ${inviterName} to collaborate on a task:</p>
+          <p><strong>${task.title}</strong></p>
+          <p>${task.description || ''}</p>
+          <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
+          <p>Priority: ${task.priority}</p>
+          <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+          <p><a href="${taskUrl}">View Task</a></p>
+        `,
+      });
+      
+      if (success) {
+        console.log(`Successfully sent task collaboration invitation email to ${user.email}`);
+      }
+    } catch (err) {
+      console.error(`Failed to send task collaboration invitation email to user ${user.id}:`, err);
+    }
   }
 }
 
@@ -529,11 +589,10 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
  * Send notification for project assignment
  */
 export async function notifyProjectAssignment(project: any, user: any, assignedBy: any, role: string = 'member') {
-  if (!user || !user.email) {
-    console.log('Cannot send project assignment notification: user missing or has no email', {
+  if (!user) {
+    console.log('Cannot send project assignment notification: user missing', {
       projectId: project?.id,
-      userId: user?.id,
-      hasEmail: Boolean(user?.email)
+      userId: user?.id
     });
     return;
   }
@@ -551,25 +610,43 @@ export async function notifyProjectAssignment(project: any, user: any, assignedB
   const userName = user.name || user.username || 'User';
   const assignerName = assignedBy?.name || assignedBy?.username || 'Administrator';
   
+  // Create in-app notification
   try {
-    const success = await sendEmail({
-      to: user.email,
-      subject: `[TaskScout] You've been added to project: ${project.name}`,
-      html: `
-        <h2>Project Assignment</h2>
-        <p>Hello ${userName},</p>
-        <p>You have been added to a project by ${assignerName}:</p>
-        <p><strong>${project.name}</strong></p>
-        <p>${project.description || ''}</p>
-        <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
-        <p><a href="${projectUrl}">View Project</a></p>
-      `,
-    });
-    
-    if (success) {
-      console.log(`Successfully sent project assignment notification to ${user.email}`);
-    }
+    await createNotification(
+      user.id,
+      `Project assignment: ${project.name}`,
+      `${assignerName} added you to a project as a ${role}.`,
+      'project_assignment',
+      project.id,
+      'project'
+    );
+    console.log(`Successfully created in-app project assignment notification for user ${user.id}`);
   } catch (err) {
-    console.error(`Failed to send project assignment notification to user ${user.id}:`, err);
+    console.error(`Failed to create in-app project assignment notification for user ${user.id}:`, err);
+  }
+  
+  // Send email notification if email is available
+  if (user.email) {
+    try {
+      const success = await sendEmail({
+        to: user.email,
+        subject: `[TaskScout] You've been added to project: ${project.name}`,
+        html: `
+          <h2>Project Assignment</h2>
+          <p>Hello ${userName},</p>
+          <p>You have been added to a project by ${assignerName}:</p>
+          <p><strong>${project.name}</strong></p>
+          <p>${project.description || ''}</p>
+          <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
+          <p><a href="${projectUrl}">View Project</a></p>
+        `,
+      });
+      
+      if (success) {
+        console.log(`Successfully sent project assignment notification email to ${user.email}`);
+      }
+    } catch (err) {
+      console.error(`Failed to send project assignment notification email to user ${user.id}:`, err);
+    }
   }
 }
