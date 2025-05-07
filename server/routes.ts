@@ -257,13 +257,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const { username, password, name, avatar, isAdmin } = req.body;
+      const { username, password, name, avatar, email, isAdmin } = req.body;
       let userData: any = {};
       
       // Only include fields that were provided
       if (username !== undefined) userData.username = username;
       if (name !== undefined) userData.name = name;
       if (avatar !== undefined) userData.avatar = avatar;
+      if (email !== undefined) userData.email = email;
       
       // If password was provided, hash it
       if (password) {
