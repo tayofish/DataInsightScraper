@@ -29,7 +29,7 @@ import SmtpConfigForm from "@/components/smtp-config-form";
 // User management form schema
 const userFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters").optional().or(z.literal('')),
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address").optional().nullable(),
   avatar: z.string().nullable().optional(),
@@ -724,6 +724,11 @@ export default function AdminPage() {
                         />
                       </FormControl>
                       <FormMessage />
+                      {userToEdit && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Password will only be updated if a new value is provided.
+                        </p>
+                      )}
                     </FormItem>
                   )}
                 />

@@ -265,9 +265,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (name !== undefined) userData.name = name;
       if (avatar !== undefined) userData.avatar = avatar;
       if (email !== undefined) userData.email = email;
+      if (isAdmin !== undefined) userData.isAdmin = isAdmin;
       
-      // If password was provided, hash it
-      if (password) {
+      // If password was provided and not empty, hash it
+      if (password && password.trim() !== '') {
         const { hashPassword } = await import('./auth');
         userData.password = await hashPassword(password);
         
