@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, CheckSquare, Clock, List, PlusCircle, ProjectorIcon, UserCog } from "lucide-react";
+import { CalendarDays, CheckSquare, Clock, List, PlusCircle, ProjectorIcon, UserCog, X } from "lucide-react";
 import TaskList from "@/components/task-list";
 import { TaskFilterValues } from "@/components/task-filters";
 import { Progress } from "@/components/ui/progress";
@@ -282,6 +282,46 @@ export default function ProjectDetailPage() {
         </TabsList>
         
         <TabsContent value="tasks" className="space-y-4">
+          {/* Active filters display and reset button */}
+          {(taskFilters.status !== 'all' || 
+            taskFilters.priority !== 'all' || 
+            taskFilters.customFilter) && (
+            <div className="bg-blue-50 p-2 rounded-lg mb-4 flex justify-between items-center">
+              <div className="text-sm text-blue-700 flex items-center flex-wrap gap-2">
+                <span className="font-medium">Active filters:</span>
+                {taskFilters.status !== 'all' && (
+                  <Badge variant="outline" className="bg-white">
+                    Status: {taskFilters.status === 'in_progress' ? 'In Progress' : 
+                            taskFilters.status.charAt(0).toUpperCase() + taskFilters.status.slice(1)}
+                  </Badge>
+                )}
+                {taskFilters.priority !== 'all' && (
+                  <Badge variant="outline" className="bg-white">
+                    Priority: {taskFilters.priority.charAt(0).toUpperCase() + taskFilters.priority.slice(1)}
+                  </Badge>
+                )}
+                {taskFilters.customFilter === 'overdue' && (
+                  <Badge variant="outline" className="bg-white">
+                    Overdue Tasks
+                  </Badge>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setTaskFilters({
+                  ...taskFilters,
+                  status: 'all',
+                  priority: 'all',
+                  customFilter: undefined
+                })}
+                className="text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Reset Filters
+              </Button>
+            </div>
+          )}
           <TaskList filters={taskFilters} />
         </TabsContent>
         
