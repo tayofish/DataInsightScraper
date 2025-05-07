@@ -17,7 +17,9 @@ import Teams from "@/pages/teams";
 import Settings from "@/pages/settings";
 import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
+import NotificationsPage from "@/pages/notifications";
 import { Sidebar } from "@/components/sidebar";
+import { NotificationDropdown } from "@/components/notification-dropdown";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
@@ -38,6 +40,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="bg-primary/10 rounded-full px-3 py-1.5 flex items-center text-xs font-medium shadow-inner text-primary">
               <span className="mr-1">✨</span> Modern UI activated
             </div>
+            <NotificationDropdown />
           </div>
         </header>
         <main className="flex-1 relative overflow-y-auto focus:outline-none custom-scrollbar">
@@ -118,6 +121,12 @@ function Router() {
       <ProtectedRoute path="/reports" component={() => (
         <AppLayout>
           <Reports />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/notifications" component={() => (
+        <AppLayout>
+          <NotificationsPage />
         </AppLayout>
       )} />
       
