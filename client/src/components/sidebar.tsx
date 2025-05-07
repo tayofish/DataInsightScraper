@@ -15,7 +15,8 @@ import {
   Menu,
   Building2,
   LogOut,
-  Shield
+  Shield,
+  BarChart2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';

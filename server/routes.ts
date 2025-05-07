@@ -373,6 +373,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get project assignments
+  app.get("/api/projects/:id/assignments", async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      if (isNaN(projectId)) {
+        return res.status(400).json({ message: "Invalid project ID" });
+      }
+
+      const assignments = await storage.getProjectAssignments(projectId);
+      return res.status(200).json(assignments);
+    } catch (error) {
+      console.error("Error fetching project assignments:", error);
+      return res.status(500).json({ message: "Failed to fetch project assignments" });
+    }
+  });
+
   // Delete project
   app.delete("/api/projects/:id", async (req, res) => {
     try {

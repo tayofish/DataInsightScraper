@@ -8,6 +8,8 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks";
 import Projects from "@/pages/projects";
+import ProjectDetailPage from "@/pages/project-detail";
+import Reports from "@/pages/reports";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
 import Settings from "@/pages/settings";
@@ -66,6 +68,12 @@ function Router() {
         </AppLayout>
       )} />
       
+      <ProtectedRoute path="/projects/:id" component={() => (
+        <AppLayout>
+          <ProjectDetailPage />
+        </AppLayout>
+      )} />
+      
       <ProtectedRoute path="/categories" component={() => (
         <AppLayout>
           <Categories />
@@ -84,6 +92,12 @@ function Router() {
         </AppLayout>
       )} />
       
+      <ProtectedRoute path="/reports" component={() => (
+        <AppLayout>
+          <Reports />
+        </AppLayout>
+      )} />
+
       <ProtectedRoute path="/admin" component={() => (
         <AppLayout>
           <AdminPage />
