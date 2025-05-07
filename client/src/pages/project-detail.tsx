@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Project, Task } from "@shared/schema";
+import { Project, Task, User, Category, Department } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,13 @@ import { TaskFilterValues } from "@/components/task-filters";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { queryClient } from "@/lib/queryClient";
+
+// Extended Task type with relations for the timeline view
+interface TaskWithRelations extends Task {
+  assignee?: User;
+  category?: Category;
+  department?: Department;
+}
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -39,8 +46,8 @@ export default function ProjectDetailPage() {
     enabled: !isNaN(projectId)
   });
 
-  // Fetch tasks for this project
-  const { data: tasks = [], isLoading: tasksLoading } = useQuery<Task[]>({
+  // Fetch tasks for this project with relation data
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery<TaskWithRelations[]>({
     queryKey: ['/api/tasks', { projectId }],
     queryFn: async () => {
       const res = await fetch(`/api/tasks?projectId=${projectId}`);
@@ -391,14 +398,16 @@ export default function ProjectDetailPage() {
                                   </Badge>
                                 )}
                                 
-                                {task.assigneeId && task.assignee && (
+                                {task.assigneeId && (
                                   <div className="flex items-center space-x-1">
                                     <Avatar className="h-6 w-6">
                                       <AvatarFallback>
-                                        {task.assignee.username.substring(0, 2).toUpperCase()}
+                                        {task.assignee ? task.assignee.username.substring(0, 2).toUpperCase() : 'U'}
                                       </AvatarFallback>
                                     </Avatar>
-                                    <span className="text-xs text-gray-500">{task.assignee.username}</span>
+                                    <span className="text-xs text-gray-500">
+                                      {task.assignee ? task.assignee.username : 'Assigned'}
+                                    </span>
                                   </div>
                                 )}
                               </div>
