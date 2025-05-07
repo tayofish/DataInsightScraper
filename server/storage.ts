@@ -21,6 +21,9 @@ const sessionStore = new PostgresSessionStore({
 });
 
 // User-related operations
+// Report generation function types
+type ReportParameters = string | undefined;
+
 export const storage = {
   // Session store for authentication
   sessionStore,
