@@ -139,6 +139,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       projectId: task?.projectId || null,
       assigneeId: task?.assigneeId || null,
       categoryId: task?.categoryId || null,
+      departmentId: task?.departmentId || null,
     },
   });
 
@@ -155,6 +156,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         projectId: task.projectId || null,
         assigneeId: task.assigneeId || null,
         categoryId: task.categoryId || null,
+        departmentId: task.departmentId || null,
       });
     }
   }, [task, form]);
