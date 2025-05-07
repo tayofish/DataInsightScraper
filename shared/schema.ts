@@ -120,6 +120,19 @@ export const smtpConfig = pgTable("smtp_config", {
   updatedAt: timestamp("updated_at"),
 });
 
+// Notifications table for user notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // Type of notification: task_assignment, task_mention, task_comment, project_assignment, etc.
+  referenceId: integer("reference_id"), // ID of the referenced item (task, project, etc.)
+  referenceType: text("reference_type"), // Type of referenced item (task, project, etc.)
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   tasks: many(tasks),
@@ -127,6 +140,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   taskUpdates: many(taskUpdates),
   taskCollaborations: many(taskCollaborators),
   reportsCreated: many(reports, { relationName: "reportCreator" }),
+  notifications: many(notifications),
 }));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
@@ -315,6 +329,23 @@ export type InsertReport = z.infer<typeof reportInsertSchema>;
 export const smtpConfigSelectSchema = createSelectSchema(smtpConfig);
 export type SmtpConfig = z.infer<typeof smtpConfigSelectSchema>;
 export type InsertSmtpConfig = z.infer<typeof smtpConfigInsertSchema>;
+
+// Define notification relations and schemas
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
+export const notificationInsertSchema = createInsertSchema(notifications, {
+  title: (schema) => schema.min(1, "Notification title is required"),
+  message: (schema) => schema.min(1, "Notification message is required"),
+});
+
+export const notificationSelectSchema = createSelectSchema(notifications);
+export type Notification = z.infer<typeof notificationSelectSchema>;
+export type InsertNotification = z.infer<typeof notificationInsertSchema>;
 
 // Frontend specific schemas
 export const taskFormSchema = z.object({

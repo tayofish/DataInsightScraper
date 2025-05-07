@@ -1,11 +1,11 @@
 import { db } from "@db";
 import { pool } from "@db";
 import { 
-  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports,
+  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications,
   type User, type Task, type Project, type Category, type Department, 
-  type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report,
+  type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification,
   type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment,
-  type InsertProjectAssignment, type InsertTaskUpdate, type InsertTaskCollaborator, type InsertReport,
+  type InsertProjectAssignment, type InsertTaskUpdate, type InsertTaskCollaborator, type InsertReport, type InsertNotification,
   type UpdateTask
 } from "@shared/schema";
 import { eq, and, or, desc, asc, isNull, sql } from "drizzle-orm";
