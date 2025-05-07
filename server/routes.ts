@@ -1772,12 +1772,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get SMTP configuration
   app.get("/api/smtp-config", isAdmin, async (req, res) => {
     try {
-      const result = await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
-      if (result.length === 0) {
-        return res.status(404).json({ message: "No active SMTP configuration found" });
+      // First try to get the active configuration
+      const activeResult = await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
+      
+      if (activeResult.length > 0) {
+        return res.status(200).json(activeResult[0]);
       }
       
-      return res.status(200).json(result[0]);
+      // If no active configuration, get the most recent one
+      const allConfigs = await db.select().from(smtpConfig).orderBy(desc(smtpConfig.createdAt)).limit(1);
+      
+      if (allConfigs.length > 0) {
+        return res.status(200).json(allConfigs[0]);
+      }
+      
+      // If no configurations at all
+      return res.status(404).json({ message: "No SMTP configuration found" });
     } catch (error) {
       console.error("Error fetching SMTP configuration:", error);
       return res.status(500).json({ message: "Failed to fetch SMTP configuration" });
@@ -1866,13 +1876,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await db.update(smtpConfig).set({ active: false });
       }
       
+      // Get the existing configuration to handle masked password
+      const existingConfig = await db.select().from(smtpConfig).where(eq(smtpConfig.id, id));
+      
+      if (existingConfig.length === 0) {
+        return res.status(404).json({ message: "SMTP configuration not found" });
+      }
+      
+      // Don't update password if it looks like a masked password (e.g., "••••••••")
+      const passwordToUse = configData.password.includes('•') ? 
+        existingConfig[0].password : configData.password;
+      
       // Update the configuration
       const result = await db.update(smtpConfig)
         .set({
           host: configData.host,
           port: configData.port,
           username: configData.username,
-          password: configData.password,
+          password: passwordToUse,
           fromEmail: configData.fromEmail,
           fromName: configData.fromName || 'TaskScout Notifications',
           enableTls: configData.enableTls,

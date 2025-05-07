@@ -29,32 +29,53 @@ export default function SmtpConfigForm() {
   const { data: smtpConfig, isLoading } = useQuery({
     queryKey: ['/api/smtp-config'],
     queryFn: async () => {
-      const res = await fetch('/api/smtp-config');
-      if (!res.ok) {
-        if (res.status === 404) {
-          return null; // No config found
+      try {
+        const res = await fetch('/api/smtp-config');
+        if (!res.ok) {
+          if (res.status === 404) {
+            console.log('No SMTP configuration found');
+            return null; // No config found
+          }
+          throw new Error('Failed to fetch SMTP configuration');
         }
-        throw new Error('Failed to fetch SMTP configuration');
+        const data = await res.json();
+        console.log('SMTP configuration loaded:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching SMTP configuration:', error);
+        return null;
       }
-      return res.json();
     }
   });
   
   // Create form with existing data or defaults
+  const defaultValues = {
+    host: '',
+    port: 587,
+    username: '',
+    password: '',
+    fromEmail: '',
+    fromName: 'TaskScout Notifications',
+    enableTls: true,
+    active: false,
+  };
+  
   const form = useForm<SmtpConfigFormValues>({
     resolver: zodResolver(smtpConfigFormSchema),
-    defaultValues: {
-      host: '',
-      port: 587,
-      username: '',
-      password: '',
-      fromEmail: '',
-      fromName: 'TaskScout Notifications',
-      enableTls: true,
-      active: false,
-    },
+    defaultValues,
     values: smtpConfig || undefined,
   });
+  
+  // This ensures the form is updated when the data is loaded
+  React.useEffect(() => {
+    if (smtpConfig) {
+      form.reset({
+        ...smtpConfig,
+        // Don't display the password for security reasons
+        password: smtpConfig.password ? '••••••••' : '',
+      });
+    }
+  }, [smtpConfig, form]);
   
   // Mutation to save SMTP configuration
   const saveConfigMutation = useMutation({
