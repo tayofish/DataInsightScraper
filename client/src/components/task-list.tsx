@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 // Card imports removed as they're no longer needed
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
