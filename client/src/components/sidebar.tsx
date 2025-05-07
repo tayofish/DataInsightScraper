@@ -89,14 +89,8 @@ export function Sidebar() {
         <NavItem href="/reports" icon={<BarChart2 size={20} />} isActive={location === '/reports'}>
           Reports
         </NavItem>
-        <NavItem href="#" icon={<Globe size={20} />} isActive={false}>
-          Web Scraping
-        </NavItem>
-        <NavItem href="#" icon={<Database size={20} />} isActive={false}>
-          SQL Translator
-        </NavItem>
-        <NavItem href="#" icon={<Users size={20} />} isActive={false}>
-          Team
+        <NavItem href="/teams" icon={<Users size={20} />} isActive={location === '/teams'}>
+          Teams
         </NavItem>
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings

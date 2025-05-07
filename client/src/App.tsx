@@ -13,6 +13,7 @@ import ProjectTeam from "@/pages/project-team";
 import Reports from "@/pages/reports";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
+import Teams from "@/pages/teams";
 import Settings from "@/pages/settings";
 import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
@@ -102,6 +103,12 @@ function Router() {
       <ProtectedRoute path="/reports" component={() => (
         <AppLayout>
           <Reports />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/teams" component={() => (
+        <AppLayout>
+          <Teams />
         </AppLayout>
       )} />
 
