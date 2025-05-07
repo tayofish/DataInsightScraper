@@ -108,7 +108,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   // Fetch task updates for comments and history
   const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery<(TaskUpdate & { user?: User })[]>({
-    queryKey: ['/api/tasks', task?.id, 'updates'],
+    queryKey: [`/api/tasks/${task?.id}/updates`],
     enabled: !!task?.id && isOpen,
   });
 
