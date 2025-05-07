@@ -172,7 +172,21 @@ export default function ReportsPage() {
     
     console.log("Report results:", reportResults);
     
-    const { reportType, data, generatedAt } = reportResults;
+    // Get report type either from reportType property or from type property
+    const reportType = reportResults.reportType || reportResults.type;
+    const data = reportResults.data;
+    const generatedAt = reportResults.generatedAt;
+    
+    if (!reportType) {
+      console.error("Report type is missing");
+      toast({
+        title: 'Export failed',
+        description: 'Unable to determine report type',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     let csvContent = "";
     let filename = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`;
     
@@ -187,10 +201,10 @@ export default function ReportsPage() {
       if (Array.isArray(data)) {
         data.forEach((item: any) => {
           console.log("Project item:", item);
-          const completionRate = item.totalTasks > 0 
-            ? Math.round((item.completedTasks / item.totalTasks) * 100) 
-            : 0;
-          csvContent += `"${item.projectName || 'Unknown'}",${item.totalTasks || 0},${item.completedTasks || 0},${completionRate}%\n`;
+          const totalTasks = item.tasks ? item.tasks.length : 0;
+          const completedTasks = item.tasks ? item.tasks.filter((t: any) => t.status === 'completed').length : 0;
+          const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+          csvContent += `"${item.projectName || 'Unknown'}",${totalTasks},${completedTasks},${completionRate}%\n`;
         });
       }
     } else if (reportType === 'user_performance') {
@@ -200,25 +214,55 @@ export default function ReportsPage() {
       if (Array.isArray(data)) {
         data.forEach((item: any) => {
           console.log("User item:", item);
-          csvContent += `"${item.userName || 'Unknown'}",${item.totalAssigned || 0},${item.completed || 0},${item.inProgress || 0},${item.todo || 0},${item.overdue || 0}\n`;
+          const totalTasks = item.tasks ? item.tasks.length : 0;
+          const completed = item.tasks ? item.tasks.filter((t: any) => t.status === 'completed').length : 0;
+          const inProgress = item.tasks ? item.tasks.filter((t: any) => t.status === 'in_progress').length : 0;
+          const todo = item.tasks ? item.tasks.filter((t: any) => t.status === 'todo').length : 0;
+          // For overdue tasks (those past due date but not completed)
+          const overdue = item.tasks ? item.tasks.filter((t: any) => 
+            t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed'
+          ).length : 0;
+          
+          csvContent += `"${item.userName || 'Unknown'}",${totalTasks},${completed},${inProgress},${todo},${overdue}\n`;
         });
       }
     } else if (reportType === 'task_status_summary') {
-      console.log("Processing task_status_summary, data:", reportResults.data);
+      console.log("Processing task_status_summary, data:", data);
       
-      if (reportResults.data) {
-        const { numTasks, numTodo, numInProgress, numCompleted, numOverdue, byPriority } = reportResults.data;
-        csvContent = "Status,Number of Tasks\n";
-        csvContent += `"Todo",${numTodo || 0}\n`;
-        csvContent += `"In Progress",${numInProgress || 0}\n`;
-        csvContent += `"Completed",${numCompleted || 0}\n`;
-        csvContent += `"Overdue",${numOverdue || 0}\n`;
+      if (data) {
+        // Extract task statistics
+        const total = data.total || 0;
+        const todo = data.todo || 0;
+        const inProgress = data.in_progress || 0;
+        const completed = data.completed || 0;
+        const overdue = data.overdue || 0;
         
-        if (byPriority) {
+        csvContent = "Status,Number of Tasks\n";
+        csvContent += `"Total",${total}\n`;
+        csvContent += `"Todo",${todo}\n`;
+        csvContent += `"In Progress",${inProgress}\n`;
+        csvContent += `"Completed",${completed}\n`;
+        csvContent += `"Overdue",${overdue}\n`;
+        
+        if (data.byPriority) {
           csvContent += `\nPriority Breakdown:\n`;
-          csvContent += `"Low",${byPriority.low || 0}\n`;
-          csvContent += `"Medium",${byPriority.medium || 0}\n`;
-          csvContent += `"High",${byPriority.high || 0}\n`;
+          csvContent += `"Low",${data.byPriority.low || 0}\n`;
+          csvContent += `"Medium",${data.byPriority.medium || 0}\n`;
+          csvContent += `"High",${data.byPriority.high || 0}\n`;
+        }
+        
+        if (data.byCategory) {
+          csvContent += `\nCategory Breakdown:\n`;
+          Object.entries(data.byCategory).forEach(([category, count]) => {
+            csvContent += `"${category}",${count}\n`;
+          });
+        }
+        
+        if (data.byProject) {
+          csvContent += `\nProject Breakdown:\n`;
+          Object.entries(data.byProject).forEach(([project, count]) => {
+            csvContent += `"${project}",${count}\n`;
+          });
         }
       }
     }
@@ -279,7 +323,10 @@ export default function ReportsPage() {
       );
     }
 
-    const { reportType, data, generatedAt } = reportResults;
+    // Get report type from either property
+    const reportType = reportResults.reportType || reportResults.type;
+    const data = reportResults.data;
+    const generatedAt = reportResults.generatedAt;
 
     return (
       <div className="space-y-4">
@@ -506,18 +553,36 @@ export default function ReportsPage() {
   function renderTaskStatusSummary() {
     if (!reportResults || !reportResults.data) return null;
 
-    const { numTasks, numTodo, numInProgress, numCompleted, numOverdue, byPriority, byCategory, byProject, recentlyCompleted } = reportResults.data;
+    // Normalize data fields
+    const data = reportResults.data;
+    const total = data.total || data.numTasks || 0;
+    const todo = data.todo || data.numTodo || 0;
+    const inProgress = data.in_progress || data.numInProgress || 0;
+    const completed = data.completed || data.numCompleted || 0;
+    const overdue = data.overdue || data.numOverdue || 0;
+    
+    // Ensure byPriority exists
+    const byPriority = data.byPriority || { low: 0, medium: 0, high: 0 };
+    
+    // Ensure byCategory exists
+    const byCategory = data.byCategory || {};
+    
+    // Ensure byProject exists
+    const byProject = data.byProject || {};
+    
+    // Ensure recentlyCompleted exists
+    const recentlyCompleted = data.recentlyCompleted || [];
 
     const statusPieData = [
-      { id: 'Todo', label: 'Todo', value: numTodo, color: '#f59e0b' },
-      { id: 'In Progress', label: 'In Progress', value: numInProgress, color: '#6366f1' },
-      { id: 'Completed', label: 'Completed', value: numCompleted, color: '#10b981' },
+      { id: 'Todo', label: 'Todo', value: todo, color: '#f59e0b' },
+      { id: 'In Progress', label: 'In Progress', value: inProgress, color: '#6366f1' },
+      { id: 'Completed', label: 'Completed', value: completed, color: '#10b981' },
     ];
 
     const priorityPieData = [
-      { id: 'Low', label: 'Low', value: byPriority.low, color: '#94a3b8' },
-      { id: 'Medium', label: 'Medium', value: byPriority.medium, color: '#f59e0b' },
-      { id: 'High', label: 'High', value: byPriority.high, color: '#ef4444' },
+      { id: 'Low', label: 'Low', value: byPriority.low || 0, color: '#94a3b8' },
+      { id: 'Medium', label: 'Medium', value: byPriority.medium || 0, color: '#f59e0b' },
+      { id: 'High', label: 'High', value: byPriority.high || 0, color: '#ef4444' },
     ];
 
     // Transform category data for pie chart
@@ -564,19 +629,19 @@ export default function ReportsPage() {
               <div className="grid grid-cols-4 w-full gap-4 text-center">
                 <div>
                   <p className="text-sm text-gray-500">Total</p>
-                  <p className="text-xl font-bold">{numTasks}</p>
+                  <p className="text-xl font-bold">{total}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Todo</p>
-                  <p className="text-xl font-bold text-amber-500">{numTodo}</p>
+                  <p className="text-xl font-bold text-amber-500">{todo}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">In Progress</p>
-                  <p className="text-xl font-bold text-indigo-500">{numInProgress}</p>
+                  <p className="text-xl font-bold text-indigo-500">{inProgress}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Completed</p>
-                  <p className="text-xl font-bold text-emerald-500">{numCompleted}</p>
+                  <p className="text-xl font-bold text-emerald-500">{completed}</p>
                 </div>
               </div>
             </CardFooter>
@@ -625,13 +690,13 @@ export default function ReportsPage() {
         </div>
 
         {/* Overdue tasks alert */}
-        {numOverdue > 0 && (
+        {overdue > 0 && (
           <Alert variant="destructive">
             <AlertTitle className="flex items-center gap-2">
               <Calendar className="h-4 w-4" /> Overdue Tasks
             </AlertTitle>
             <AlertDescription>
-              There {numOverdue === 1 ? 'is' : 'are'} <strong>{numOverdue}</strong> overdue {numOverdue === 1 ? 'task' : 'tasks'} that {numOverdue === 1 ? 'has' : 'have'} passed their due date but {numOverdue === 1 ? 'is' : 'are'} not completed.
+              There {overdue === 1 ? 'is' : 'are'} <strong>{overdue}</strong> overdue {overdue === 1 ? 'task' : 'tasks'} that {overdue === 1 ? 'has' : 'have'} passed their due date but {overdue === 1 ? 'is' : 'are'} not completed.
             </AlertDescription>
           </Alert>
         )}
