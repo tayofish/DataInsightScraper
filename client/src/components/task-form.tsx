@@ -111,6 +111,12 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     queryKey: [`/api/tasks/${task?.id}/updates`],
     enabled: !!task?.id && isOpen,
   });
+  
+  // Fetch task files
+  const { data: taskFileData = [], isLoading: filesLoading, refetch: refetchFiles } = useQuery<TaskFile[]>({
+    queryKey: [`/api/tasks/${task?.id}/files`],
+    enabled: !!task?.id && isOpen,
+  });
 
   // Form setup
   const form = useForm<TaskFormValues>({
@@ -143,23 +149,12 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         categoryId: task.categoryId || null,
       });
       
-      // Load task files (sample - in a real app, this would fetch from the API)
-      setTaskFiles([
-        {
-          id: 1,
-          name: 'Project_Requirements.pdf',
-          size: 2456000,
-          uploadedAt: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          name: 'Design_Mockup.png',
-          size: 1200000,
-          uploadedAt: new Date().toISOString(),
-        }
-      ]);
+      // Set task files from the fetched data
+      if (taskFileData.length > 0) {
+        setTaskFiles(taskFileData);
+      }
     }
-  }, [task, form]);
+  }, [task, form, taskFileData]);
 
   // Task update mutation (for saving the task)
   const taskMutation = useMutation({
@@ -235,34 +230,48 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     }
   };
 
-  // Handle file upload
-  const uploadFile = () => {
-    if (!selectedFile || !task?.id) return;
-    
-    setFileUploading(true);
-    
-    // Simulate file upload - in a real app, this would be an API call
-    setTimeout(() => {
-      setFileUploading(false);
+  // File upload mutation
+  const fileMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!task?.id) return null;
       
-      // Add the file to the list (in a real app, this would come from the API response)
-      setTaskFiles([
-        ...taskFiles,
-        {
-          id: Date.now(),
-          name: selectedFile.name,
-          size: selectedFile.size,
-          uploadedAt: new Date().toISOString(),
-        },
-      ]);
+      const formData = new FormData();
+      formData.append('file', file);
       
-      setSelectedFile(null);
+      const res = await fetch(`/api/tasks/${task.id}/files`, {
+        method: 'POST',
+        body: formData,
+      });
       
+      if (!res.ok) {
+        throw new Error('Failed to upload file');
+      }
+      
+      return await res.json();
+    },
+    onSuccess: () => {
       toast({
         title: 'File uploaded successfully',
         variant: 'default',
       });
-    }, 1500);
+      setSelectedFile(null);
+      refetchFiles();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to upload file',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setFileUploading(false);
+    },
+  });
+  
+  // Handle file upload
+  const uploadFile = () => {
+    if (!selectedFile || !task?.id) return;
+    setFileUploading(true);
+    fileMutation.mutate(selectedFile);
   };
 
   // Handle comment submission
@@ -748,10 +757,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         id="fileUpload"
                         onChange={handleFileChange}
                         className="hidden"
+                        disabled={fileUploading || fileMutation.isPending}
                       />
                       <label
                         htmlFor="fileUpload"
-                        className="cursor-pointer flex flex-col items-center justify-center"
+                        className={`cursor-pointer flex flex-col items-center justify-center ${(fileUploading || fileMutation.isPending) ? 'opacity-50' : ''}`}
                       >
                         <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center">
                           <Upload className="h-6 w-6 text-primary" />
@@ -776,9 +786,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                               <Button
                                 size="sm"
                                 onClick={uploadFile}
-                                disabled={fileUploading}
+                                disabled={fileUploading || fileMutation.isPending}
                               >
-                                {fileUploading ? (
+                                {(fileUploading || fileMutation.isPending) ? (
                                   <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     Uploading
@@ -793,9 +803,13 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                   </div>
                   
                   <ScrollArea className="h-[250px]">
-                    {taskFiles.length > 0 ? (
+                    {filesLoading ? (
+                      <div className="flex justify-center items-center h-[200px]">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      </div>
+                    ) : taskFileData.length > 0 ? (
                       <div className="space-y-3">
-                        {taskFiles.map((file) => (
+                        {taskFileData.map((file) => (
                           <Card key={file.id}>
                             <CardContent className="p-3 flex items-center justify-between">
                               <div className="flex items-center gap-3">
@@ -812,10 +826,24 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                <Button size="icon" variant="ghost">
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="text-destructive">
+                                <a href={`/api/tasks/${task?.id}/files/${file.id}`} target="_blank" rel="noopener noreferrer">
+                                  <Button size="icon" variant="ghost">
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </a>
+                                <Button 
+                                  size="icon" 
+                                  variant="ghost" 
+                                  className="text-destructive"
+                                  onClick={() => {
+                                    // In a real app, this would delete the file
+                                    toast({
+                                      title: "File deletion",
+                                      description: "File deletion is not implemented in this demo.",
+                                      variant: "default"
+                                    });
+                                  }}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
