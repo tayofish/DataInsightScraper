@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -7,10 +7,54 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
   setupAuth(app);
+  
+  // Set up file upload directory
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  // Configure multer storage
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      // Create a unique filename with original extension
+      const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    }
+  });
+  
+  // Configure multer upload with 10MB file size limit
+  const upload = multer({ 
+    storage,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB in bytes
+    }
+  });
+  
+  // Create a storage model for task files
+  // We'll need to track files in the database
+  // This is a simple in-memory storage for the demo
+  // In a real application, you would use a database table
+  const taskFiles: {
+    [taskId: string]: {
+      id: number;
+      name: string;
+      filename: string;
+      size: number;
+      uploadedAt: string;
+    }[]
+  } = {};
   
   // Application API routes
   // prefix all routes with /api
