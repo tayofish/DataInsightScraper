@@ -278,7 +278,7 @@ export default function TaskList({ filters }: TaskListProps) {
   return (
     <>
       <div className="w-full">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <div className="px-3 py-1 text-xs font-semibold bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
             {sortedTasks.length === 0
               ? "No tasks found"
@@ -290,7 +290,7 @@ export default function TaskList({ filters }: TaskListProps) {
         </div>
         
         {sortedTasks.length > 0 ? (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm">
+          <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
             {currentTasks.map((task) => {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);

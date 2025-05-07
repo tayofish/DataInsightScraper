@@ -59,7 +59,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
 
   return (
     <Form {...form}>
-      <div className="bg-white shadow px-4 py-4 rounded-lg">
+      <div className="bg-white shadow-inner px-4 py-4">
         {/* Row 1: Primary filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
           <AvatarField
