@@ -249,7 +249,11 @@ export type InsertCategory = z.infer<typeof categoryInsertSchema>;
 
 // Define additional insert schemas for new tables
 export const projectAssignmentInsertSchema = createInsertSchema(projectAssignments);
-export const taskUpdateInsertSchema = createInsertSchema(taskUpdates);
+export const taskUpdateInsertSchema = createInsertSchema(taskUpdates, {
+  // Ensure all required fields are validated
+  updateType: (schema) => schema.min(1, "Update type is required"),
+  comment: (schema) => schema.optional(),
+});
 export const taskCollaboratorInsertSchema = createInsertSchema(taskCollaborators);
 export const reportInsertSchema = createInsertSchema(reports, {
   name: (schema) => schema.min(3, "Report name must be at least 3 characters"),
