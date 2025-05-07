@@ -203,15 +203,8 @@ export const storage = {
     if (filters?.department && filters.department !== 'all') {
       const departmentId = parseInt(filters.department);
       if (!isNaN(departmentId)) {
-        // When filtering by department, we need to join with the categories table
-        const departmentFilter = sql`
-          EXISTS (
-            SELECT 1 FROM ${categories}
-            WHERE ${categories.id} = ${tasks.categoryId}
-            AND ${categories.departmentId} = ${departmentId}
-          )
-        `;
-        conditions.push(departmentFilter);
+        // Filter directly by the department ID now that we have it in the tasks table
+        conditions.push(eq(tasks.departmentId, departmentId));
       }
     }
     
@@ -230,27 +223,30 @@ export const storage = {
           with: {
             project: true,
             assignee: true,
-            category: true
+            category: true,
+            department: true
           }
         })
       : await db.query.tasks.findMany({
           with: {
             project: true,
             assignee: true,
-            category: true
+            category: true,
+            department: true
           }
         });
         
     return result;
   },
 
-  getTaskById: async (id: number): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null }) | undefined> => {
+  getTaskById: async (id: number): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null, department?: Department | null }) | undefined> => {
     const result = await db.query.tasks.findFirst({
       where: eq(tasks.id, id),
       with: {
         project: true,
         assignee: true,
-        category: true
+        category: true,
+        department: true
       }
     });
     
