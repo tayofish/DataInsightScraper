@@ -36,6 +36,7 @@ interface TaskWithRelations extends Task {
   project?: Project | null;
   assignee?: User | null;
   category?: Category | null;
+  department?: Department | null;
 }
 
 interface TaskListProps {

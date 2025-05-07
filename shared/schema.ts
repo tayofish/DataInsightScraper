@@ -54,6 +54,7 @@ export const tasks = pgTable("tasks", {
   projectId: integer("project_id").references(() => projects.id),
   assigneeId: integer("assignee_id").references(() => users.id),
   categoryId: integer("category_id").references(() => categories.id),
+  departmentId: integer("department_id").references(() => departments.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -141,6 +142,10 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   category: one(categories, {
     fields: [tasks.categoryId],
     references: [categories.id],
+  }),
+  department: one(departments, {
+    fields: [tasks.departmentId],
+    references: [departments.id],
   }),
   updates: many(taskUpdates),
   collaborators: many(taskCollaborators),
@@ -294,6 +299,7 @@ export const taskFormSchema = z.object({
   projectId: z.number().optional().nullable(),
   assigneeId: z.number().optional().nullable(),
   categoryId: z.number().optional().nullable(),
+  departmentId: z.number().optional().nullable(),
 });
 
 export type TaskFormValues = z.infer<typeof taskFormSchema>;
