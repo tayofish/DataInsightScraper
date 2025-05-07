@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "@db";
 import { 
   taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
@@ -13,6 +14,8 @@ import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import * as emailService from "./services/email-service";
+import nodemailer from "nodemailer";
+import { eq, and, or, desc, asc, sql, isNull, isNotNull } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
@@ -631,6 +634,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Proper validation with date preprocessing is done in the schema
       const taskData = taskInsertSchema.parse(requestData);
       const newTask = await storage.createTask(taskData);
+      
+      // Send email notifications for task creation
+      if (req.isAuthenticated()) {
+        try {
+          // Get assignee if task is assigned
+          let assignee = null;
+          if (taskData.assigneeId) {
+            assignee = await storage.getUserById(taskData.assigneeId);
+          }
+          
+          // Get project team members if this task is associated with a project
+          let projectTeam: any[] = [];
+          if (taskData.projectId) {
+            const projectAssignments = await storage.getProjectAssignments(taskData.projectId);
+            if (projectAssignments && projectAssignments.length > 0) {
+              projectTeam = projectAssignments
+                .filter(a => a.user)
+                .map(a => a.user);
+            }
+          }
+          
+          // Get creator (current user)
+          const creator = req.user;
+          
+          // Send email notification
+          await emailService.notifyTaskCreation(newTask, creator, assignee, projectTeam);
+          
+          // Process mentions in the task description
+          if (taskData.description) {
+            const mentions = extractMentions(taskData.description);
+            if (mentions.length > 0) {
+              for (const username of mentions) {
+                // Record mention update
+                await storage.createTaskUpdate({
+                  taskId: newTask.id,
+                  userId: req.user.id,
+                  updateType: 'Mention',
+                  previousValue: '',
+                  newValue: username,
+                  comment: `@${username} was mentioned in the task description`
+                });
+                
+                // Send email notification to mentioned user
+                const mentionedUser = await storage.getUserByUsername(username);
+                if (mentionedUser) {
+                  await emailService.notifyMention(
+                    newTask, 
+                    mentionedUser, 
+                    creator, 
+                    taskData.description || ''
+                  );
+                }
+              }
+            }
+          }
+        } catch (emailError) {
+          console.error('Failed to send task creation email notifications:', emailError);
+          // Continue execution - email failure shouldn't break task creation
+        }
+      }
+      
       return res.status(201).json(newTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
