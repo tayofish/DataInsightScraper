@@ -288,17 +288,31 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
  * Send notification for new user creation
  */
 export async function notifyUserCreation(user: any, password: string | null, admin: any) {
-  if (!user || !user.email) return;
+  if (!user || !user.email) {
+    console.log('Cannot send user creation notification: user missing or has no email', {
+      userId: user?.id,
+      hasEmail: Boolean(user?.email)
+    });
+    return;
+  }
+  
+  console.log('Sending user creation notification:', {
+    userId: user.id,
+    userEmail: user.email,
+    adminId: admin?.id
+  });
   
   const loginUrl = `${process.env.APP_URL || ''}/auth`;
+  const userName = user.name || user.username || 'User';
+  const adminName = admin?.name || admin?.username || 'Administrator';
   
   await sendEmail({
     to: user.email,
     subject: `[TaskScout] Welcome to TaskScout - Account Created`,
     html: `
       <h2>Welcome to TaskScout</h2>
-      <p>Hello ${user.name},</p>
-      <p>Your account has been created by ${admin.name}.</p>
+      <p>Hello ${userName},</p>
+      <p>Your account has been created by ${adminName}.</p>
       <p>Here are your login details:</p>
       <p>Username: ${user.username}</p>
       ${password ? `<p>Password: ${password}</p>` : ''}
@@ -312,16 +326,28 @@ export async function notifyUserCreation(user: any, password: string | null, adm
  * Send notification for password reset
  */
 export async function notifyPasswordReset(user: any, newPassword: string) {
-  if (!user || !user.email) return;
+  if (!user || !user.email) {
+    console.log('Cannot send password reset notification: user missing or has no email', {
+      userId: user?.id,
+      hasEmail: Boolean(user?.email)
+    });
+    return;
+  }
+  
+  console.log('Sending password reset notification:', {
+    userId: user.id,
+    userEmail: user.email
+  });
   
   const loginUrl = `${process.env.APP_URL || ''}/auth`;
+  const userName = user.name || user.username || 'User';
   
   await sendEmail({
     to: user.email,
     subject: `[TaskScout] Your Password Has Been Reset`,
     html: `
       <h2>Password Reset</h2>
-      <p>Hello ${user.name},</p>
+      <p>Hello ${userName},</p>
       <p>Your password has been reset.</p>
       <p>Your new password is: ${newPassword}</p>
       <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
