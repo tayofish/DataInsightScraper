@@ -1,12 +1,12 @@
 import { db } from "@db";
 import { pool } from "@db";
 import { 
-  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications,
+  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings,
   type User, type Task, type Project, type Category, type Department, 
-  type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification,
+  type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification, type AppSetting,
   type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment,
   type InsertProjectAssignment, type InsertTaskUpdate, type InsertTaskCollaborator, type InsertReport, type InsertNotification,
-  type UpdateTask
+  type InsertAppSetting, type UpdateTask
 } from "@shared/schema";
 import { eq, and, or, desc, asc, isNull, sql } from "drizzle-orm";
 import session from "express-session";
@@ -761,5 +761,74 @@ export const storage = {
         eq(notifications.isRead, false)
       ));
     return Number(result[0].count) || 0;
+  },
+
+  // App Settings operations
+  getAllAppSettings: async (): Promise<AppSetting[]> => {
+    return db.query.appSettings.findMany();
+  },
+
+  getAppSettingByKey: async (key: string): Promise<AppSetting | undefined> => {
+    return db.query.appSettings.findFirst({
+      where: eq(appSettings.key, key)
+    });
+  },
+
+  getAppSettingById: async (id: number): Promise<AppSetting | undefined> => {
+    return db.query.appSettings.findFirst({
+      where: eq(appSettings.id, id)
+    });
+  },
+
+  createAppSetting: async (settingData: InsertAppSetting): Promise<AppSetting> => {
+    const [newSetting] = await db.insert(appSettings)
+      .values(settingData)
+      .returning();
+    return newSetting;
+  },
+
+  updateAppSetting: async (id: number, settingData: Partial<InsertAppSetting>): Promise<AppSetting | undefined> => {
+    const [updatedSetting] = await db.update(appSettings)
+      .set({
+        ...settingData,
+        updatedAt: new Date()
+      })
+      .where(eq(appSettings.id, id))
+      .returning();
+    return updatedSetting;
+  },
+
+  updateAppSettingByKey: async (key: string, value: string): Promise<AppSetting | undefined> => {
+    // Find the setting first
+    const setting = await db.query.appSettings.findFirst({
+      where: eq(appSettings.key, key)
+    });
+
+    if (setting) {
+      // Update existing setting
+      const [updatedSetting] = await db.update(appSettings)
+        .set({
+          value,
+          updatedAt: new Date()
+        })
+        .where(eq(appSettings.id, setting.id))
+        .returning();
+      return updatedSetting;
+    } else {
+      // Create new setting
+      const [newSetting] = await db.insert(appSettings)
+        .values({
+          key,
+          value,
+          description: `Auto-created setting for ${key}`
+        })
+        .returning();
+      return newSetting;
+    }
+  },
+
+  deleteAppSetting: async (id: number): Promise<boolean> => {
+    await db.delete(appSettings).where(eq(appSettings.id, id));
+    return true;
   }
 };

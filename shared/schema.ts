@@ -133,6 +133,16 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Application settings table for storing app-wide settings
+export const appSettings = pgTable("app_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(), // Setting key (e.g., "logo", "company_name", etc.)
+  value: text("value"), // Setting value
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+});
+
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   tasks: many(tasks),
@@ -346,6 +356,16 @@ export const notificationInsertSchema = createInsertSchema(notifications, {
 export const notificationSelectSchema = createSelectSchema(notifications);
 export type Notification = z.infer<typeof notificationSelectSchema>;
 export type InsertNotification = z.infer<typeof notificationInsertSchema>;
+
+// App settings schemas
+export const appSettingInsertSchema = createInsertSchema(appSettings, {
+  key: (schema) => schema.min(1, "Setting key is required"),
+  value: (schema) => schema.optional(),
+});
+
+export const appSettingSelectSchema = createSelectSchema(appSettings);
+export type AppSetting = z.infer<typeof appSettingSelectSchema>;
+export type InsertAppSetting = z.infer<typeof appSettingInsertSchema>;
 
 // Frontend specific schemas
 export const taskFormSchema = z.object({
