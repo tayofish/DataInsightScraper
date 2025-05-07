@@ -37,19 +37,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Error creating upload directories:', error);
   }
   
-  // Serve uploaded files statically with proper error handling
-  app.use('/uploads', (req, res, next) => {
-    express.static(uploadDir, {
-      fallthrough: true,
-      maxAge: '1d'
-    })(req, res, (err) => {
-      if (err) {
-        console.error('Static file serving error:', err);
-        return next();
-      }
-      next();
-    });
-  });
+  // Serve uploaded files statically with simplified approach
+  app.use('/uploads', express.static(uploadDir));
   
   // Configure multer storage
   const multerStorage = multer.diskStorage({
