@@ -1111,15 +1111,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate report results based on report type
       let results;
+      // Convert null parameters to undefined for type safety
+      const safeParameters = report.parameters || undefined;
+      
       switch (report.type) {
         case "tasks_by_project":
-          results = await storage.generateTasksByProjectReport(report.parameters);
+          results = await storage.generateTasksByProjectReport(safeParameters);
           break;
         case "user_performance":
-          results = await storage.generateUserPerformanceReport(report.parameters);
+          results = await storage.generateUserPerformanceReport(safeParameters);
           break;
         case "task_status_summary":
-          results = await storage.generateTaskStatusSummaryReport(report.parameters);
+          results = await storage.generateTaskStatusSummaryReport(safeParameters);
           break;
         default:
           return res.status(400).json({ message: "Unsupported report type" });

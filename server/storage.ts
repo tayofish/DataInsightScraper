@@ -551,7 +551,13 @@ export const storage = {
     });
     
     // Group tasks by user
-    const tasksByUser: Record<string, { userName: string, totalTasks: number, completedTasks: number, tasks: any[] }> = {};
+    const tasksByUser: Record<string, { 
+      userName: string, 
+      totalTasks: number, 
+      completedTasks: number, 
+      tasks: any[],
+      completionRate: number
+    }> = {};
     
     taskList.forEach(task => {
       const userId = task.assigneeId?.toString() || 'unassigned';
@@ -562,7 +568,8 @@ export const storage = {
           userName,
           totalTasks: 0,
           completedTasks: 0,
-          tasks: []
+          tasks: [],
+          completionRate: 0
         };
       }
       
