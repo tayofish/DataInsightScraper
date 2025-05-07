@@ -951,20 +951,21 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
           </Tabs>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Task Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter task title..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <ScrollArea className="h-[500px] pr-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Task Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter task title..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               
               <FormField
                 control={form.control}
@@ -1122,6 +1123,43 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 />
               </div>
               
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="departmentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <Select
+                        value={field.value?.toString() || '-1'}
+                        onValueChange={(value) => {
+                          if (value === '-1') {
+                            field.onChange(null);
+                          } else {
+                            field.onChange(parseInt(value));
+                          }
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="-1">No Department</SelectItem>
+                          {departments.map((department) => (
+                            <SelectItem key={department.id} value={department.id.toString()}>
+                              {department.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
               <FormField
                 control={form.control}
                 name="categoryId"
@@ -1214,6 +1252,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 </Button>
               </DialogFooter>
             </form>
+            </ScrollArea>
           </Form>
         )}
       </DialogContent>
