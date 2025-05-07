@@ -13,10 +13,11 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Calendar, BarChart2, BarChart, PieChart, Trash2, Download, Save, RefreshCw, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { Report, ReportFormValues, reportFormSchema } from '@shared/schema';
+import { Report, reportFormSchema } from '@shared/schema';
 import { ResponsiveBar } from '@nivo/bar';
 import { ResponsivePie } from '@nivo/pie';
 
@@ -24,6 +25,7 @@ type ReportFormValues = z.infer<typeof reportFormSchema>;
 
 export default function ReportsPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('list');
   const [activeReportId, setActiveReportId] = useState<number | null>(null);
   const [reportResults, setReportResults] = useState<any | null>(null);
@@ -116,7 +118,19 @@ export default function ReportsPage() {
   });
 
   function onSubmit(values: ReportFormValues) {
-    createReportMutation.mutate(values);
+    // Add the current user's ID to the form data
+    if (user) {
+      createReportMutation.mutate({
+        ...values,
+        createdBy: user.id
+      });
+    } else {
+      toast({
+        title: 'Error',
+        description: 'You must be logged in to create a report',
+        variant: 'destructive'
+      });
+    }
   }
 
   function runReport(report: Report) {
