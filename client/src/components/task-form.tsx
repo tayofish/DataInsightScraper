@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { 
   Form, 
   FormField, 
@@ -11,6 +16,11 @@ import {
   FormControl, 
   FormMessage 
 } from '@/components/ui/form';
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { 
   Select, 
   SelectContent, 
@@ -28,6 +38,7 @@ import { AvatarField } from './ui/avatar-field';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { formatDistanceToNow } from 'date-fns';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
 import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department } from '@shared/schema';
@@ -59,6 +70,28 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     queryKey: ['/api/departments'],
   });
 
+  // State for comment section
+  const [comment, setComment] = useState('');
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Get users for mentions
+  const { data: users = [] } = useQuery({
+    queryKey: ['/api/users'],
+  });
+  
+  // Get task updates for this task
+  const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery({
+    queryKey: ['/api/tasks', task?.id, 'updates'],
+    queryFn: () => {
+      if (!task?.id) return [];
+      return apiRequest('GET', `/api/tasks/${task.id}/updates`).then(res => res.json());
+    },
+    enabled: !!task?.id,
+  });
+
   // Setup form with default values
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -66,6 +99,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       id: task?.id,
       title: task?.title || '',
       description: task?.description || '',
+      startDate: task?.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
       dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
       priority: task?.priority || 'medium',
       status: task?.status || 'todo',
@@ -75,6 +109,85 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     },
   });
 
+  // Add comment mutation
+  const commentMutation = useMutation({
+    mutationFn: async (commentText: string) => {
+      if (!task?.id) throw new Error('Task ID is required');
+      return apiRequest('POST', `/api/tasks/${task.id}/updates`, {
+        taskId: task.id,
+        comment: commentText,
+        updateType: 'Comment'
+      });
+    },
+    onSuccess: () => {
+      setComment('');
+      refetchUpdates();
+      toast({
+        title: "Comment added",
+        description: "Your comment has been added to the task."
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: "Error",
+        description: `Failed to add comment: ${err}`,
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Handle mentions in comment input
+  const handleCommentInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const text = e.target.value;
+    setComment(text);
+    
+    // Check for @ symbol to trigger mentions
+    const lastAtPos = text.lastIndexOf('@');
+    if (lastAtPos !== -1 && lastAtPos === text.length - 1) {
+      setMentionQuery('');
+      setShowMentions(true);
+      // Position the mentions popover
+      if (commentInputRef.current) {
+        const caretPosition = commentInputRef.current.selectionStart;
+        const textBeforeCaret = text.substring(0, caretPosition);
+        const lines = textBeforeCaret.split('\n');
+        const lineHeight = 24; // Approximate line height in pixels
+        const lineCount = lines.length;
+        const charCountInLastLine = lines[lines.length - 1].length;
+        
+        // Set position relative to textarea
+        setMentionPosition({
+          top: lineCount * lineHeight,
+          left: charCountInLastLine * 8 // Approximate char width
+        });
+      }
+    } else if (lastAtPos !== -1) {
+      const queryText = text.substring(lastAtPos + 1).split(' ')[0];
+      setMentionQuery(queryText);
+      setShowMentions(true);
+    } else {
+      setShowMentions(false);
+    }
+  };
+
+  // Insert mention into comment
+  const insertMention = (username: string) => {
+    const atPos = comment.lastIndexOf('@');
+    if (atPos !== -1) {
+      const newComment = comment.substring(0, atPos) + `@${username} `;
+      setComment(newComment);
+    }
+    setShowMentions(false);
+    commentInputRef.current?.focus();
+  };
+
+  // Submit comment
+  const submitComment = () => {
+    if (comment.trim()) {
+      commentMutation.mutate(comment);
+    }
+  };
+
   // Create/Update task mutation
   const taskMutation = useMutation({
     mutationFn: async (values: TaskFormValues) => {
@@ -83,6 +196,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         ...values,
         // Convert empty strings to null for optional fields
         description: values.description?.trim() === '' ? null : values.description,
+        startDate: values.startDate?.trim() === '' ? null : values.startDate,
         dueDate: values.dueDate?.trim() === '' ? null : values.dueDate,
         // Ensure numerical fields are properly handled
         projectId: values.projectId === undefined ? null : values.projectId,
@@ -178,6 +292,24 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Start Date</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="date" 
+                                {...field} 
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
                         name="dueDate"
                         render={({ field }) => (
                           <FormItem>
@@ -193,7 +325,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           </FormItem>
                         )}
                       />
-                      
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="priority"
@@ -213,6 +347,32 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                                 <SelectItem value="low">Low</SelectItem>
                                 <SelectItem value="medium">Medium</SelectItem>
                                 <SelectItem value="high">High</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    
+                      <FormField
+                        control={form.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="todo">To Do</SelectItem>
+                                <SelectItem value="in_progress">In Progress</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -267,32 +427,6 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="todo">To Do</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
                       <FormField
                         control={form.control}
                         name="categoryId"
@@ -391,8 +525,76 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
             </TabsContent>
             
             <TabsContent value="history">
-              <div className="py-2">
-                <TaskUpdateHistory taskId={task.id} />
+              <div className="py-2 space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Add Comment</h3>
+                  <div className="relative">
+                    <Textarea
+                      ref={commentInputRef}
+                      placeholder="Type your comment here... Use @ to mention team members"
+                      className="min-h-[100px] resize-none"
+                      value={comment}
+                      onChange={handleCommentInput}
+                    />
+                    
+                    {showMentions && (
+                      <Popover open={showMentions} onOpenChange={setShowMentions}>
+                        <PopoverContent 
+                          className="w-64 p-0" 
+                          align="start"
+                          style={{
+                            position: 'absolute',
+                            top: `${mentionPosition.top}px`,
+                            left: `${mentionPosition.left}px`,
+                          }}
+                        >
+                          <ScrollArea className="h-64">
+                            <div className="p-2">
+                              {users
+                                .filter(user => 
+                                  mentionQuery === '' || 
+                                  user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+                                  user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
+                                )
+                                .map(user => (
+                                  <div 
+                                    key={user.id}
+                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                                    onClick={() => insertMention(user.username)}
+                                  >
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage src={user.avatarUrl || undefined} alt={user.name || user.username} />
+                                      <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="text-sm font-medium">{user.name || user.username}</p>
+                                      <p className="text-xs text-gray-500">@{user.username}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </ScrollArea>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      onClick={submitComment}
+                      disabled={!comment.trim() || commentMutation.isPending}
+                    >
+                      {commentMutation.isPending ? 'Submitting...' : 'Add Comment'}
+                    </Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Updates History</h3>
+                  <TaskUpdateHistory taskId={task.id} />
+                </div>
               </div>
             </TabsContent>
           </Tabs>
@@ -433,6 +635,24 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
               />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="startDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start Date</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={form.control}
                   name="dueDate"
