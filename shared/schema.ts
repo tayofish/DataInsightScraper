@@ -211,6 +211,11 @@ export const categoryInsertSchema = createInsertSchema(categories, {
 
 export const taskInsertSchema = createInsertSchema(tasks, {
   title: (schema) => schema.min(3, "Task title must be at least 3 characters"),
+  dueDate: (schema) => z.preprocess(
+    // Convert string date to Date object or null
+    (val) => val === null || val === '' ? null : new Date(val as string),
+    z.date().nullable().optional()
+  )
 });
 
 // Update schema doesn't need the ID to be required in the body since it's passed in the URL

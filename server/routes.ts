@@ -562,14 +562,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         // Convert empty strings to null
         description: req.body.description === '' ? null : req.body.description,
-        dueDate: req.body.dueDate === '' ? null : req.body.dueDate,
+        // dueDate is now handled by the schema's preprocessing
       };
       
+      // Proper validation with date preprocessing is done in the schema
       const taskData = taskInsertSchema.parse(requestData);
       const newTask = await storage.createTask(taskData);
       return res.status(201).json(newTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ message: "Invalid task data", errors: error.errors });
       }
       console.error("Error creating task:", error);
@@ -596,7 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         // Convert empty strings to null
         description: req.body.description === '' ? null : req.body.description,
-        dueDate: req.body.dueDate === '' ? null : req.body.dueDate,
+        // dueDate is handled by schema preprocessing
       };
       
       const taskData = taskUpdateSchema.omit({ id: true }).partial().parse(requestData);
