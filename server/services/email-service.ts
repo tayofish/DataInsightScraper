@@ -397,3 +397,103 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
     `,
   });
 }
+
+/**
+ * Send notification for task collaboration invitation
+ */
+export async function notifyTaskCollaboration(task: any, user: any, inviter: any, role: string = 'viewer') {
+  if (!user || !user.email) {
+    console.log('Cannot send task collaboration notification: user missing or has no email', {
+      taskId: task?.id,
+      userId: user?.id,
+      hasEmail: Boolean(user?.email)
+    });
+    return;
+  }
+  
+  console.log('Sending task collaboration invitation notification:', {
+    taskId: task.id,
+    taskTitle: task.title,
+    userId: user.id,
+    userEmail: user.email,
+    inviterId: inviter?.id,
+    role
+  });
+  
+  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const userName = user.name || user.username || 'User';
+  const inviterName = inviter?.name || inviter?.username || 'Administrator';
+  
+  try {
+    const success = await sendEmail({
+      to: user.email,
+      subject: `[TaskScout] You've been invited to collaborate on: ${task.title}`,
+      html: `
+        <h2>Task Collaboration Invitation</h2>
+        <p>Hello ${userName},</p>
+        <p>You have been invited by ${inviterName} to collaborate on a task:</p>
+        <p><strong>${task.title}</strong></p>
+        <p>${task.description || ''}</p>
+        <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
+        <p>Priority: ${task.priority}</p>
+        <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+        <p><a href="${taskUrl}">View Task</a></p>
+      `,
+    });
+    
+    if (success) {
+      console.log(`Successfully sent task collaboration invitation to ${user.email}`);
+    }
+  } catch (err) {
+    console.error(`Failed to send task collaboration invitation to user ${user.id}:`, err);
+  }
+}
+
+/**
+ * Send notification for project assignment
+ */
+export async function notifyProjectAssignment(project: any, user: any, assignedBy: any, role: string = 'member') {
+  if (!user || !user.email) {
+    console.log('Cannot send project assignment notification: user missing or has no email', {
+      projectId: project?.id,
+      userId: user?.id,
+      hasEmail: Boolean(user?.email)
+    });
+    return;
+  }
+  
+  console.log('Sending project assignment notification:', {
+    projectId: project.id,
+    projectName: project.name,
+    userId: user.id,
+    userEmail: user.email,
+    assignedById: assignedBy?.id,
+    role
+  });
+  
+  const projectUrl = `${process.env.APP_URL || ''}/projects/${project.id}`;
+  const userName = user.name || user.username || 'User';
+  const assignerName = assignedBy?.name || assignedBy?.username || 'Administrator';
+  
+  try {
+    const success = await sendEmail({
+      to: user.email,
+      subject: `[TaskScout] You've been added to project: ${project.name}`,
+      html: `
+        <h2>Project Assignment</h2>
+        <p>Hello ${userName},</p>
+        <p>You have been added to a project by ${assignerName}:</p>
+        <p><strong>${project.name}</strong></p>
+        <p>${project.description || ''}</p>
+        <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
+        <p><a href="${projectUrl}">View Project</a></p>
+      `,
+    });
+    
+    if (success) {
+      console.log(`Successfully sent project assignment notification to ${user.email}`);
+    }
+  } catch (err) {
+    console.error(`Failed to send project assignment notification to user ${user.id}:`, err);
+  }
+}

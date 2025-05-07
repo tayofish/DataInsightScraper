@@ -907,6 +907,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const newAssignment = await storage.createProjectAssignment(assignmentData);
+      
+      // Send email notification for project assignment
+      if (req.isAuthenticated()) {
+        try {
+          // Get project info
+          const project = await storage.getProjectById(assignmentData.projectId);
+          
+          // Get user info
+          const user = await storage.getUserById(assignmentData.userId);
+          
+          // Get the authenticated user who created the assignment
+          const assignedBy = req.user;
+          
+          if (project && user) {
+            // Send notification
+            await emailService.notifyProjectAssignment(
+              project,
+              user,
+              assignedBy,
+              assignmentData.role
+            );
+          }
+        } catch (emailError) {
+          console.error('Failed to send project assignment notification:', emailError);
+          // Continue execution - email failure shouldn't break assignment creation
+        }
+      }
+      
       return res.status(201).json(newAssignment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1163,6 +1191,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const newCollaborator = await storage.createTaskCollaborator(collaboratorData);
+      
+      // Send email notification for collaboration invitation
+      try {
+        // Get user who is being invited
+        const invitedUser = await storage.getUserById(userId);
+        
+        if (invitedUser) {
+          // Send notification
+          await emailService.notifyTaskCollaboration(
+            task,
+            invitedUser,
+            req.user,
+            collaboratorData.role
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send task collaboration invitation notification:', emailError);
+        // Continue execution - email failure shouldn't break collaboration creation
+      }
+      
       return res.status(201).json(newCollaborator);
     } catch (error) {
       if (error instanceof z.ZodError) {
