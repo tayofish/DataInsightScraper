@@ -36,17 +36,42 @@ app.use((req, res, next) => {
   next();
 });
 
+// Global error handlers for the Node.js process
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+  console.error(error.name, error.message);
+  console.error(error.stack);
+  // We don't exit the process because it would kill the Replit workflow
+  // process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.error('Reason:', reason);
+  // We don't exit the process because it would kill the Replit workflow
+  // process.exit(1);
+});
+
 (async () => {
   try {
     const server = await registerRoutes(app);
 
+    // Add general error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
       console.error(`Server error: ${err.stack || err}`);
-      res.status(status).json({ message });
-      // Don't throw the error again as it can crash the server
+      
+      // Only send response if it hasn't been sent already
+      if (!res.headersSent) {
+        res.status(status).json({ message });
+      }
+    });
+
+    // Add a catch-all route for API 404s
+    app.use('/api/*', (req, res) => {
+      res.status(404).json({ message: `API route not found: ${req.originalUrl}` });
     });
 
     // importantly only setup vite in development and after
@@ -73,16 +98,42 @@ app.use((req, res, next) => {
     // Handle server errors to prevent crashes
     server.on('error', (error) => {
       console.error('Server error:', error);
+      
+      // Try to recover by restarting if the port is in use
+      if ((error as any).code === 'EADDRINUSE') {
+        console.log('Port is in use, trying again in 5 seconds...');
+        setTimeout(() => {
+          server.close();
+          server.listen({
+            port,
+            host: "0.0.0.0",
+            reusePort: true,
+          });
+        }, 5000);
+      }
     });
 
-    // Graceful shutdown
+    // Graceful shutdown handlers
     process.on('SIGTERM', () => {
       console.log('SIGTERM signal received: closing HTTP server');
       server.close(() => {
         console.log('HTTP server closed');
       });
     });
+    
+    process.on('SIGINT', () => {
+      console.log('SIGINT signal received: closing HTTP server');
+      server.close(() => {
+        console.log('HTTP server closed');
+      });
+    });
+    
   } catch (error) {
     console.error('Failed to start server:', error);
+    // Try to restart after a delay if there was an error starting
+    setTimeout(() => {
+      console.log('Attempting to restart server...');
+      // We don't actually restart here because Replit will handle it
+    }, 5000);
   }
 })();

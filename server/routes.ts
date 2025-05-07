@@ -24,16 +24,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up file upload directory
   const uploadDir = path.join(process.cwd(), 'uploads');
   const logoDir = path.join(uploadDir, 'logos');
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+  
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    if (!fs.existsSync(logoDir)) {
+      fs.mkdirSync(logoDir, { recursive: true });
+    }
+  } catch (error) {
+    console.error('Error creating upload directories:', error);
   }
   
-  if (!fs.existsSync(logoDir)) {
-    fs.mkdirSync(logoDir, { recursive: true });
-  }
-  
-  // Serve uploaded files statically
-  app.use('/uploads', express.static(uploadDir));
+  // Serve uploaded files statically with proper error handling
+  app.use('/uploads', (req, res, next) => {
+    express.static(uploadDir, {
+      fallthrough: true,
+      maxAge: '1d'
+    })(req, res, (err) => {
+      if (err) {
+        console.error('Static file serving error:', err);
+        return next();
+      }
+      next();
+    });
+  });
   
   // Configure multer storage
   const multerStorage = multer.diskStorage({
