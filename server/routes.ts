@@ -572,6 +572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         assigneeId: req.query.assigneeId ? parseInt(req.query.assigneeId as string) : undefined,
         categoryId: req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined,
         department: req.query.department as string | undefined,
+        departmentId: req.query.departmentId as string | undefined,
         search: req.query.search as string | undefined
       };
 

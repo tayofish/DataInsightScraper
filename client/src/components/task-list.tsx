@@ -75,6 +75,7 @@ export default function TaskList({ filters }: TaskListProps) {
     }
     
     if (filters.department && filters.department !== 'all') {
+      console.log('Adding department filter:', filters.department);
       params.append('departmentId', filters.department);
     }
     
@@ -82,7 +83,9 @@ export default function TaskList({ filters }: TaskListProps) {
       params.append('search', filters.search);
     }
     
-    return params.toString() ? `?${params.toString()}` : '';
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    console.log('Final query string:', queryString);
+    return queryString;
   };
   
   // Fetch departments for reference
