@@ -250,9 +250,10 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         
         {isEditMode && task?.id ? (
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="details">Task Details</TabsTrigger>
-              <TabsTrigger value="history">History & Updates</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="comments">Comments</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
             
             <TabsContent value="details">
@@ -524,6 +525,119 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                     </DialogFooter>
                   </form>
                 </Form>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="comments">
+              <div className="py-2 space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-2">Add Comment</h3>
+                  <div className="relative">
+                    <Textarea
+                      ref={commentInputRef}
+                      placeholder="Type your comment here... Use @ to mention team members"
+                      className="min-h-[100px] resize-none"
+                      value={comment}
+                      onChange={handleCommentInput}
+                    />
+                    
+                    {showMentions && (
+                      <Popover open={showMentions} onOpenChange={setShowMentions}>
+                        <PopoverContent 
+                          className="w-64 p-0" 
+                          align="start"
+                          style={{
+                            position: 'absolute',
+                            top: `${mentionPosition.top}px`,
+                            left: `${mentionPosition.left}px`,
+                          }}
+                        >
+                          <ScrollArea className="h-64">
+                            <div className="p-2">
+                              {users
+                                .filter((user: User) => 
+                                  mentionQuery === '' || 
+                                  user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
+                                  user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
+                                )
+                                .map((user: User) => (
+                                  <div 
+                                    key={user.id}
+                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                                    onClick={() => insertMention(user.username)}
+                                  >
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
+                                      <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="text-sm font-medium">{user.name || user.username}</p>
+                                      <p className="text-xs text-gray-500">@{user.username}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </ScrollArea>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      type="button"
+                      onClick={submitComment}
+                      disabled={!comment.trim() || commentMutation.isPending}
+                    >
+                      {commentMutation.isPending ? 'Submitting...' : 'Add Comment'}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Show existing comments */}
+                <div className="mt-4">
+                  <h3 className="text-lg font-medium mb-2">Comments</h3>
+                  {updatesLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-24 w-full" />
+                      <Skeleton className="h-24 w-full" />
+                    </div>
+                  ) : taskUpdates?.filter(update => update.updateType === 'Comment').length ? (
+                    <div className="space-y-3">
+                      {taskUpdates?.filter(update => update.updateType === 'Comment').map(update => (
+                        <Card key={update.id}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={update.user?.avatar || ''} alt={update.user?.name || 'User'} />
+                                <AvatarFallback>{update.user?.username?.charAt(0) || 'U'}</AvatarFallback>
+                              </Avatar>
+                              
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{update.user?.name || update.user?.username || 'Unknown user'}</span>
+                                  </div>
+                                  <span className="text-xs text-muted-foreground">
+                                    {update.createdAt ? new Date(update.createdAt).toLocaleString() : ''}
+                                  </span>
+                                </div>
+                                
+                                <p className="mt-1 text-sm">{update.comment}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <Card className="border border-dashed">
+                      <CardContent className="flex items-center justify-center p-6">
+                        <p className="text-muted-foreground text-sm">No comments yet</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
               </div>
             </TabsContent>
             
