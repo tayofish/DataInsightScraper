@@ -362,16 +362,16 @@ export default function Categories() {
                       <FormLabel>Department</FormLabel>
                       <FormControl>
                         <Select
-                          value={field.value?.toString() || ""}
+                          value={field.value?.toString() || "none"}
                           onValueChange={(value) => {
-                            field.onChange(value === "" ? null : parseInt(value));
+                            field.onChange(value === "none" ? null : parseInt(value));
                           }}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select a department (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">General (No Department)</SelectItem>
+                            <SelectItem value="none">General (No Department)</SelectItem>
                             {departments.map((department) => (
                               <SelectItem key={department.id} value={department.id.toString()}>
                                 {department.name}
