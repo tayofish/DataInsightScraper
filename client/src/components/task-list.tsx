@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 // Card imports removed as they're no longer needed
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserPlus } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -46,6 +46,8 @@ export default function TaskList({ filters }: TaskListProps) {
   const { toast } = useToast();
   const [isTaskFormOpen, setIsTaskFormOpen] = React.useState(false);
   const [currentTask, setCurrentTask] = React.useState<Task | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const tasksPerPage = 15;
   
   // Build query string from filters
   const getQueryString = () => {
@@ -116,6 +118,23 @@ export default function TaskList({ filters }: TaskListProps) {
       return 0;
     });
   }, [tasks, filters.sortBy]);
+  
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedTasks.length / tasksPerPage);
+  const indexOfLastTask = currentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = sortedTasks.slice(indexOfFirstTask, indexOfLastTask);
+  
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
+  
+  const goToPage = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top of task list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   
   // Toggle task completion status
   const toggleTaskMutation = useMutation({
@@ -250,7 +269,7 @@ export default function TaskList({ filters }: TaskListProps) {
         
         {sortedTasks.length > 0 ? (
           <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-sm">
-            {sortedTasks.map((task) => {
+            {currentTasks.map((task) => {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);
               const isCompleted = task.status === 'completed';
@@ -389,6 +408,45 @@ export default function TaskList({ filters }: TaskListProps) {
             <Trash2 className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
             <p className="text-center text-gray-500 dark:text-gray-400 font-medium">No tasks match your current filters.</p>
             <p className="text-center text-gray-400 dark:text-gray-500 text-sm mt-1">Try adjusting your filters or create a new task.</p>
+          </div>
+        )}
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center mt-6 gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => goToPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => goToPage(page)}
+                  className={`h-8 w-8 ${currentPage === page ? 'text-white' : ''}`}
+                >
+                  {page}
+                </Button>
+              ))}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>
