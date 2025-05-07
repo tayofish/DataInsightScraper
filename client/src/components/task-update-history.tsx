@@ -75,17 +75,19 @@ export default function TaskUpdateHistory({ taskId }: TaskUpdateHistoryProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="all" className="mt-4">
-          <UpdateList updates={updates || []} />
-        </TabsContent>
+        <div className="mt-4 h-[500px] overflow-auto pr-2">
+          <TabsContent value="all" className="h-full">
+            <UpdateList updates={updates || []} />
+          </TabsContent>
 
-        <TabsContent value="changes" className="mt-4">
-          <UpdateList updates={(updates || []).filter(update => update.updateType !== 'Mention')} />
-        </TabsContent>
+          <TabsContent value="changes" className="h-full">
+            <UpdateList updates={(updates || []).filter(update => update.updateType !== 'Mention')} />
+          </TabsContent>
 
-        <TabsContent value="mentions" className="mt-4">
-          <UpdateList updates={mentions || []} />
-        </TabsContent>
+          <TabsContent value="mentions" className="h-full">
+            <UpdateList updates={mentions || []} />
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

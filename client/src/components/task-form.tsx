@@ -114,8 +114,17 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   
   // Fetch task files
   const { data: taskFileData = [], isLoading: filesLoading, refetch: refetchFiles } = useQuery<TaskFile[]>({
-    queryKey: [`/api/tasks/${task?.id}/files`],
+    queryKey: ['/api/tasks', task?.id, 'files'],
+    queryFn: async () => {
+      if (!task?.id) return [];
+      const res = await fetch(`/api/tasks/${task.id}/files`);
+      if (!res.ok) throw new Error('Failed to fetch task files');
+      return await res.json();
+    },
     enabled: !!task?.id && isOpen,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Consider data always stale to force refetch
   });
 
   // Form setup
@@ -148,13 +157,8 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         assigneeId: task.assigneeId || null,
         categoryId: task.categoryId || null,
       });
-      
-      // Set task files from the fetched data
-      if (taskFileData.length > 0) {
-        setTaskFiles(taskFileData);
-      }
     }
-  }, [task, form, taskFileData]);
+  }, [task, form]);
 
   // Task update mutation (for saving the task)
   const taskMutation = useMutation({
