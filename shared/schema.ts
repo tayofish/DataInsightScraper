@@ -347,6 +347,7 @@ export const reportFormSchema = z.object({
   description: z.string().optional(),
   type: z.string(),
   parameters: z.string().optional(), // Will be stringified JSON
+  createdBy: z.number().optional(), // Will be set by the server based on authenticated user
 });
 
 export type ReportFormValues = z.infer<typeof reportFormSchema>;
