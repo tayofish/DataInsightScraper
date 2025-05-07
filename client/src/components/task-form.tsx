@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Upload, File, Download, Trash2, Loader2 } from 'lucide-react';
 import { 
   Form, 
   FormField, 
@@ -77,6 +78,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const [showMentions, setShowMentions] = useState(false);
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // State for file upload section
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [taskFiles, setTaskFiles] = useState<{id: number, name: string, size: number, url: string, uploadedAt: string}[]>([]);
   
   // Get users for mentions
   const { data: users = [] } = useQuery<User[]>({
@@ -238,6 +244,49 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     // Directly submit the values, processing happens in the mutation function
     taskMutation.mutate(values);
   };
+  
+  // File upload handling
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+  
+  const uploadFile = async () => {
+    if (!selectedFile || !task?.id) return;
+    
+    setFileUploading(true);
+    
+    // In a real implementation, we would upload the file to a server
+    // For demonstration, we'll simulate an upload and add it to our local state
+    setTimeout(() => {
+      const newFile = {
+        id: Math.floor(Math.random() * 10000),
+        name: selectedFile.name,
+        size: selectedFile.size,
+        url: URL.createObjectURL(selectedFile),
+        uploadedAt: new Date().toISOString()
+      };
+      
+      setTaskFiles([...taskFiles, newFile]);
+      setSelectedFile(null);
+      setFileUploading(false);
+      
+      toast({
+        title: "File uploaded",
+        description: `${selectedFile.name} has been uploaded successfully.`
+      });
+    }, 1500);
+  };
+  
+  // Format file size for display
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -251,9 +300,10 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         
         {isEditMode && task?.id ? (
           <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
+              <TabsTrigger value="files">Files</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
             </TabsList>
             
@@ -598,46 +648,147 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 {/* Show existing comments */}
                 <div className="mt-4">
                   <h3 className="text-lg font-medium mb-2">Comments</h3>
-                  {updatesLoading ? (
-                    <div className="space-y-3">
-                      <Skeleton className="h-24 w-full" />
-                      <Skeleton className="h-24 w-full" />
-                    </div>
-                  ) : taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').length ? (
-                    <div className="space-y-3">
-                      {taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').map((update: TaskUpdate & { user?: User }) => (
-                        <Card key={update.id}>
-                          <CardContent className="p-4">
-                            <div className="flex items-start gap-3">
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={update.user?.avatar || ''} alt={update.user?.name || 'User'} />
-                                <AvatarFallback>{update.user?.username?.charAt(0) || 'U'}</AvatarFallback>
-                              </Avatar>
-                              
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">{update.user?.name || update.user?.username || 'Unknown user'}</span>
-                                  </div>
-                                  <span className="text-xs text-muted-foreground">
-                                    {update.createdAt ? new Date(update.createdAt).toLocaleString() : ''}
-                                  </span>
-                                </div>
+                  <ScrollArea className="h-[300px] pr-4">
+                    {updatesLoading ? (
+                      <div className="space-y-3">
+                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                      </div>
+                    ) : taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').length ? (
+                      <div className="space-y-3">
+                        {taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').map((update: TaskUpdate & { user?: User }) => (
+                          <Card key={update.id}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start gap-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={update.user?.avatar || ''} alt={update.user?.name || 'User'} />
+                                  <AvatarFallback>{update.user?.username?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
                                 
-                                <p className="mt-1 text-sm">{update.comment}</p>
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{update.user?.name || update.user?.username || 'Unknown user'}</span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                      {update.createdAt ? new Date(update.createdAt).toLocaleString() : ''}
+                                    </span>
+                                  </div>
+                                  
+                                  <p className="mt-1 text-sm">{update.comment}</p>
+                                </div>
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <Card className="border border-dashed">
+                        <CardContent className="flex items-center justify-center p-6">
+                          <p className="text-muted-foreground text-sm">No comments yet</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </ScrollArea>
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="files">
+              <div className="py-2">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium mb-2">Attached Files</h3>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-dashed">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <input
+                        type="file"
+                        id="fileUpload"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="fileUpload"
+                        className="cursor-pointer flex flex-col items-center justify-center"
+                      >
+                        <div className="bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center">
+                          <Upload className="h-6 w-6 text-primary" />
+                        </div>
+                        <p className="text-sm font-medium mt-2">Click to upload file</p>
+                        <p className="text-xs text-muted-foreground">
+                          PDF, Word, Excel, Images, etc.
+                        </p>
+                      </label>
+                      
+                      {selectedFile && (
+                        <div className="mt-4 w-full">
+                          <Card>
+                            <CardContent className="p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <File className="h-5 w-5 text-primary" />
+                                <div>
+                                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                                  <p className="text-xs text-muted-foreground">{formatFileSize(selectedFile.size)}</p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                onClick={uploadFile}
+                                disabled={fileUploading}
+                              >
+                                {fileUploading ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Uploading
+                                  </>
+                                ) : 'Upload'}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <Card className="border border-dashed">
-                      <CardContent className="flex items-center justify-center p-6">
-                        <p className="text-muted-foreground text-sm">No comments yet</p>
-                      </CardContent>
-                    </Card>
-                  )}
+                  </div>
+                  
+                  <ScrollArea className="h-[250px]">
+                    {taskFiles.length > 0 ? (
+                      <div className="space-y-3">
+                        {taskFiles.map((file) => (
+                          <Card key={file.id}>
+                            <CardContent className="p-3 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <File className="h-5 w-5 text-primary" />
+                                <div>
+                                  <p className="text-sm font-medium">{file.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs text-muted-foreground">{formatFileSize(file.size)}</p>
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                    <p className="text-xs text-muted-foreground">
+                                      {new Date(file.uploadedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="icon" variant="ghost">
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <Card className="border border-dashed">
+                        <CardContent className="flex items-center justify-center p-6">
+                          <p className="text-muted-foreground text-sm">No files attached to this task</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </ScrollArea>
                 </div>
               </div>
             </TabsContent>
