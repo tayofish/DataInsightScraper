@@ -84,7 +84,6 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const [activeTab, setActiveTab] = useState('details');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileUploading, setFileUploading] = useState(false);
-  const [taskFiles, setTaskFiles] = useState<TaskFile[]>([]);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch users for assignee selection and mentions
@@ -262,6 +261,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       });
       setSelectedFile(null);
       setFileUploading(false);
+      
+      // Invalidate the query and refetch to ensure latest files are displayed
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks', task?.id, 'files'] });
       refetchFiles();
     },
     onError: (error: Error) => {
