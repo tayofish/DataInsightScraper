@@ -152,11 +152,40 @@ export default function TaskList({ filters }: TaskListProps) {
     setCurrentPage(1);
   }, [filters]);
   
+  // Effect to check for overdue tasks and update their priority to high
+  React.useEffect(() => {
+    if (sortedTasks.length > 0) {
+      sortedTasks.forEach(task => {
+        // Check if task is overdue and not already high priority
+        const isOverdue = task.dueDate && 
+                        new Date(task.dueDate) < new Date() && 
+                        task.status !== 'completed';
+        
+        if (isOverdue && task.priority !== 'high') {
+          updateOverduePriorityMutation.mutate(task);
+        }
+      });
+    }
+  }, [sortedTasks]);
+  
   const goToPage = (pageNumber: number) => {
     setCurrentPage(pageNumber);
     // Scroll to top of task list
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  
+  // Update overdue tasks to high priority
+  const updateOverduePriorityMutation = useMutation({
+    mutationFn: async (task: Task) => {
+      return apiRequest('PATCH', `/api/tasks/${task.id}`, { priority: 'high' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+    },
+    onError: (error: any) => {
+      console.error(`Failed to update task priority: ${error}`);
+    }
+  });
   
   // Toggle task completion status
   const toggleTaskMutation = useMutation({
@@ -295,24 +324,25 @@ export default function TaskList({ filters }: TaskListProps) {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);
               const isCompleted = task.status === 'completed';
-              const isDueDate = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
+              const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !isCompleted;
               
               return (
                 <li 
                   key={task.id} 
                   className={`
-                    hover:bg-gray-50 dark:hover:bg-gray-800 relative 
+                    ${isOverdue ? 'bg-red-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} 
+                    relative 
                     ${isCompleted ? 'opacity-70' : ''} 
                     ${priorityClass} 
                     border-l-4 
                     ${task.priority === 'high' ? 'border-red-500' : 
                       task.priority === 'medium' ? 'border-amber-500' : 
                       'border-green-500'}
+                    ${isOverdue ? 'border-red-500 border-2 border-l-4' : 'border border-gray-100'}
                     transition-all duration-300 
                     shadow hover:shadow-lg
                     my-2 first:mt-0 last:mb-0
                     rounded-md
-                    border border-gray-100
                   `}
                 >
                   <div className="px-4 py-4 flex items-center sm:px-6">
@@ -334,7 +364,7 @@ export default function TaskList({ filters }: TaskListProps) {
                             >
                               {priorityBadge.label}
                             </Badge>
-                            <span className={`text-xs mr-2 ${isDueDate ? 'text-red-600 font-semibold' : ''}`}>
+                            <span className={`text-xs mr-2 ${isOverdue ? 'text-red-600 font-semibold' : ''}`}>
                               Due: {formatDate(task.dueDate)}
                             </span>
                             {task.project && (
