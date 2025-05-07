@@ -807,14 +807,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Task not found" });
       }
 
-      const updateData = {
-        ...taskUpdateInsertSchema.parse(req.body),
-        taskId,
-        userId: req.user.id
-      };
+      // For comments, create a simplified update object
+      if (req.body.updateType === 'Comment') {
+        const commentData = {
+          taskId,
+          userId: req.user.id,
+          updateType: 'Comment',
+          previousValue: '',
+          newValue: '',
+          comment: req.body.comment
+        };
+        
+        const parsedData = taskUpdateInsertSchema.parse(commentData);
+        const newUpdate = await storage.createTaskUpdate(parsedData);
+        return res.status(201).json(newUpdate);
+      } else {
+        // For other update types
+        const updateData = {
+          ...taskUpdateInsertSchema.parse(req.body),
+          taskId,
+          userId: req.user.id
+        };
 
-      const newUpdate = await storage.createTaskUpdate(updateData);
-      return res.status(201).json(newUpdate);
+        const newUpdate = await storage.createTaskUpdate(updateData);
+        return res.status(201).json(newUpdate);
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid update data", errors: error.errors });
