@@ -449,10 +449,9 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
  * Send notification for new user creation
  */
 export async function notifyUserCreation(user: any, password: string | null, admin: any) {
-  if (!user || !user.email) {
-    console.log('Cannot send user creation notification: user missing or has no email', {
-      userId: user?.id,
-      hasEmail: Boolean(user?.email)
+  if (!user) {
+    console.log('Cannot send user creation notification: user missing', {
+      userId: user?.id
     });
     return;
   }
@@ -467,30 +466,52 @@ export async function notifyUserCreation(user: any, password: string | null, adm
   const userName = user.name || user.username || 'User';
   const adminName = admin?.name || admin?.username || 'Administrator';
   
-  await sendEmail({
-    to: user.email,
-    subject: `[TaskScout] Welcome to TaskScout - Account Created`,
-    html: `
-      <h2>Welcome to TaskScout</h2>
-      <p>Hello ${userName},</p>
-      <p>Your account has been created by ${adminName}.</p>
-      <p>Here are your login details:</p>
-      <p>Username: ${user.username}</p>
-      ${password ? `<p>Password: ${password}</p>` : ''}
-      <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
-      ${password ? `<p>For security reasons, please change your password after the first login.</p>` : ''}
-    `,
-  });
+  // Create in-app notification
+  try {
+    await createNotification(
+      user.id,
+      `Welcome to TaskScout`,
+      `Your account has been created by ${adminName}. Please check your email for login information.`,
+      'user_creation',
+      user.id,
+      'user'
+    );
+    console.log(`Created in-app welcome notification for user ${user.id}`);
+  } catch (err) {
+    console.error(`Failed to create in-app welcome notification for user ${user.id}:`, err);
+  }
+  
+  // Send email notification if email is available
+  if (user.email) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `[TaskScout] Welcome to TaskScout - Account Created`,
+        html: `
+          <h2>Welcome to TaskScout</h2>
+          <p>Hello ${userName},</p>
+          <p>Your account has been created by ${adminName}.</p>
+          <p>Here are your login details:</p>
+          <p>Username: ${user.username}</p>
+          ${password ? `<p>Password: ${password}</p>` : ''}
+          <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
+          ${password ? `<p>For security reasons, please change your password after the first login.</p>` : ''}
+        `,
+      });
+      console.log(`Sent welcome email to user ${user.id}`);
+    } catch (err) {
+      console.error(`Failed to send welcome email to user ${user.id}:`, err);
+    }
+  }
 }
 
 /**
  * Send notification for password reset
  */
 export async function notifyPasswordReset(user: any, newPassword: string) {
-  if (!user || !user.email) {
-    console.log('Cannot send password reset notification: user missing or has no email', {
-      userId: user?.id,
-      hasEmail: Boolean(user?.email)
+  if (!user) {
+    console.log('Cannot send password reset notification: user missing', {
+      userId: user?.id
     });
     return;
   }
@@ -503,18 +524,41 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
   const loginUrl = `${process.env.APP_URL || ''}/auth`;
   const userName = user.name || user.username || 'User';
   
-  await sendEmail({
-    to: user.email,
-    subject: `[TaskScout] Your Password Has Been Reset`,
-    html: `
-      <h2>Password Reset</h2>
-      <p>Hello ${userName},</p>
-      <p>Your password has been reset.</p>
-      <p>Your new password is: ${newPassword}</p>
-      <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
-      <p>For security reasons, please change your password after login.</p>
-    `,
-  });
+  // Create in-app notification
+  try {
+    await createNotification(
+      user.id,
+      `Password has been reset`,
+      `Your password has been reset. Please check your email for the new password.`,
+      'password_reset',
+      user.id,
+      'user'
+    );
+    console.log(`Created in-app password reset notification for user ${user.id}`);
+  } catch (err) {
+    console.error(`Failed to create in-app password reset notification for user ${user.id}:`, err);
+  }
+  
+  // Send email notification if email is available
+  if (user.email) {
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: `[TaskScout] Your Password Has Been Reset`,
+        html: `
+          <h2>Password Reset</h2>
+          <p>Hello ${userName},</p>
+          <p>Your password has been reset.</p>
+          <p>Your new password is: ${newPassword}</p>
+          <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
+          <p>For security reasons, please change your password after login.</p>
+        `,
+      });
+      console.log(`Sent password reset email to user ${user.id}`);
+    } catch (err) {
+      console.error(`Failed to send password reset email to user ${user.id}:`, err);
+    }
+  }
 }
 
 /**
