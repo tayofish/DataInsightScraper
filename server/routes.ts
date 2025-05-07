@@ -2214,6 +2214,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // App Settings API
+  // Get all app settings
+  app.get("/api/app-settings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const settings = await storage.getAllAppSettings();
+      return res.status(200).json(settings);
+    } catch (error) {
+      console.error("Error fetching app settings:", error);
+      return res.status(500).json({ message: "Failed to fetch app settings" });
+    }
+  });
+
+  // Get app setting by key
+  app.get("/api/app-settings/:key", async (req, res) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getAppSettingByKey(key);
+      
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      
+      return res.status(200).json(setting);
+    } catch (error) {
+      console.error(`Error fetching app setting with key ${req.params.key}:`, error);
+      return res.status(500).json({ message: "Failed to fetch app setting" });
+    }
+  });
+
+  // Create or update app setting
+  app.post("/api/app-settings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin privileges required" });
+      }
+
+      const { key, value, description } = req.body;
+      
+      if (!key || typeof key !== 'string') {
+        return res.status(400).json({ message: "Key is required and must be a string" });
+      }
+      
+      const setting = await storage.getAppSettingByKey(key);
+      
+      let result;
+      if (setting) {
+        // Update existing setting
+        result = await storage.updateAppSetting(setting.id, {
+          value,
+          description,
+          updatedAt: new Date()
+        });
+      } else {
+        // Create new setting
+        result = await storage.createAppSetting({
+          key,
+          value,
+          description
+        });
+      }
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      console.error("Error creating/updating app setting:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid setting data", errors: error.errors });
+      }
+      return res.status(500).json({ message: "Failed to create/update app setting" });
+    }
+  });
+
+  // Delete app setting
+  app.delete("/api/app-settings/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin privileges required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid setting ID" });
+      }
+
+      const setting = await storage.getAppSettingById(id);
+      if (!setting) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+
+      await storage.deleteAppSetting(id);
+      return res.status(200).json({ message: "Setting deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting app setting:", error);
+      return res.status(500).json({ message: "Failed to delete app setting" });
+    }
+  });
+  
+  // Upload logo
+  app.post("/api/app-settings/logo", upload.single('logo'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin privileges required" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const logoPath = `/uploads/${req.file.filename}`;
+      
+      // Save logo path to app settings
+      const result = await storage.updateAppSettingByKey('logo', logoPath);
+      
+      return res.status(200).json({ 
+        message: "Logo uploaded successfully",
+        path: logoPath,
+        setting: result
+      });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      return res.status(500).json({ message: "Failed to upload logo" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
