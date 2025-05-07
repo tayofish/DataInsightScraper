@@ -165,54 +165,109 @@ export default function ReportsPage() {
 
   // Function to export report data as CSV
   function exportReportData() {
-    if (!reportResults) return;
+    if (!reportResults) {
+      console.error("No report results to export");
+      return;
+    }
+    
+    console.log("Report results:", reportResults);
     
     const { reportType, data, generatedAt } = reportResults;
     let csvContent = "";
     let filename = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`;
     
+    console.log("Report type:", reportType);
+    console.log("Data:", data);
+    
     // Format CSV header and data based on report type
     if (reportType === 'tasks_by_project') {
       csvContent = "Project,Total Tasks,Completed Tasks,Completion Rate\n";
-      data.forEach((item: any) => {
-        const completionRate = item.totalTasks > 0 
-          ? Math.round((item.completedTasks / item.totalTasks) * 100) 
-          : 0;
-        csvContent += `"${item.projectName}",${item.totalTasks},${item.completedTasks},${completionRate}%\n`;
-      });
+      console.log("Processing tasks_by_project, data length:", Array.isArray(data) ? data.length : "data is not an array");
+      
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          console.log("Project item:", item);
+          const completionRate = item.totalTasks > 0 
+            ? Math.round((item.completedTasks / item.totalTasks) * 100) 
+            : 0;
+          csvContent += `"${item.projectName || 'Unknown'}",${item.totalTasks || 0},${item.completedTasks || 0},${completionRate}%\n`;
+        });
+      }
     } else if (reportType === 'user_performance') {
       csvContent = "User,Total Tasks,Completed,In Progress,Todo,Overdue\n";
-      data.forEach((item: any) => {
-        csvContent += `"${item.userName}",${item.totalAssigned},${item.completed},${item.inProgress},${item.todo},${item.overdue}\n`;
-      });
+      console.log("Processing user_performance, data length:", Array.isArray(data) ? data.length : "data is not an array");
+      
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          console.log("User item:", item);
+          csvContent += `"${item.userName || 'Unknown'}",${item.totalAssigned || 0},${item.completed || 0},${item.inProgress || 0},${item.todo || 0},${item.overdue || 0}\n`;
+        });
+      }
     } else if (reportType === 'task_status_summary') {
-      const { numTasks, numTodo, numInProgress, numCompleted, numOverdue } = reportResults.data;
-      csvContent = "Status,Number of Tasks\n";
-      csvContent += `"Todo",${numTodo}\n`;
-      csvContent += `"In Progress",${numInProgress}\n`;
-      csvContent += `"Completed",${numCompleted}\n`;
-      csvContent += `"Overdue",${numOverdue}\n`;
-      csvContent += `\nPriority Breakdown:\n`;
-      csvContent += `"Low",${reportResults.data.byPriority.low}\n`;
-      csvContent += `"Medium",${reportResults.data.byPriority.medium}\n`;
-      csvContent += `"High",${reportResults.data.byPriority.high}\n`;
+      console.log("Processing task_status_summary, data:", reportResults.data);
+      
+      if (reportResults.data) {
+        const { numTasks, numTodo, numInProgress, numCompleted, numOverdue, byPriority } = reportResults.data;
+        csvContent = "Status,Number of Tasks\n";
+        csvContent += `"Todo",${numTodo || 0}\n`;
+        csvContent += `"In Progress",${numInProgress || 0}\n`;
+        csvContent += `"Completed",${numCompleted || 0}\n`;
+        csvContent += `"Overdue",${numOverdue || 0}\n`;
+        
+        if (byPriority) {
+          csvContent += `\nPriority Breakdown:\n`;
+          csvContent += `"Low",${byPriority.low || 0}\n`;
+          csvContent += `"Medium",${byPriority.medium || 0}\n`;
+          csvContent += `"High",${byPriority.high || 0}\n`;
+        }
+      }
+    }
+    
+    console.log("CSV Content:", csvContent);
+    
+    if (csvContent.trim() === "") {
+      console.error("Generated CSV content is empty");
+      toast({
+        title: 'Export failed',
+        description: 'Unable to generate CSV content from the report data',
+        variant: 'destructive',
+      });
+      return;
     }
     
     // Create a download link and trigger it
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: 'Report exported',
-      description: `Report has been exported as ${filename}`,
-    });
+    try {
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      console.log("Generated blob URL:", url);
+      
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      console.log("Download link created with filename:", filename);
+      
+      // Use a different approach for downloading
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      toast({
+        title: 'Report exported',
+        description: `Report has been exported as ${filename}`,
+      });
+    } catch (error) {
+      console.error("Error during file download:", error);
+      toast({
+        title: 'Export failed',
+        description: 'An error occurred while trying to download the file',
+        variant: 'destructive',
+      });
+    }
   }
 
   function renderReportResults() {
