@@ -139,11 +139,14 @@ export default function ReportsPage() {
     runReportMutation.mutate(report.id);
   }
 
-  function formatDate(dateStr: string) {
+  function formatDate(dateStr: string | Date) {
     try {
+      if (dateStr instanceof Date) {
+        return format(dateStr, 'MMM d, yyyy h:mm a');
+      }
       return format(new Date(dateStr), 'MMM d, yyyy h:mm a');
     } catch (e) {
-      return dateStr;
+      return String(dateStr);
     }
   }
 
