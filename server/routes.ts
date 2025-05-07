@@ -23,8 +23,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up file upload directory
   const uploadDir = path.join(process.cwd(), 'uploads');
+  const logoDir = path.join(uploadDir, 'logos');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  
+  if (!fs.existsSync(logoDir)) {
+    fs.mkdirSync(logoDir, { recursive: true });
   }
   
   // Configure multer storage
@@ -39,11 +44,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Configure multer storage for logos
+  const logoStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, logoDir);
+    },
+    filename: (req, file, cb) => {
+      // Use a fixed filename for the logo to easily replace it
+      const uniqueName = `logo${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    }
+  });
+  
   // Configure multer upload with 10MB file size limit
   const upload = multer({ 
     storage: multerStorage,
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB in bytes
+    }
+  });
+  
+  // Configure multer upload for logos with 10MB file size limit
+  const uploadLogo = multer({
+    storage: logoStorage,
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB in bytes
+    },
+    fileFilter: (req, file, cb) => {
+      // Only allow image files
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, and SVG files are allowed.'), false);
+      }
     }
   });
   
@@ -2354,6 +2388,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // === APP SETTINGS ROUTES ===
+  // Get logo
+  app.get("/api/app-settings/logo", async (req, res) => {
+    try {
+      // Get the logo setting from the database
+      const logoSetting = await storage.getAppSettingByKey("logo");
+      
+      if (!logoSetting) {
+        return res.status(404).json({ message: "Logo not found" });
+      }
+      
+      return res.status(200).json(logoSetting);
+    } catch (error) {
+      console.error("Error fetching logo:", error);
+      return res.status(500).json({ message: "Failed to fetch logo" });
+    }
+  });
+  
+  // Upload logo (admin only)
+  app.post("/api/app-settings/logo", isAdmin, uploadLogo.single("logo"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No logo file uploaded" });
+      }
+      
+      // Generate a URL to the logo file
+      const baseUrl = `${req.protocol}://${req.get("host")}`;
+      const logoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
+      
+      // Save or update the logo setting in the database
+      const existingSetting = await storage.getAppSettingByKey("logo");
+      
+      let logoSetting;
+      if (existingSetting) {
+        // Update existing setting
+        logoSetting = await storage.updateAppSetting(existingSetting.id, {
+          value: logoUrl,
+          updatedAt: new Date()
+        });
+      } else {
+        // Create new setting
+        logoSetting = await storage.createAppSetting({
+          key: "logo",
+          value: logoUrl,
+          description: "Company logo used throughout the application"
+        });
+      }
+      
+      return res.status(200).json(logoSetting);
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      return res.status(500).json({ message: "Failed to upload logo" });
+    }
+  });
 
   return httpServer;
 }
