@@ -1813,6 +1813,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === NOTIFICATION ROUTES ===
+  // Get notifications for the logged-in user
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+      const isRead = req.query.isRead ? req.query.isRead === 'true' : undefined;
+      const type = req.query.type as string | undefined;
+
+      const notifications = await storage.getUserNotifications(req.user.id, {
+        limit,
+        offset,
+        isRead,
+        type
+      });
+
+      return res.status(200).json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      return res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Get unread notification count for the logged-in user
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const count = await storage.getUnreadNotificationCount(req.user.id);
+      return res.status(200).json({ count });
+    } catch (error) {
+      console.error("Error fetching unread notification count:", error);
+      return res.status(500).json({ message: "Failed to fetch unread notification count" });
+    }
+  });
+
+  // Mark a notification as read
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+
+      // Check if notification exists and belongs to the user
+      const notification = await storage.getNotificationById(id);
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to update this notification" });
+      }
+
+      const updatedNotification = await storage.markNotificationAsRead(id);
+      return res.status(200).json(updatedNotification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read for the logged-in user
+  app.post("/api/notifications/mark-all-read", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const count = await storage.markAllNotificationsAsRead(req.user.id);
+      return res.status(200).json({ count, message: `Marked ${count} notifications as read` });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      return res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Delete a notification
+  app.delete("/api/notifications/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+
+      // Check if notification exists and belongs to the user
+      const notification = await storage.getNotificationById(id);
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "Not authorized to delete this notification" });
+      }
+
+      await storage.deleteNotification(id);
+      return res.status(200).json({ message: "Notification deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+      return res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // Delete all notifications for the logged-in user
+  app.delete("/api/notifications", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const count = await storage.deleteAllNotifications(req.user.id);
+      return res.status(200).json({ count, message: `Deleted ${count} notifications` });
+    } catch (error) {
+      console.error("Error deleting all notifications:", error);
+      return res.status(500).json({ message: "Failed to delete all notifications" });
+    }
+  });
+
   // === SMTP CONFIGURATION ROUTES ===
   // Initialize email service
   await emailService.initializeEmailService();

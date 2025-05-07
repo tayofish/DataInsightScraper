@@ -1,7 +1,8 @@
 import nodemailer, { Transporter } from 'nodemailer';
 import { db } from '@db';
-import { smtpConfig } from '@shared/schema';
+import { smtpConfig, notifications } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { storage } from '../storage';
 
 let transporter: Transporter | null = null;
 let smtpSettings: any = null;
@@ -77,6 +78,55 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
   }
 }
 
+/**
+ * Create an in-app notification for a user
+ * @param userId - The user to notify
+ * @param title - Notification title
+ * @param message - Notification message
+ * @param type - Notification type (task_assignment, task_comment, etc.)
+ * @param referenceId - ID of the referenced object (task, project, etc.)
+ * @param referenceType - Type of the referenced object (task, project, etc.)
+ */
+export async function createNotification(
+  userId: number,
+  title: string,
+  message: string,
+  type: string,
+  referenceId?: number,
+  referenceType?: string
+) {
+  try {
+    if (!userId) {
+      console.log('Cannot create notification: missing userId');
+      return null;
+    }
+    
+    console.log('Creating in-app notification:', {
+      userId,
+      title,
+      type,
+      referenceType,
+      referenceId
+    });
+    
+    const notification = await storage.createNotification({
+      userId,
+      title,
+      message,
+      type,
+      referenceId,
+      referenceType,
+      isRead: false,
+    });
+    
+    console.log(`Created notification ID ${notification.id} for user ${userId}`);
+    return notification;
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+    return null;
+  }
+}
+
 // Event-specific notification functions
 
 /**
@@ -110,38 +160,51 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
   let notificationsSent = 0;
   
   // Notify assignee if assigned
-  if (assignee && assignee.email) {
+  if (assignee) {
     const assigneeName = assignee.name || assignee.username || 'User';
     const creatorName = creator?.name || creator?.username || 'Admin';
     
-    try {
-      const success = await sendEmail({
-        to: assignee.email,
-        subject: `[TaskScout] New task assigned: ${task.title}`,
-        html: `
-          <h2>New Task Assigned</h2>
-          <p>Hello ${assigneeName},</p>
-          <p>A new task has been assigned to you:</p>
-          <p><strong>${task.title}</strong></p>
-          <p>${task.description || ''}</p>
-          <p>Priority: ${task.priority}</p>
-          <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-          <p>Created by: ${creatorName}</p>
-          <p><a href="${taskUrl}">View Task</a></p>
-        `,
-      });
-      
-      if (success) {
-        notificationsSent++;
+    // Create in-app notification
+    await createNotification(
+      assignee.id,
+      `New task assigned: ${task.title}`,
+      `You have been assigned a new task with priority ${task.priority}${task.dueDate ? ` due on ${new Date(task.dueDate).toLocaleDateString()}` : ''}.`,
+      'task_assignment',
+      task.id,
+      'task'
+    );
+    
+    // Send email notification if email is available
+    if (assignee.email) {
+      try {
+        const success = await sendEmail({
+          to: assignee.email,
+          subject: `[TaskScout] New task assigned: ${task.title}`,
+          html: `
+            <h2>New Task Assigned</h2>
+            <p>Hello ${assigneeName},</p>
+            <p>A new task has been assigned to you:</p>
+            <p><strong>${task.title}</strong></p>
+            <p>${task.description || ''}</p>
+            <p>Priority: ${task.priority}</p>
+            <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+            <p>Created by: ${creatorName}</p>
+            <p><a href="${taskUrl}">View Task</a></p>
+          `,
+        });
+        
+        if (success) {
+          notificationsSent++;
+        }
+      } catch (err) {
+        console.error(`Failed to send task creation notification to assignee ${assignee.id}:`, err);
       }
-    } catch (err) {
-      console.error(`Failed to send task creation notification to assignee ${assignee.id}:`, err);
+    } else {
+      console.log('Assignee has no email address:', {
+        assigneeId: assignee.id,
+        assigneeUsername: assignee.username
+      });
     }
-  } else if (assignee) {
-    console.log('Assignee has no email address:', {
-      assigneeId: assignee.id,
-      assigneeUsername: assignee.username
-    });
   }
   
   // Notify project team
@@ -164,30 +227,43 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
       const creatorName = creator?.name || creator?.username || 'Admin';
       const assigneeName = assignee ? (assignee.name || assignee.username || 'User') : 'Unassigned';
       
-      try {
-        const success = await sendEmail({
-          to: member.email,
-          subject: `[TaskScout] New task created in your project: ${task.title}`,
-          html: `
-            <h2>New Task Created</h2>
-            <p>Hello ${memberName},</p>
-            <p>A new task has been created in your project:</p>
-            <p><strong>${task.title}</strong></p>
-            <p>${task.description || ''}</p>
-            <p>Priority: ${task.priority}</p>
-            <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-            <p>Created by: ${creatorName}</p>
-            <p>Assigned to: ${assigneeName}</p>
-            <p><a href="${taskUrl}">View Task</a></p>
-          `,
-        });
-        
-        if (success) {
-          teamNotificationCount++;
-          notificationsSent++;
+      // Create in-app notification
+      await createNotification(
+        member.id,
+        `New task created in your project: ${task.title}`,
+        `A new task with priority ${task.priority} has been created in your project by ${creatorName} and assigned to ${assigneeName}.`,
+        'project_task_created',
+        task.id,
+        'task'
+      );
+      
+      // Send email notification if email is available
+      if (member.email) {
+        try {
+          const success = await sendEmail({
+            to: member.email,
+            subject: `[TaskScout] New task created in your project: ${task.title}`,
+            html: `
+              <h2>New Task Created</h2>
+              <p>Hello ${memberName},</p>
+              <p>A new task has been created in your project:</p>
+              <p><strong>${task.title}</strong></p>
+              <p>${task.description || ''}</p>
+              <p>Priority: ${task.priority}</p>
+              <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+              <p>Created by: ${creatorName}</p>
+              <p>Assigned to: ${assigneeName}</p>
+              <p><a href="${taskUrl}">View Task</a></p>
+            `,
+          });
+          
+          if (success) {
+            teamNotificationCount++;
+            notificationsSent++;
+          }
+        } catch (err) {
+          console.error(`Failed to send task creation notification to team member ${member.id}:`, err);
         }
-      } catch (err) {
-        console.error(`Failed to send task creation notification to team member ${member.id}:`, err);
       }
     }
     
