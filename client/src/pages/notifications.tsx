@@ -3,7 +3,11 @@ import { useNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Bell, Filter, Trash2, ExternalLink, Check, CheckCircle } from "lucide-react";
+import { 
+  Bell, Filter, Trash2, ExternalLink, Check, CheckCircle, 
+  ClipboardCheck, MessageCircle, ListTodo, AtSign, FolderPlus, 
+  Users, UserPlus, KeyRound 
+} from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
