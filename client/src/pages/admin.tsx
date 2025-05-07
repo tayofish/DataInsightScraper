@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as TabsComponentList, TabsTrigger as TabsComponentTrigger } from "@/components/ui/tabs";
 import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
 import SmtpConfigForm from "@/components/smtp-config-form";
+import LogoUpload from "@/components/logo-upload";
 
 // User management form schema
 const userFormSchema = z.object({
