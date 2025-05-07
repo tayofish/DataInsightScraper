@@ -84,7 +84,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   });
   
   // Get task updates for this task
-  const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery({
+  const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery<(TaskUpdate & { user?: User })[]>({
     queryKey: ['/api/tasks', task?.id, 'updates'],
     queryFn: () => {
       if (!task?.id) return [];
