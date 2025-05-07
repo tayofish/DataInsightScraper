@@ -1,4 +1,4 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "@db";
@@ -31,6 +31,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   if (!fs.existsSync(logoDir)) {
     fs.mkdirSync(logoDir, { recursive: true });
   }
+  
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(uploadDir));
   
   // Configure multer storage
   const multerStorage = multer.diskStorage({
