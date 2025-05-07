@@ -18,12 +18,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
-  Users, Briefcase, Link, Link2, Link2Off, UserPlus
+  Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as TabsComponentList, TabsTrigger as TabsComponentTrigger } from "@/components/ui/tabs";
 import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
+import SmtpConfigForm from "@/components/smtp-config-form";
 
 // User management form schema
 const userFormSchema = z.object({
@@ -767,60 +768,83 @@ export default function AdminPage() {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">System Configuration</h2>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Backup and Restore</CardTitle>
-            <CardDescription>
-              Manage system data backups and restoration.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col space-y-2">
-              <div className="flex space-x-2">
-                <Button variant="outline">
-                  Export Database
-                </Button>
-                <Button variant="outline">
-                  Export Settings
-                </Button>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline">
-                  Import Database
-                </Button>
-                <Button variant="outline">
-                  Import Settings
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Settings</CardTitle>
-            <CardDescription>
-              Configure user authentication methods.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">Local Authentication</h4>
-                <p className="text-sm text-muted-foreground">Allow users to login with username and password</p>
-              </div>
-              <Badge>Enabled</Badge>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium">Microsoft Authentication</h4>
-                <p className="text-sm text-muted-foreground">Allow users to login with Microsoft Entra ID</p>
-              </div>
-              <Badge>Enabled</Badge>
-            </div>
-          </CardContent>
-        </Card>
+        {/* SMTP Configuration */}
+        <TabsComponent defaultValue="smtp" className="w-full">
+          <TabsComponentList className="grid grid-cols-3 w-full">
+            <TabsComponentTrigger value="smtp" className="flex items-center">
+              <Mail className="mr-2 h-4 w-4" /> Email Notifications
+            </TabsComponentTrigger>
+            <TabsComponentTrigger value="backup" className="flex items-center">
+              <RefreshCw className="mr-2 h-4 w-4" /> Backup & Restore
+            </TabsComponentTrigger>
+            <TabsComponentTrigger value="auth" className="flex items-center">
+              <Users className="mr-2 h-4 w-4" /> Authentication
+            </TabsComponentTrigger>
+          </TabsComponentList>
+          
+          <TabsComponentContent value="smtp" className="mt-6">
+            <SmtpConfigForm />
+          </TabsComponentContent>
+          
+          <TabsComponentContent value="backup" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Backup and Restore</CardTitle>
+                <CardDescription>
+                  Manage system data backups and restoration.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex space-x-2">
+                    <Button variant="outline">
+                      Export Database
+                    </Button>
+                    <Button variant="outline">
+                      Export Settings
+                    </Button>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline">
+                      Import Database
+                    </Button>
+                    <Button variant="outline">
+                      Import Settings
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsComponentContent>
+          
+          <TabsComponentContent value="auth" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Authentication Settings</CardTitle>
+                <CardDescription>
+                  Configure user authentication methods.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Local Authentication</h4>
+                    <p className="text-sm text-muted-foreground">Allow users to login with username and password</p>
+                  </div>
+                  <Badge>Enabled</Badge>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Microsoft Authentication</h4>
+                    <p className="text-sm text-muted-foreground">Allow users to login with Microsoft Entra ID</p>
+                  </div>
+                  <Badge>Enabled</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsComponentContent>
+        </TabsComponent>
       </div>
     );
   };
