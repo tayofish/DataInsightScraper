@@ -1789,6 +1789,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const configData = smtpConfigFormSchema.parse(req.body);
       
+      console.log('Creating SMTP config:', {
+        host: configData.host,
+        port: configData.port,
+        username: configData.username,
+        fromEmail: configData.fromEmail,
+        fromName: configData.fromName,
+        enableTls: configData.enableTls,
+        active: configData.active
+      });
+      
       // If setting this config as active, deactivate all others
       if (configData.active) {
         await db.update(smtpConfig).set({ active: false });
@@ -1801,14 +1811,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: configData.username,
         password: configData.password,
         fromEmail: configData.fromEmail,
-        fromName: configData.fromName,
+        fromName: configData.fromName || 'TaskScout Notifications',
         enableTls: configData.enableTls,
         active: configData.active,
       }).returning();
       
       // Reinitialize email service if this config is active
       if (configData.active) {
-        await emailService.initializeEmailService();
+        try {
+          const success = await emailService.initializeEmailService();
+          console.log('Email service initialization result:', success);
+        } catch (initError) {
+          console.error('Failed to initialize email service:', initError);
+          // Continue execution - email service initialization failure shouldn't break config creation
+        }
       }
       
       return res.status(201).json(result[0]);
@@ -1817,7 +1833,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid SMTP configuration data", errors: error.errors });
       }
       console.error("Error creating SMTP configuration:", error);
-      return res.status(500).json({ message: "Failed to create SMTP configuration" });
+      return res.status(500).json({ 
+        message: "Failed to create SMTP configuration", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
@@ -1830,6 +1849,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const configData = smtpConfigFormSchema.parse(req.body);
+      
+      console.log('Updating SMTP config:', {
+        id,
+        host: configData.host,
+        port: configData.port,
+        username: configData.username,
+        fromEmail: configData.fromEmail,
+        fromName: configData.fromName,
+        enableTls: configData.enableTls,
+        active: configData.active
+      });
       
       // If setting this config as active, deactivate all others
       if (configData.active) {
@@ -1844,7 +1874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: configData.username,
           password: configData.password,
           fromEmail: configData.fromEmail,
-          fromName: configData.fromName,
+          fromName: configData.fromName || 'TaskScout Notifications',
           enableTls: configData.enableTls,
           active: configData.active,
           updatedAt: new Date(),
@@ -1858,7 +1888,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Reinitialize email service if this config is active
       if (configData.active) {
-        await emailService.initializeEmailService();
+        try {
+          const success = await emailService.initializeEmailService();
+          console.log('Email service initialization result:', success);
+        } catch (initError) {
+          console.error('Failed to initialize email service:', initError);
+          // Continue execution - email service initialization failure shouldn't break config update
+        }
       }
       
       return res.status(200).json(result[0]);
@@ -1867,7 +1903,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid SMTP configuration data", errors: error.errors });
       }
       console.error("Error updating SMTP configuration:", error);
-      return res.status(500).json({ message: "Failed to update SMTP configuration" });
+      return res.status(500).json({ 
+        message: "Failed to update SMTP configuration", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
   
@@ -1907,33 +1946,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transporter = nodemailer.createTransport({
         host: configData.host,
         port: configData.port,
-        secure: configData.enableTls,
+        secure: configData.port === 465, // Only use secure for port 465
         auth: {
           user: configData.username,
           pass: configData.password,
         },
+        tls: {
+          // Do not fail on invalid certs
+          rejectUnauthorized: false
+        }
       });
       
-      // Verify connection
-      await transporter.verify();
+      console.log('Testing SMTP connection with settings:', {
+        host: configData.host,
+        port: configData.port,
+        secure: configData.port === 465,
+        user: configData.username,
+        fromEmail: configData.fromEmail,
+      });
       
-      // Send a test email to the admin user (assuming req.user.email exists)
-      if (req.user && req.user.email) {
-        await transporter.sendMail({
-          from: `"${configData.fromName}" <${configData.fromEmail}>`,
-          to: req.user.email,
-          subject: "TaskScout SMTP Test",
-          text: "This is a test email from TaskScout to verify your SMTP configuration.",
-          html: "<h1>TaskScout SMTP Test</h1><p>This is a test email from TaskScout to verify your SMTP configuration.</p>",
-        });
+      try {
+        // Verify connection
+        await transporter.verify();
+        console.log('SMTP connection verified successfully');
         
-        return res.status(200).json({ message: "Test email sent successfully" });
-      } else {
-        // If no email is available, just return success for the connection test
-        return res.status(200).json({ message: "SMTP connection successful, but no email address available to send test email" });
+        // Send a test email to the admin user if email exists
+        if (req.user && req.user.email) {
+          try {
+            await transporter.sendMail({
+              from: `"${configData.fromName}" <${configData.fromEmail}>`,
+              to: req.user.email,
+              subject: "TaskScout SMTP Test",
+              text: "This is a test email from TaskScout to verify your SMTP configuration.",
+              html: "<h1>TaskScout SMTP Test</h1><p>This is a test email from TaskScout to verify your SMTP configuration.</p>",
+            });
+            
+            console.log(`Test email sent successfully to ${req.user.email}`);
+            return res.status(200).json({ message: "Test email sent successfully" });
+          } catch (emailError) {
+            console.error("Failed to send test email:", emailError);
+            return res.status(500).json({ 
+              message: `SMTP connection OK, but failed to send email: ${emailError.message}`,
+              error: emailError instanceof Error ? emailError.message : String(emailError)
+            });
+          }
+        } else {
+          // If no email is available, just return success for the connection test
+          return res.status(200).json({ message: "SMTP connection verified successfully, but no email address available to send test email" });
+        }
+      } catch (verifyError) {
+        console.error("SMTP connection verification failed:", verifyError);
+        return res.status(500).json({ 
+          message: `SMTP connection failed: ${verifyError.message}`,
+          error: verifyError instanceof Error ? verifyError.message : String(verifyError)
+        });
       }
     } catch (error) {
       console.error("Error testing SMTP configuration:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid SMTP configuration data", errors: error.errors });
+      }
       return res.status(500).json({ 
         message: "Failed to test SMTP configuration", 
         error: error instanceof Error ? error.message : String(error) 

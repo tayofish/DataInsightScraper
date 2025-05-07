@@ -25,11 +25,15 @@ export async function initializeEmailService() {
     transporter = nodemailer.createTransport({
       host: smtpSettings.host,
       port: smtpSettings.port,
-      secure: smtpSettings.enableTls,
+      secure: smtpSettings.port === 465, // Only use secure for port 465
       auth: {
         user: smtpSettings.username,
         pass: smtpSettings.password,
       },
+      tls: {
+        // Do not fail on invalid certs
+        rejectUnauthorized: false
+      }
     });
     
     // Verify connection
