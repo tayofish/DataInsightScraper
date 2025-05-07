@@ -47,6 +47,7 @@ export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
+  startDate: timestamp("start_date"),
   dueDate: timestamp("due_date"),
   priority: priorityEnum("priority").default('medium'),
   status: statusEnum("status").default('todo'),
@@ -211,6 +212,11 @@ export const categoryInsertSchema = createInsertSchema(categories, {
 
 export const taskInsertSchema = createInsertSchema(tasks, {
   title: (schema) => schema.min(3, "Task title must be at least 3 characters"),
+  startDate: (schema) => z.preprocess(
+    // Convert string date to Date object or null
+    (val) => val === null || val === '' ? null : new Date(val as string),
+    z.date().nullable().optional()
+  ),
   dueDate: (schema) => z.preprocess(
     // Convert string date to Date object or null
     (val) => val === null || val === '' ? null : new Date(val as string),
@@ -277,6 +283,7 @@ export const taskFormSchema = z.object({
   id: z.number().optional(),
   title: z.string().min(3, "Task title must be at least 3 characters"),
   description: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   status: z.enum(['todo', 'in_progress', 'completed']).default('todo'),
@@ -304,6 +311,15 @@ export const taskUpdateFormSchema = z.object({
 });
 
 export type TaskUpdateFormValues = z.infer<typeof taskUpdateFormSchema>;
+
+// Task comment form schema
+export const taskCommentFormSchema = z.object({
+  taskId: z.number(),
+  comment: z.string().min(1, "Comment cannot be empty"),
+  updateType: z.string().default("Comment"),
+});
+
+export type TaskCommentFormValues = z.infer<typeof taskCommentFormSchema>;
 
 // Task collaborator form schema
 export const taskCollaboratorFormSchema = z.object({
