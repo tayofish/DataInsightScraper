@@ -297,13 +297,129 @@ export default function ProjectDetailPage() {
           <Card>
             <CardHeader>
               <CardTitle>Project Timeline</CardTitle>
-              <CardDescription>View project timeline and milestones</CardDescription>
+              <CardDescription>View project timeline and tasks by due date</CardDescription>
             </CardHeader>
-            <CardContent className="min-h-[300px] flex items-center justify-center">
-              <div className="text-center">
-                <Clock className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-muted-foreground">Timeline view coming soon</p>
-              </div>
+            <CardContent className="min-h-[400px]">
+              {tasksLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <CalendarDays className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+                  <p>No tasks have been created for this project yet.</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* Timeline with vertical line */}
+                  <div className="absolute top-0 bottom-0 left-[20px] w-[2px] bg-gray-200"></div>
+                  
+                  {/* Sort tasks by due date and group them */}
+                  {[...tasks]
+                    .sort((a, b) => {
+                      // Sort by due date (tasks without due date appear at the bottom)
+                      if (!a.dueDate && !b.dueDate) return 0;
+                      if (!a.dueDate) return 1;
+                      if (!b.dueDate) return -1;
+                      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+                    })
+                    .map((task, index) => {
+                      // Format the date
+                      const dueDate = task.dueDate ? new Date(task.dueDate) : null;
+                      const formattedDate = dueDate ? 
+                        dueDate.toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric' 
+                        }) : 'No due date';
+                      
+                      // Check if task is overdue
+                      const isOverdue = dueDate && dueDate < new Date() && task.status !== 'completed';
+                      
+                      // Status color
+                      const statusColor = task.status === 'completed' 
+                        ? 'bg-green-500' 
+                        : (task.status === 'in_progress' ? 'bg-blue-500' : 'bg-yellow-500');
+                      
+                      return (
+                        <div key={task.id} className="ml-10 mb-6 relative">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-[20px] top-1 w-[12px] h-[12px] rounded-full ${statusColor} border-2 border-white z-10`}></div>
+                          
+                          {/* Due date label */}
+                          <div className={`text-sm font-medium mb-1 ${isOverdue ? 'text-red-600' : 'text-gray-600'}`}>
+                            {formattedDate}
+                            {isOverdue && <span className="ml-2 text-red-600 text-xs">(Overdue)</span>}
+                          </div>
+                          
+                          {/* Task card */}
+                          <div className={`border rounded-lg p-4 transition-all ${
+                            isOverdue 
+                              ? 'border-red-200 bg-red-50' 
+                              : (task.status === 'completed' ? 'border-green-100 bg-green-50' : 'bg-white')
+                          }`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="font-medium">{task.title}</h3>
+                              <Badge 
+                                variant={task.status === 'completed' ? 'default' : (task.status === 'in_progress' ? 'secondary' : 'outline')}
+                                className={task.status === 'completed' ? 'bg-green-500' : ''}
+                              >
+                                {task.status === 'completed' 
+                                  ? 'Completed' 
+                                  : (task.status === 'in_progress' ? 'In Progress' : 'Todo')}
+                              </Badge>
+                            </div>
+                            
+                            {task.description && (
+                              <p className="text-sm text-gray-600 mb-2 line-clamp-2">{task.description}</p>
+                            )}
+                            
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center space-x-2">
+                                {task.priority && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`
+                                      ${task.priority === 'high' 
+                                        ? 'text-red-600 border-red-200 bg-red-50' 
+                                        : (task.priority === 'medium' 
+                                          ? 'text-orange-600 border-orange-200 bg-orange-50' 
+                                          : 'text-green-600 border-green-200 bg-green-50')}
+                                    `}
+                                  >
+                                    {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} Priority
+                                  </Badge>
+                                )}
+                                
+                                {task.assigneeId && task.assignee && (
+                                  <div className="flex items-center space-x-1">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback>
+                                        {task.assignee.username.substring(0, 2).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs text-gray-500">{task.assignee.username}</span>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                asChild
+                                className="h-7 text-xs"
+                              >
+                                <Link href={`/tasks/${task.id}`}>
+                                  View
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
