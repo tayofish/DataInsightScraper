@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, FolderOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -14,6 +14,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'wouter';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -186,25 +187,46 @@ export default function Projects() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.id} className="flex flex-col justify-between">
-                <CardHeader>
-                  <CardTitle>{project.name}</CardTitle>
-                  <CardDescription>
-                    {project.description || 'No description provided'}
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter className="pt-0 flex justify-end space-x-2">
+              <Card key={project.id} className="flex flex-col justify-between overflow-hidden group cursor-pointer">
+                <div className="flex-1">
+                  <Link href={`/projects/${project.id}`}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="group-hover:text-primary transition-colors">
+                        {project.name}
+                      </CardTitle>
+                      <CardDescription>
+                        {project.description || 'No description provided'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-0 pb-4">
+                      <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary rounded-full" 
+                          style={{ width: `${project.completionPercentage || 0}%` }}
+                        ></div>
+                      </div>
+                    </CardContent>
+                  </Link>
+                </div>
+                <CardFooter className="pt-0 flex justify-end space-x-2 border-t bg-gray-50/50 z-10">
                   <Button 
                     variant="ghost"
                     size="sm"
-                    onClick={() => openProjectForm(project)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openProjectForm(project);
+                    }}
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <Trash2 className="h-4 w-4 mr-1" />
                         Delete
                       </Button>
@@ -219,7 +241,10 @@ export default function Projects() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => deleteProjectMutation.mutate(project.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteProjectMutation.mutate(project.id);
+                          }}
                           className="bg-red-600 hover:bg-red-700"
                         >
                           Delete
