@@ -120,7 +120,7 @@ export default function ProjectTeam() {
   // Create team assignment mutation
   const assignmentMutation = useMutation({
     mutationFn: async (values: AssignmentFormValues) => {
-      return apiRequest('POST', `/api/projects/${projectId}/assignments`, {
+      return apiRequest('POST', `/api/project-assignments`, {
         ...values,
         projectId,
       });
@@ -145,7 +145,7 @@ export default function ProjectTeam() {
   // Delete team assignment mutation
   const deleteAssignmentMutation = useMutation({
     mutationFn: async (assignmentId: number) => {
-      return apiRequest('DELETE', `/api/projects/assignments/${assignmentId}`);
+      return apiRequest('DELETE', `/api/project-assignments/${assignmentId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects', projectId, 'assignments'] });
