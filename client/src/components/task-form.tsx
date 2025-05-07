@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Form, 
   FormField, 
@@ -38,10 +39,10 @@ import { AvatarField } from './ui/avatar-field';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
-import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department, type User } from '@shared/schema';
+import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department, type User, type TaskUpdate } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import TaskUpdateHistory from './task-update-history';
 
@@ -602,9 +603,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                       <Skeleton className="h-24 w-full" />
                       <Skeleton className="h-24 w-full" />
                     </div>
-                  ) : taskUpdates?.filter(update => update.updateType === 'Comment').length ? (
+                  ) : taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').length ? (
                     <div className="space-y-3">
-                      {taskUpdates?.filter(update => update.updateType === 'Comment').map(update => (
+                      {taskUpdates?.filter((update: TaskUpdate & { user?: User }) => update.updateType === 'Comment').map((update: TaskUpdate & { user?: User }) => (
                         <Card key={update.id}>
                           <CardContent className="p-4">
                             <div className="flex items-start gap-3">
