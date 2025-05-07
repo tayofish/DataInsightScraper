@@ -41,7 +41,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { queryClient } from '@/lib/queryClient';
 import { apiRequest } from '@/lib/queryClient';
-import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department } from '@shared/schema';
+import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department, type User } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import TaskUpdateHistory from './task-update-history';
 
@@ -78,7 +78,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
   
   // Get users for mentions
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
   
@@ -551,19 +551,19 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           <ScrollArea className="h-64">
                             <div className="p-2">
                               {users
-                                .filter(user => 
+                                .filter((user: User) => 
                                   mentionQuery === '' || 
                                   user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
                                   user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
                                 )
-                                .map(user => (
+                                .map((user: User) => (
                                   <div 
                                     key={user.id}
                                     className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
                                     onClick={() => insertMention(user.username)}
                                   >
                                     <Avatar className="h-6 w-6">
-                                      <AvatarImage src={user.avatarUrl || undefined} alt={user.name || user.username} />
+                                      <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
                                       <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>
