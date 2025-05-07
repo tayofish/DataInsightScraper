@@ -357,18 +357,24 @@ export default function TaskList({ filters }: TaskListProps) {
                       <div className="mt-4 flex items-center justify-between sm:mt-0 sm:ml-6 sm:flex-shrink-0 sm:justify-start">
                         <div className="flex items-center space-x-2">
                           {task.assignee ? (
-                            <Avatar className="h-8 w-8 border-2 border-white">
-                              <AvatarImage 
-                                src={task.assignee.avatar || ''} 
-                                alt={`Assigned to ${task.assignee.name}`} 
-                              />
-                              <AvatarFallback>
-                                {task.assignee.name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="flex items-center space-x-2">
+                              <Avatar className="h-8 w-8 border-2 border-white">
+                                <AvatarImage 
+                                  src={task.assignee.avatar || ''} 
+                                  alt={`Assigned to ${task.assignee.name}`} 
+                                />
+                                <AvatarFallback>
+                                  {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm font-medium text-gray-700">{task.assignee.name}</span>
+                            </div>
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                              <UserPlus className="text-gray-500 h-4 w-4" />
+                            <div className="flex items-center space-x-2">
+                              <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <UserPlus className="text-gray-500 h-4 w-4" />
+                              </div>
+                              <span className="text-sm text-gray-500">Unassigned</span>
                             </div>
                           )}
                           <Button
