@@ -247,7 +247,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         throw new Error('Failed to upload file');
       }
       
-      return await res.json();
+      // Just check if response is ok, don't try to parse as JSON
+      // The server might not return valid JSON for file uploads
+      return { success: true };
     },
     onSuccess: () => {
       toast({
@@ -255,6 +257,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         variant: 'default',
       });
       setSelectedFile(null);
+      setFileUploading(false);
       refetchFiles();
     },
     onError: (error: Error) => {
