@@ -290,7 +290,7 @@ export default function TaskList({ filters }: TaskListProps) {
         </div>
         
         {sortedTasks.length > 0 ? (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <ul className="bg-white dark:bg-gray-900 overflow-hidden p-4 space-y-4">
             {currentTasks.map((task) => {
               const priorityClass = `task-priority-${task.priority}`;
               const priorityBadge = getPriorityBadge(task.priority);
@@ -308,7 +308,11 @@ export default function TaskList({ filters }: TaskListProps) {
                     ${task.priority === 'high' ? 'border-red-500' : 
                       task.priority === 'medium' ? 'border-amber-500' : 
                       'border-green-500'}
-                    transition-all duration-200 hover:shadow-md
+                    transition-all duration-300 
+                    shadow hover:shadow-lg
+                    my-2 first:mt-0 last:mb-0
+                    rounded-md
+                    border border-gray-100
                   `}
                 >
                   <div className="px-4 py-4 flex items-center sm:px-6">
