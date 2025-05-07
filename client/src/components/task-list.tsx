@@ -317,6 +317,12 @@ export default function TaskList({ filters }: TaskListProps) {
                                 {task.project.name}
                               </Badge>
                             )}
+                            {task.department && (
+                              <Badge variant="outline" className="ml-2 bg-gray-100 text-gray-700 border-gray-200">
+                                <Building2 className="h-3 w-3 mr-1" />
+                                {task.department.name}
+                              </Badge>
+                            )}
                             {task.category && (
                               <TooltipProvider>
                                 <Tooltip>
@@ -332,9 +338,11 @@ export default function TaskList({ filters }: TaskListProps) {
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p><span className="font-semibold">Department:</span> {
-                                      task.category && task.category.departmentId 
-                                        ? departments.find((d: Department) => d.id === task.category?.departmentId)?.name || 'Unknown'
-                                        : 'General'
+                                      task.department
+                                        ? task.department.name
+                                        : (task.category && task.category.departmentId 
+                                          ? departments.find((d: Department) => d.id === task.category?.departmentId)?.name || 'Unknown'
+                                          : 'General')
                                     }</p>
                                   </TooltipContent>
                                 </Tooltip>
