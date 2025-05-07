@@ -557,7 +557,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create task
   app.post("/api/tasks", async (req, res) => {
     try {
-      const taskData = taskInsertSchema.parse(req.body);
+      // Process request data to handle nulls consistently
+      const requestData = {
+        ...req.body,
+        // Convert empty strings to null
+        description: req.body.description === '' ? null : req.body.description,
+        dueDate: req.body.dueDate === '' ? null : req.body.dueDate,
+      };
+      
+      const taskData = taskInsertSchema.parse(requestData);
       const newTask = await storage.createTask(taskData);
       return res.status(201).json(newTask);
     } catch (error) {

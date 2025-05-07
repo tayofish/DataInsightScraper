@@ -77,11 +77,23 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   // Create/Update task mutation
   const taskMutation = useMutation({
-    mutationFn: async (values: TaskFormValues) => {      
+    mutationFn: async (values: TaskFormValues) => {
+      // Clean up data for API submission - ensure proper types for backend
+      const processedValues = {
+        ...values,
+        // Convert empty strings to null for optional fields
+        description: values.description?.trim() === '' ? null : values.description,
+        dueDate: values.dueDate?.trim() === '' ? null : values.dueDate,
+        // Ensure numerical fields are properly handled
+        projectId: values.projectId === undefined ? null : values.projectId,
+        assigneeId: values.assigneeId === undefined ? null : values.assigneeId,
+        categoryId: values.categoryId === undefined ? null : values.categoryId
+      };
+      
       if (isEditMode && task) {
-        return apiRequest('PATCH', `/api/tasks/${task.id}`, values);
+        return apiRequest('PATCH', `/api/tasks/${task.id}`, processedValues);
       } else {
-        return apiRequest('POST', '/api/tasks', values);
+        return apiRequest('POST', '/api/tasks', processedValues);
       }
     },
     onSuccess: () => {
@@ -105,15 +117,8 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   });
 
   const onSubmit = (values: TaskFormValues) => {
-    // Process the form values for API submission with proper typing
-    const processedValues: TaskFormValues = {
-      ...values,
-      // Make sure empty strings are converted to null for optional fields
-      dueDate: values.dueDate && values.dueDate.trim() !== '' ? values.dueDate : null,
-      description: values.description && values.description.trim() !== '' ? values.description : null
-    };
-    
-    taskMutation.mutate(processedValues);
+    // Directly submit the values, processing happens in the mutation function
+    taskMutation.mutate(values);
   };
 
   return (

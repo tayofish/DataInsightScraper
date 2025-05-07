@@ -58,8 +58,9 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
 
   return (
     <Form {...form}>
-      <div className="bg-white shadow px-4 py-4 rounded-lg sm:flex sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="bg-white shadow px-4 py-4 rounded-lg">
+        {/* Row 1: Primary filters */}
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-4">
           <AvatarField
             control={form.control}
             name="assigneeId"
@@ -69,7 +70,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             includeAll={true}
           />
           
-          <div className="w-full sm:w-auto">
+          <div>
             <label htmlFor="project-filter" className="block text-sm font-medium text-gray-700">
               Project
             </label>
@@ -85,7 +86,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 }
               }}
             >
-              <SelectTrigger id="project-filter" className="w-[180px]">
+              <SelectTrigger id="project-filter" className="w-full">
                 <SelectValue placeholder="All Projects" />
               </SelectTrigger>
               <SelectContent>
@@ -99,7 +100,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             </Select>
           </div>
           
-          <div className="w-full sm:w-auto">
+          <div>
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700">
               Status
             </label>
@@ -107,7 +108,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               value={form.watch("status")}
               onValueChange={(value) => form.setValue("status", value)}
             >
-              <SelectTrigger id="status-filter" className="w-[180px]">
+              <SelectTrigger id="status-filter" className="w-full">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
@@ -119,7 +120,44 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             </Select>
           </div>
           
-          <div className="w-full sm:w-auto">
+          <div>
+            <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700">
+              Priority
+            </label>
+            <Select
+              value={form.watch("priority")}
+              onValueChange={(value) => form.setValue("priority", value)}
+            >
+              <SelectTrigger id="priority-filter" className="w-full">
+                <SelectValue placeholder="All Priorities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700">
+              Search
+            </label>
+            <Input
+              id="search"
+              type="search"
+              placeholder="Search tasks..."
+              className="w-full"
+              value={form.watch("search")}
+              onChange={(e) => form.setValue("search", e.target.value)}
+            />
+          </div>
+        </div>
+        
+        {/* Row 2: Secondary filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
             <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700">
               Category
             </label>
@@ -135,7 +173,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 }
               }}
             >
-              <SelectTrigger id="category-filter" className="w-[180px]">
+              <SelectTrigger id="category-filter" className="w-full">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -186,7 +224,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             </Select>
           </div>
           
-          <div className="w-full sm:w-auto">
+          <div>
             <label htmlFor="department-filter" className="block text-sm font-medium text-gray-700">
               Department
             </label>
@@ -194,7 +232,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               value={form.watch("department")}
               onValueChange={(value) => form.setValue("department", value)}
             >
-              <SelectTrigger id="department-filter" className="w-[180px]">
+              <SelectTrigger id="department-filter" className="w-full">
                 <SelectValue placeholder="All Departments" />
               </SelectTrigger>
               <SelectContent>
@@ -209,42 +247,6 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             </Select>
           </div>
           
-          <div className="w-full sm:w-auto">
-            <label htmlFor="priority-filter" className="block text-sm font-medium text-gray-700">
-              Priority
-            </label>
-            <Select
-              value={form.watch("priority")}
-              onValueChange={(value) => form.setValue("priority", value)}
-            >
-              <SelectTrigger id="priority-filter" className="w-[180px]">
-                <SelectValue placeholder="All Priorities" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-4">
-          <div>
-            <label htmlFor="search" className="block text-sm font-medium text-gray-700">
-              Search
-            </label>
-            <Input
-              id="search"
-              type="search"
-              placeholder="Search tasks..."
-              className="w-full sm:w-[200px]"
-              value={form.watch("search")}
-              onChange={(e) => form.setValue("search", e.target.value)}
-            />
-          </div>
-          
           <div>
             <label htmlFor="sort-by" className="block text-sm font-medium text-gray-700">
               Sort By
@@ -253,7 +255,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               value={form.watch("sortBy")}
               onValueChange={(value) => form.setValue("sortBy", value)}
             >
-              <SelectTrigger id="sort-by" className="w-[180px]">
+              <SelectTrigger id="sort-by" className="w-full">
                 <SelectValue placeholder="Sort by..." />
               </SelectTrigger>
               <SelectContent>
