@@ -20,6 +20,7 @@ import AuthPage from "@/pages/auth-page";
 import { Sidebar } from "@/components/sidebar";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { AdminRoute } from "@/lib/admin-route";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -82,18 +83,32 @@ function Router() {
         </AppLayout>
       )} />
       
-      <ProtectedRoute path="/categories" component={() => (
+      {/* Admin-only routes */}
+      <AdminRoute path="/categories" component={() => (
         <AppLayout>
           <Categories />
         </AppLayout>
       )} />
       
-      <ProtectedRoute path="/departments" component={() => (
+      <AdminRoute path="/departments" component={() => (
         <AppLayout>
           <Departments />
         </AppLayout>
       )} />
       
+      <AdminRoute path="/teams" component={() => (
+        <AppLayout>
+          <Teams />
+        </AppLayout>
+      )} />
+
+      <AdminRoute path="/admin" component={() => (
+        <AppLayout>
+          <AdminPage />
+        </AppLayout>
+      )} />
+      
+      {/* Routes accessible to all users */}
       <ProtectedRoute path="/settings" component={() => (
         <AppLayout>
           <Settings />
@@ -103,18 +118,6 @@ function Router() {
       <ProtectedRoute path="/reports" component={() => (
         <AppLayout>
           <Reports />
-        </AppLayout>
-      )} />
-      
-      <ProtectedRoute path="/teams" component={() => (
-        <AppLayout>
-          <Teams />
-        </AppLayout>
-      )} />
-
-      <ProtectedRoute path="/admin" component={() => (
-        <AppLayout>
-          <AdminPage />
         </AppLayout>
       )} />
       

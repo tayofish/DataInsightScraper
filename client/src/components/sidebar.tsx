@@ -80,26 +80,30 @@ export function Sidebar() {
         <NavItem href="/projects" icon={<FolderKanban size={20} />} isActive={location === '/projects'}>
           Projects
         </NavItem>
-        <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
-          Categories
-        </NavItem>
-        <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
-          Departments
-        </NavItem>
+        {/* Common for all users */}
         <NavItem href="/reports" icon={<BarChart2 size={20} />} isActive={location === '/reports'}>
           Reports
-        </NavItem>
-        <NavItem href="/teams" icon={<Users size={20} />} isActive={location === '/teams'}>
-          Teams
         </NavItem>
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings
         </NavItem>
-        {/* Only show admin link for admin user (id 4) */}
-        {user?.id === 4 && (
-          <NavItem href="/admin" icon={<Shield size={20} />} isActive={location === '/admin'}>
-            Admin Dashboard
-          </NavItem>
+        
+        {/* Admin-only sections */}
+        {user?.isAdmin && (
+          <>
+            <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
+              Categories
+            </NavItem>
+            <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
+              Departments
+            </NavItem>
+            <NavItem href="/teams" icon={<Users size={20} />} isActive={location === '/teams'}>
+              Teams
+            </NavItem>
+            <NavItem href="/admin" icon={<Shield size={20} />} isActive={location === '/admin'}>
+              Admin Dashboard
+            </NavItem>
+          </>
         )}
       </nav>
     </>

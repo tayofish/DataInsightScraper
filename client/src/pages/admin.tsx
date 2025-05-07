@@ -592,6 +592,8 @@ export default function AdminPage() {
                 <TableRow>
                   <TableHead>User</TableHead>
                   <TableHead>Username</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -617,6 +619,12 @@ export default function AdminPage() {
                         </div>
                       </TableCell>
                       <TableCell>{user.username}</TableCell>
+                      <TableCell>{user.email || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.isAdmin ? "default" : "outline"}>
+                          {user.isAdmin ? "Admin" : "User"}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button
