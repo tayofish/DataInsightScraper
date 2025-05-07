@@ -234,6 +234,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatar: avatar || null
       });
       
+      // Send email notification to the new user with their credentials
+      try {
+        await emailService.notifyUserCreation(newUser, password, req.user);
+      } catch (emailError) {
+        console.error('Failed to send new user notification email:', emailError);
+        // Continue execution - email failure shouldn't break user creation
+      }
+      
       return res.status(201).json(newUser);
     } catch (error) {
       console.error("Error creating user:", error);
@@ -261,6 +269,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (password) {
         const { hashPassword } = await import('./auth');
         userData.password = await hashPassword(password);
+        
+        // Send password reset notification email
+        try {
+          const user = await storage.getUserById(id);
+          if (user) {
+            await emailService.notifyPasswordReset(user, password);
+          }
+        } catch (emailError) {
+          console.error('Failed to send password reset notification email:', emailError);
+          // Continue execution - email failure shouldn't break password update
+        }
       }
       
       // Update the user
@@ -790,6 +809,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 newValue: username,
                 comment: `@${username} mentioned in task description`
               });
+              
+              // Send email notification to mentioned user
+              try {
+                const mentionedUser = await storage.getUserByUsername(username);
+                if (mentionedUser) {
+                  await emailService.notifyMention(
+                    updatedTask, 
+                    mentionedUser, 
+                    req.user, 
+                    taskData.description || ''
+                  );
+                }
+              } catch (emailError) {
+                console.error(`Failed to send mention notification to ${username}:`, emailError);
+              }
+            }
+          }
+        }
+        
+        // Check for assignee change and send notification if needed
+        if ('assigneeId' in taskData && taskData.assigneeId !== currentTask.assigneeId) {
+          // Only send notification if there's a new assignee (not unassigning)
+          if (taskData.assigneeId) {
+            try {
+              const assignee = await storage.getUserById(taskData.assigneeId);
+              if (assignee) {
+                await emailService.notifyTaskAssignment(updatedTask, assignee, req.user);
+              }
+            } catch (emailError) {
+              console.error('Failed to send task assignment notification:', emailError);
             }
           }
         }
@@ -947,6 +996,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const parsedData = taskUpdateInsertSchema.parse(commentData);
         const newUpdate = await storage.createTaskUpdate(parsedData);
+        
+        // Process email notifications for comments
+        try {
+          // Get task details including assignee
+          const taskWithDetails = await storage.getTaskById(taskId);
+          
+          // Get user who made the comment
+          const commentUser = req.user;
+          
+          // Check for mentions in the comment
+          const mentions = extractMentions(commentData.comment);
+          
+          // Collect users to notify (task assignee, mentioned users, task collaborators)
+          const usersToNotify: any[] = [];
+          
+          // Add task assignee if exists and is not the commenter
+          if (taskWithDetails?.assigneeId && taskWithDetails.assigneeId !== commentUser.id) {
+            const assignee = await storage.getUserById(taskWithDetails.assigneeId);
+            if (assignee) {
+              usersToNotify.push(assignee);
+            }
+          }
+          
+          // Add mentioned users
+          if (mentions.length > 0) {
+            for (const username of mentions) {
+              const mentionedUser = await storage.getUserByUsername(username);
+              if (mentionedUser && mentionedUser.id !== commentUser.id) {
+                // Record mention update
+                await storage.createTaskUpdate({
+                  taskId,
+                  userId: commentUser.id,
+                  updateType: 'Mention',
+                  previousValue: '',
+                  newValue: username,
+                  comment: `@${username} was mentioned in a comment`
+                });
+                
+                // Add to notification list if not already included
+                if (!usersToNotify.some(u => u.id === mentionedUser.id)) {
+                  usersToNotify.push(mentionedUser);
+                  
+                  // Send mention notification
+                  await emailService.notifyMention(
+                    taskWithDetails, 
+                    mentionedUser, 
+                    commentUser, 
+                    commentData.comment
+                  );
+                }
+              }
+            }
+          }
+          
+          // Add task collaborators
+          const collaborators = await storage.getTaskCollaborators(taskId);
+          if (collaborators && collaborators.length > 0) {
+            for (const collaborator of collaborators) {
+              if (collaborator.user && collaborator.user.id !== commentUser.id) {
+                // Add to notification list if not already included
+                if (!usersToNotify.some(u => u.id === collaborator.user.id)) {
+                  usersToNotify.push(collaborator.user);
+                }
+              }
+            }
+          }
+          
+          // Send comment notification to all collected users
+          if (usersToNotify.length > 0 && taskWithDetails) {
+            await emailService.notifyTaskComment(
+              taskWithDetails,
+              commentData.comment,
+              commentUser,
+              usersToNotify
+            );
+          }
+        } catch (emailError) {
+          console.error('Failed to send comment email notifications:', emailError);
+          // Continue execution - email failure shouldn't break comment creation
+        }
+        
         return res.status(201).json(newUpdate);
       } else {
         // For other update types
