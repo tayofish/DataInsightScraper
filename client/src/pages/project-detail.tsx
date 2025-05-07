@@ -49,13 +49,13 @@ export default function ProjectDetailPage() {
     },
     enabled: !isNaN(projectId)
   });
-
-  // Fetch project assignments
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+  
+  // Fetch project team members/assignments
+  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery<any[]>({
     queryKey: ['/api/projects', projectId, 'assignments'],
     queryFn: async () => {
       const res = await fetch(`/api/projects/${projectId}/assignments`);
-      if (!res.ok) throw new Error('Failed to fetch project assignments');
+      if (!res.ok) throw new Error('Failed to fetch team members');
       return res.json();
     },
     enabled: !isNaN(projectId)
@@ -125,15 +125,15 @@ export default function ProjectDetailPage() {
               </Link>
             </Button>
             <h1 className="text-3xl font-bold gradient-heading">{project?.name}</h1>
-            <Badge variant={project?.status === 'completed' ? "default" : "secondary"} className="ml-2">
-              {project?.status === 'completed' ? 'Completed' : 'Active'}
+            <Badge variant="secondary" className="ml-2">
+              Active
             </Badge>
           </div>
           <p className="text-muted-foreground mt-2">{project?.description}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" asChild>
-            <Link href={`/projects/${projectId}/edit`}>
+            <Link href={`/projects/${projectId}/team`}>
               <UserCog className="h-4 w-4 mr-2" />
               Manage Team
             </Link>
@@ -276,7 +276,7 @@ export default function ProjectDetailPage() {
                           <div className="text-sm text-muted-foreground">{assignment.role}</div>
                         </div>
                       </div>
-                      <Badge variant="outline">{assignment.status}</Badge>
+                      <Badge variant="outline">{assignment.role}</Badge>
                     </div>
                   ))}
                 </div>

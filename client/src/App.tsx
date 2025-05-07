@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Tasks from "@/pages/tasks";
 import Projects from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
+import ProjectTeam from "@/pages/project-team";
 import Reports from "@/pages/reports";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
@@ -71,6 +72,12 @@ function Router() {
       <ProtectedRoute path="/projects/:id" component={() => (
         <AppLayout>
           <ProjectDetailPage />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/projects/:id/team" component={() => (
+        <AppLayout>
+          <ProjectTeam />
         </AppLayout>
       )} />
       
