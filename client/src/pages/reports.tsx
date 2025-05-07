@@ -160,6 +160,58 @@ export default function ReportsPage() {
     }
   }
 
+  // Function to export report data as CSV
+  function exportReportData() {
+    if (!reportResults) return;
+    
+    const { reportType, data, generatedAt } = reportResults;
+    let csvContent = "";
+    let filename = `${reportType}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    
+    // Format CSV header and data based on report type
+    if (reportType === 'tasks_by_project') {
+      csvContent = "Project,Total Tasks,Completed Tasks,Completion Rate\n";
+      data.forEach((item: any) => {
+        const completionRate = item.totalTasks > 0 
+          ? Math.round((item.completedTasks / item.totalTasks) * 100) 
+          : 0;
+        csvContent += `"${item.projectName}",${item.totalTasks},${item.completedTasks},${completionRate}%\n`;
+      });
+    } else if (reportType === 'user_performance') {
+      csvContent = "User,Total Tasks,Completed,In Progress,Todo,Overdue\n";
+      data.forEach((item: any) => {
+        csvContent += `"${item.userName}",${item.totalAssigned},${item.completed},${item.inProgress},${item.todo},${item.overdue}\n`;
+      });
+    } else if (reportType === 'task_status_summary') {
+      const { numTasks, numTodo, numInProgress, numCompleted, numOverdue } = reportResults.data;
+      csvContent = "Status,Number of Tasks\n";
+      csvContent += `"Todo",${numTodo}\n`;
+      csvContent += `"In Progress",${numInProgress}\n`;
+      csvContent += `"Completed",${numCompleted}\n`;
+      csvContent += `"Overdue",${numOverdue}\n`;
+      csvContent += `\nPriority Breakdown:\n`;
+      csvContent += `"Low",${reportResults.data.byPriority.low}\n`;
+      csvContent += `"Medium",${reportResults.data.byPriority.medium}\n`;
+      csvContent += `"High",${reportResults.data.byPriority.high}\n`;
+    }
+    
+    // Create a download link and trigger it
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast({
+      title: 'Report exported',
+      description: `Report has been exported as ${filename}`,
+    });
+  }
+
   function renderReportResults() {
     if (!reportResults) {
       return (
@@ -178,7 +230,7 @@ export default function ReportsPage() {
             <h3 className="text-lg font-medium">Report Results</h3>
             <p className="text-sm text-gray-500">Generated on {formatDate(generatedAt)}</p>
           </div>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={exportReportData}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
@@ -444,19 +496,9 @@ export default function ReportsPage() {
                   colors={{ scheme: 'set2' }}
                   borderWidth={1}
                   borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                  radialLabelsSkipAngle={10}
-                  radialLabelsTextXOffset={6}
-                  radialLabelsTextColor="#333333"
-                  radialLabelsLinkOffset={0}
-                  radialLabelsLinkDiagonalLength={16}
-                  radialLabelsLinkHorizontalLength={24}
-                  radialLabelsLinkStrokeWidth={1}
-                  radialLabelsLinkColor={{ from: 'color' }}
-                  slicesLabelsSkipAngle={10}
-                  slicesLabelsTextColor="#333333"
+                  arcLabelsSkipAngle={10}
+                  arcLabelsTextColor="#ffffff"
                   animate={true}
-                  motionStiffness={90}
-                  motionDamping={15}
                 />
               </div>
             </CardContent>
@@ -499,19 +541,9 @@ export default function ReportsPage() {
                   colors={{ scheme: 'set3' }}
                   borderWidth={1}
                   borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                  radialLabelsSkipAngle={10}
-                  radialLabelsTextXOffset={6}
-                  radialLabelsTextColor="#333333"
-                  radialLabelsLinkOffset={0}
-                  radialLabelsLinkDiagonalLength={16}
-                  radialLabelsLinkHorizontalLength={24}
-                  radialLabelsLinkStrokeWidth={1}
-                  radialLabelsLinkColor={{ from: 'color' }}
-                  slicesLabelsSkipAngle={10}
-                  slicesLabelsTextColor="#333333"
+                  arcLabelsSkipAngle={10}
+                  arcLabelsTextColor="#ffffff"
                   animate={true}
-                  motionStiffness={90}
-                  motionDamping={15}
                 />
               </div>
             </CardContent>
@@ -563,19 +595,9 @@ export default function ReportsPage() {
                 colors={{ scheme: 'category10' }}
                 borderWidth={1}
                 borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                radialLabelsSkipAngle={10}
-                radialLabelsTextXOffset={6}
-                radialLabelsTextColor="#333333"
-                radialLabelsLinkOffset={0}
-                radialLabelsLinkDiagonalLength={16}
-                radialLabelsLinkHorizontalLength={24}
-                radialLabelsLinkStrokeWidth={1}
-                radialLabelsLinkColor={{ from: 'color' }}
-                slicesLabelsSkipAngle={10}
-                slicesLabelsTextColor="#333333"
+                arcLabelsSkipAngle={10}
+                arcLabelsTextColor="#ffffff"
                 animate={true}
-                motionStiffness={90}
-                motionDamping={15}
               />
             </div>
           </CardContent>
@@ -598,19 +620,9 @@ export default function ReportsPage() {
                 colors={{ scheme: 'set1' }}
                 borderWidth={1}
                 borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                radialLabelsSkipAngle={10}
-                radialLabelsTextXOffset={6}
-                radialLabelsTextColor="#333333"
-                radialLabelsLinkOffset={0}
-                radialLabelsLinkDiagonalLength={16}
-                radialLabelsLinkHorizontalLength={24}
-                radialLabelsLinkStrokeWidth={1}
-                radialLabelsLinkColor={{ from: 'color' }}
-                slicesLabelsSkipAngle={10}
-                slicesLabelsTextColor="#333333"
+                arcLabelsSkipAngle={10}
+                arcLabelsTextColor="#ffffff"
                 animate={true}
-                motionStiffness={90}
-                motionDamping={15}
               />
             </div>
           </CardContent>
