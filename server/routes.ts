@@ -3,7 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
-  projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema
+  projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
+  smtpConfigFormSchema, smtpConfig
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -11,6 +12,7 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
+import * as emailService from "./services/email-service";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
@@ -1564,6 +1566,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting report:", error);
       return res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
+  // === SMTP CONFIGURATION ROUTES ===
+  // Initialize email service
+  await emailService.initializeEmailService();
+  
+  // Get SMTP configuration
+  app.get("/api/smtp-config", isAdmin, async (req, res) => {
+    try {
+      const result = await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
+      if (result.length === 0) {
+        return res.status(404).json({ message: "No active SMTP configuration found" });
+      }
+      
+      return res.status(200).json(result[0]);
+    } catch (error) {
+      console.error("Error fetching SMTP configuration:", error);
+      return res.status(500).json({ message: "Failed to fetch SMTP configuration" });
+    }
+  });
+  
+  // Create SMTP configuration
+  app.post("/api/smtp-config", isAdmin, async (req, res) => {
+    try {
+      const configData = smtpConfigFormSchema.parse(req.body);
+      
+      // If setting this config as active, deactivate all others
+      if (configData.active) {
+        await db.update(smtpConfig).set({ active: false });
+      }
+      
+      // Insert the new configuration
+      const result = await db.insert(smtpConfig).values({
+        host: configData.host,
+        port: configData.port,
+        username: configData.username,
+        password: configData.password,
+        fromEmail: configData.fromEmail,
+        fromName: configData.fromName,
+        enableTls: configData.enableTls,
+        active: configData.active,
+      }).returning();
+      
+      // Reinitialize email service if this config is active
+      if (configData.active) {
+        await emailService.initializeEmailService();
+      }
+      
+      return res.status(201).json(result[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid SMTP configuration data", errors: error.errors });
+      }
+      console.error("Error creating SMTP configuration:", error);
+      return res.status(500).json({ message: "Failed to create SMTP configuration" });
+    }
+  });
+  
+  // Update SMTP configuration
+  app.put("/api/smtp-config/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid configuration ID" });
+      }
+      
+      const configData = smtpConfigFormSchema.parse(req.body);
+      
+      // If setting this config as active, deactivate all others
+      if (configData.active) {
+        await db.update(smtpConfig).set({ active: false });
+      }
+      
+      // Update the configuration
+      const result = await db.update(smtpConfig)
+        .set({
+          host: configData.host,
+          port: configData.port,
+          username: configData.username,
+          password: configData.password,
+          fromEmail: configData.fromEmail,
+          fromName: configData.fromName,
+          enableTls: configData.enableTls,
+          active: configData.active,
+          updatedAt: new Date(),
+        })
+        .where(eq(smtpConfig.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        return res.status(404).json({ message: "SMTP configuration not found" });
+      }
+      
+      // Reinitialize email service if this config is active
+      if (configData.active) {
+        await emailService.initializeEmailService();
+      }
+      
+      return res.status(200).json(result[0]);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid SMTP configuration data", errors: error.errors });
+      }
+      console.error("Error updating SMTP configuration:", error);
+      return res.status(500).json({ message: "Failed to update SMTP configuration" });
+    }
+  });
+  
+  // Delete SMTP configuration
+  app.delete("/api/smtp-config/:id", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid configuration ID" });
+      }
+      
+      // Check if it exists
+      const configExists = await db.select().from(smtpConfig).where(eq(smtpConfig.id, id));
+      if (configExists.length === 0) {
+        return res.status(404).json({ message: "SMTP configuration not found" });
+      }
+      
+      // Delete the configuration
+      await db.delete(smtpConfig).where(eq(smtpConfig.id, id));
+      
+      // Reinitialize email service to use a different active config if available
+      await emailService.initializeEmailService();
+      
+      return res.status(200).json({ message: "SMTP configuration deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting SMTP configuration:", error);
+      return res.status(500).json({ message: "Failed to delete SMTP configuration" });
+    }
+  });
+  
+  // Test SMTP configuration
+  app.post("/api/smtp-config/test", isAdmin, async (req, res) => {
+    try {
+      const configData = smtpConfigFormSchema.parse(req.body);
+      
+      // Create a temporary transporter for testing
+      const transporter = nodemailer.createTransport({
+        host: configData.host,
+        port: configData.port,
+        secure: configData.enableTls,
+        auth: {
+          user: configData.username,
+          pass: configData.password,
+        },
+      });
+      
+      // Verify connection
+      await transporter.verify();
+      
+      // Send a test email to the admin user (assuming req.user.email exists)
+      if (req.user && req.user.email) {
+        await transporter.sendMail({
+          from: `"${configData.fromName}" <${configData.fromEmail}>`,
+          to: req.user.email,
+          subject: "TaskScout SMTP Test",
+          text: "This is a test email from TaskScout to verify your SMTP configuration.",
+          html: "<h1>TaskScout SMTP Test</h1><p>This is a test email from TaskScout to verify your SMTP configuration.</p>",
+        });
+        
+        return res.status(200).json({ message: "Test email sent successfully" });
+      } else {
+        // If no email is available, just return success for the connection test
+        return res.status(200).json({ message: "SMTP connection successful, but no email address available to send test email" });
+      }
+    } catch (error) {
+      console.error("Error testing SMTP configuration:", error);
+      return res.status(500).json({ 
+        message: "Failed to test SMTP configuration", 
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
