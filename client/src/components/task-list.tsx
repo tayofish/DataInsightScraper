@@ -17,6 +17,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider
 } from "@/components/ui/tooltip";
 import { 
   AlertDialog,
@@ -297,25 +298,27 @@ export default function TaskList({ filters }: TaskListProps) {
                               </Badge>
                             )}
                             {task.category && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge 
-                                    variant="secondary" 
-                                    className="ml-2 flex items-center gap-1"
-                                    style={{ backgroundColor: task.category.color, color: 'white' }}
-                                  >
-                                    <div className="w-2 h-2 rounded-full bg-white/80"></div>
-                                    {task.category.name}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p><span className="font-semibold">Department:</span> {
-                                    task.category && task.category.departmentId 
-                                      ? departments.find((d: Department) => d.id === task.category?.departmentId)?.name || 'Unknown'
-                                      : 'General'
-                                  }</p>
-                                </TooltipContent>
-                              </Tooltip>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge 
+                                      variant="secondary" 
+                                      className="ml-2 flex items-center gap-1"
+                                      style={{ backgroundColor: task.category.color, color: 'white' }}
+                                    >
+                                      <div className="w-2 h-2 rounded-full bg-white/80"></div>
+                                      {task.category.name}
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p><span className="font-semibold">Department:</span> {
+                                      task.category && task.category.departmentId 
+                                        ? departments.find((d: Department) => d.id === task.category?.departmentId)?.name || 'Unknown'
+                                        : 'General'
+                                    }</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             )}
                           </div>
                         </div>
