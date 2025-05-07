@@ -164,8 +164,9 @@ export const storage = {
     assigneeId?: number,
     categoryId?: number,
     department?: string,
+    departmentId?: string,
     search?: string
-  }): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null })[]> => {
+  }): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null, department?: Department | null })[]> => {
     const conditions = [];
 
     if (filters?.status && filters.status !== 'all') {
@@ -200,10 +201,17 @@ export const storage = {
       }
     }
     
-    if (filters?.department && filters.department !== 'all') {
+    // Handle departmentId parameter from client
+    if (filters?.departmentId && filters.departmentId !== 'all') {
+      const deptId = parseInt(filters.departmentId);
+      if (!isNaN(deptId)) {
+        conditions.push(eq(tasks.departmentId, deptId));
+      }
+    } 
+    // Also keep the old 'department' parameter for backward compatibility
+    else if (filters?.department && filters.department !== 'all') {
       const departmentId = parseInt(filters.department);
       if (!isNaN(departmentId)) {
-        // Filter directly by the department ID now that we have it in the tasks table
         conditions.push(eq(tasks.departmentId, departmentId));
       }
     }
