@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
-  Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail
+  Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail, ImageIcon
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -822,9 +822,12 @@ export default function AdminPage() {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">System Configuration</h2>
         
-        {/* SMTP Configuration */}
-        <TabsComponent defaultValue="smtp" className="w-full">
-          <TabsComponentList className="grid grid-cols-3 w-full">
+        {/* System Configuration Tabs */}
+        <TabsComponent defaultValue="branding" className="w-full">
+          <TabsComponentList className="grid grid-cols-4 w-full">
+            <TabsComponentTrigger value="branding" className="flex items-center">
+              <ImageIcon className="mr-2 h-4 w-4" /> Branding
+            </TabsComponentTrigger>
             <TabsComponentTrigger value="smtp" className="flex items-center">
               <Mail className="mr-2 h-4 w-4" /> Email Notifications
             </TabsComponentTrigger>
@@ -835,6 +838,10 @@ export default function AdminPage() {
               <Users className="mr-2 h-4 w-4" /> Authentication
             </TabsComponentTrigger>
           </TabsComponentList>
+          
+          <TabsComponentContent value="branding" className="mt-6">
+            <LogoUpload />
+          </TabsComponentContent>
           
           <TabsComponentContent value="smtp" className="mt-6">
             <SmtpConfigForm />

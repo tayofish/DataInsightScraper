@@ -9,7 +9,7 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Image, UploadCloud, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ImageIcon, UploadCloud, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Logo upload form schema
@@ -127,7 +127,7 @@ export default function LogoUpload() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center">
-          <Image className="mr-2 h-5 w-5" /> Company Logo
+          <ImageIcon className="mr-2 h-5 w-5" /> Company Logo
         </CardTitle>
         <CardDescription>
           Upload your organization's logo to display throughout the application.
@@ -148,7 +148,7 @@ export default function LogoUpload() {
               />
             ) : (
               <div className="text-center text-muted-foreground flex flex-col items-center">
-                <Image className="h-10 w-10 mb-2 opacity-30" />
+                <ImageIcon className="h-10 w-10 mb-2 opacity-30" />
                 <span>No logo uploaded</span>
               </div>
             )}
