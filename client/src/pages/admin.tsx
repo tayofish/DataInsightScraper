@@ -31,6 +31,7 @@ const userFormSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address").optional().nullable(),
   avatar: z.string().nullable().optional(),
   isAdmin: z.boolean().default(false)
 });
@@ -142,6 +143,7 @@ export default function AdminPage() {
       username: "",
       password: "",
       name: "",
+      email: "",
       avatar: null,
       isAdmin: false
     });
@@ -161,8 +163,9 @@ export default function AdminPage() {
       username: user.username,
       password: "", // Don't prefill password
       name: user.name || "",
+      email: user.email || "",
       avatar: user.avatar,
-      isAdmin: false // Add isAdmin field if available in your schema
+      isAdmin: user.isAdmin || false
     });
     setIsUserDialogOpen(true);
   };
@@ -687,6 +690,19 @@ export default function AdminPage() {
                 />
                 <FormField
                   control={userForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="john.doe@example.com" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={userForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
@@ -700,6 +716,30 @@ export default function AdminPage() {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={userForm.control}
+                  name="isAdmin"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={field.onChange}
+                            className="h-4 w-4 rounded border-gray-300 text-primary"
+                          />
+                          <label htmlFor="isAdmin" className="text-sm font-medium">
+                            Administrator Role
+                          </label>
+                        </div>
+                      </FormControl>
+                      <div className="text-xs text-muted-foreground">
+                        Grants access to admin dashboard and system configuration
+                      </div>
                     </FormItem>
                   )}
                 />
