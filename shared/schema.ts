@@ -104,6 +104,21 @@ export const reports = pgTable("reports", {
   lastRunAt: timestamp("last_run_at"),
 });
 
+// SMTP configuration for email notifications
+export const smtpConfig = pgTable("smtp_config", {
+  id: serial("id").primaryKey(),
+  host: text("host").notNull(),
+  port: integer("port").notNull(), 
+  username: text("username").notNull(),
+  password: text("password").notNull(), 
+  fromEmail: text("from_email").notNull(),
+  fromName: text("from_name").notNull(),
+  enableTls: boolean("enable_tls").default(true).notNull(),
+  active: boolean("active").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+});
+
 // Define relationships
 export const usersRelations = relations(users, ({ many }) => ({
   tasks: many(tasks),
@@ -264,6 +279,15 @@ export const reportInsertSchema = createInsertSchema(reports, {
   name: (schema) => schema.min(3, "Report name must be at least 3 characters"),
 });
 
+export const smtpConfigInsertSchema = createInsertSchema(smtpConfig, {
+  host: (schema) => schema.min(1, "SMTP host is required"),
+  port: (schema) => schema,
+  username: (schema) => schema.min(1, "SMTP username is required"),
+  password: (schema) => schema.min(1, "SMTP password is required"),
+  fromEmail: (schema) => schema.email("Must be a valid email address"),
+  fromName: (schema) => schema.min(1, "From name is required"),
+});
+
 // Define task schemas
 export const taskSelectSchema = createSelectSchema(tasks);
 export type Task = z.infer<typeof taskSelectSchema>;
@@ -286,6 +310,10 @@ export type InsertTaskCollaborator = z.infer<typeof taskCollaboratorInsertSchema
 export const reportSelectSchema = createSelectSchema(reports);
 export type Report = z.infer<typeof reportSelectSchema>;
 export type InsertReport = z.infer<typeof reportInsertSchema>;
+
+export const smtpConfigSelectSchema = createSelectSchema(smtpConfig);
+export type SmtpConfig = z.infer<typeof smtpConfigSelectSchema>;
+export type InsertSmtpConfig = z.infer<typeof smtpConfigInsertSchema>;
 
 // Frontend specific schemas
 export const taskFormSchema = z.object({
@@ -351,3 +379,18 @@ export const reportFormSchema = z.object({
 });
 
 export type ReportFormValues = z.infer<typeof reportFormSchema>;
+
+// SMTP configuration form schema
+export const smtpConfigFormSchema = z.object({
+  id: z.number().optional(),
+  host: z.string().min(1, "SMTP host is required"),
+  port: z.coerce.number().min(1, "SMTP port is required"),
+  username: z.string().min(1, "SMTP username is required"),
+  password: z.string().min(1, "SMTP password is required"),
+  fromEmail: z.string().email("Must be a valid email address"),
+  fromName: z.string().min(1, "From name is required"),
+  enableTls: z.boolean().default(true),
+  active: z.boolean().default(false),
+});
+
+export type SmtpConfigFormValues = z.infer<typeof smtpConfigFormSchema>;
