@@ -1,51 +1,65 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Upload, File, Download, Trash2, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { 
-  Form, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormControl, 
-  FormMessage 
-} from '@/components/ui/form';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+  Task, TaskFormValues, taskFormSchema, User, 
+  Department, Category, Project, TaskUpdate, 
+  InsertTaskUpdate, InsertTask 
+} from '@shared/schema';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Tabs,
   TabsContent,
   TabsList,
-  TabsTrigger
-} from "@/components/ui/tabs";
-import { AvatarField } from './ui/avatar-field';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { formatDistanceToNow, format } from 'date-fns';
-import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/queryClient';
-import { taskFormSchema, type TaskFormValues, type Task, type Project, type Category, type Department, type User, type TaskUpdate } from '@shared/schema';
-import { useToast } from '@/hooks/use-toast';
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar';
+import {
+  Card,
+  CardContent,
+} from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { CheckCircle, File, Download, MessageSquare, Upload, Trash2, Loader2 } from 'lucide-react';
 import TaskUpdateHistory from './task-update-history';
+import AvatarField from './avatar-field';
 
 interface TaskFormProps {
   isOpen: boolean;
@@ -53,254 +67,282 @@ interface TaskFormProps {
   task: Task | null;
 }
 
+interface TaskFile {
+  id: number;
+  name: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const { toast } = useToast();
-  const isEditMode = !!task;
+  const queryClient = useQueryClient();
+  const [comment, setComment] = useState('');
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [showMentions, setShowMentions] = useState(false);
+  const [activeTab, setActiveTab] = useState('details');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [taskFiles, setTaskFiles] = useState<TaskFile[]>([]);
+  const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get projects for select dropdown
-  const { data: projects = [] } = useQuery<Project[]>({
+  // Fetch users for assignee selection and mentions
+  const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+  });
+
+  // Fetch projects for project selection
+  const { data: projects = [], isLoading: projectsLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
-  
-  // Get categories for select dropdown
-  const { data: categories = [] } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-  });
-  
-  // Get departments for categorizing
-  const { data: departments = [] } = useQuery<Department[]>({
+
+  // Fetch departments and categories for category selection
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
     queryKey: ['/api/departments'],
   });
 
-  // State for comment section
-  const [comment, setComment] = useState('');
-  const [mentionQuery, setMentionQuery] = useState('');
-  const [showMentions, setShowMentions] = useState(false);
-  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
-  const commentInputRef = useRef<HTMLTextAreaElement>(null);
-  
-  // State for file upload section
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileUploading, setFileUploading] = useState(false);
-  const [taskFiles, setTaskFiles] = useState<{id: number, name: string, size: number, url: string, uploadedAt: string}[]>([]);
-  
-  // Get users for mentions
-  const { data: users = [] } = useQuery<User[]>({
-    queryKey: ['/api/users'],
-  });
-  
-  // Get task updates for this task
-  const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery<(TaskUpdate & { user?: User })[]>({
-    queryKey: ['/api/tasks', task?.id, 'updates'],
-    queryFn: () => {
-      if (!task?.id) return [];
-      return apiRequest('GET', `/api/tasks/${task.id}/updates`).then(res => res.json());
-    },
-    enabled: !!task?.id,
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
   });
 
-  // Setup form with default values
+  // Fetch task updates for comments and history
+  const { data: taskUpdates = [], isLoading: updatesLoading, refetch: refetchUpdates } = useQuery<(TaskUpdate & { user?: User })[]>({
+    queryKey: ['/api/tasks', task?.id, 'updates'],
+    enabled: !!task?.id && isOpen,
+  });
+
+  // Form setup
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
     defaultValues: {
-      id: task?.id,
       title: task?.title || '',
       description: task?.description || '',
-      startDate: task?.startDate ? new Date(task.startDate).toISOString().split('T')[0] : '',
-      dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
       priority: task?.priority || 'medium',
       status: task?.status || 'todo',
+      startDate: task?.startDate || '',
+      dueDate: task?.dueDate || '',
       projectId: task?.projectId || null,
       assigneeId: task?.assigneeId || null,
       categoryId: task?.categoryId || null,
     },
   });
 
-  // Add comment mutation
-  const commentMutation = useMutation({
-    mutationFn: async (commentText: string) => {
-      if (!task?.id) throw new Error('Task ID is required');
-      return apiRequest('POST', `/api/tasks/${task.id}/updates`, {
-        taskId: task.id,
-        // userId will be set by the server from the authenticated session
-        updateType: 'Comment',
-        previousValue: '',
-        newValue: '',
-        comment: commentText
+  // Load task data when the task changes
+  useEffect(() => {
+    if (task) {
+      form.reset({
+        title: task.title || '',
+        description: task.description || '',
+        priority: task.priority || 'medium',
+        status: task.status || 'todo',
+        startDate: task.startDate || '',
+        dueDate: task.dueDate || '',
+        projectId: task.projectId || null,
+        assigneeId: task.assigneeId || null,
+        categoryId: task.categoryId || null,
       });
+      
+      // Load task files (sample - in a real app, this would fetch from the API)
+      setTaskFiles([
+        {
+          id: 1,
+          name: 'Project_Requirements.pdf',
+          size: 2456000,
+          uploadedAt: new Date().toISOString(),
+        },
+        {
+          id: 2,
+          name: 'Design_Mockup.png',
+          size: 1200000,
+          uploadedAt: new Date().toISOString(),
+        }
+      ]);
+    }
+  }, [task, form]);
+
+  // Task update mutation (for saving the task)
+  const taskMutation = useMutation({
+    mutationFn: async (values: TaskFormValues) => {
+      if (task?.id) {
+        const res = await apiRequest('PATCH', `/api/tasks/${task.id}`, values);
+        return await res.json();
+      } else {
+        const res = await apiRequest('POST', '/api/tasks', values as InsertTask);
+        return await res.json();
+      }
     },
     onSuccess: () => {
-      setComment('');
-      refetchUpdates();
       toast({
-        title: "Comment added",
-        description: "Your comment has been added to the task."
+        title: `Task ${task ? 'updated' : 'created'} successfully`,
+        variant: 'default',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      onClose();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: `Failed to ${task ? 'update' : 'create'} task`,
+        description: error.message,
+        variant: 'destructive',
       });
     },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: `Failed to add comment: ${err}`,
-        variant: "destructive"
-      });
-    }
   });
 
-  // Handle mentions in comment input
-  const handleCommentInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const text = e.target.value;
-    setComment(text);
+  // Comment mutation (for adding comments)
+  const commentMutation = useMutation({
+    mutationFn: async (comment: string) => {
+      if (!task?.id) return null;
+      
+      const commentData: InsertTaskUpdate = {
+        taskId: task.id,
+        updateType: 'Comment',
+        comment,
+        field: null,
+        oldValue: null,
+        newValue: null,
+      };
+      
+      const res = await apiRequest('POST', `/api/tasks/${task.id}/updates`, commentData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Comment added successfully',
+        variant: 'default',
+      });
+      setComment('');
+      refetchUpdates();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to add comment',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Handle form submission
+  const onSubmit = (values: TaskFormValues) => {
+    taskMutation.mutate(values);
+  };
+
+  // Handle file selection
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  // Handle file upload
+  const uploadFile = () => {
+    if (!selectedFile || !task?.id) return;
     
-    // Check for @ symbol to trigger mentions
-    const lastAtPos = text.lastIndexOf('@');
-    if (lastAtPos !== -1 && lastAtPos === text.length - 1) {
-      setMentionQuery('');
-      setShowMentions(true);
-      // Position the mentions popover
+    setFileUploading(true);
+    
+    // Simulate file upload - in a real app, this would be an API call
+    setTimeout(() => {
+      setFileUploading(false);
+      
+      // Add the file to the list (in a real app, this would come from the API response)
+      setTaskFiles([
+        ...taskFiles,
+        {
+          id: Date.now(),
+          name: selectedFile.name,
+          size: selectedFile.size,
+          uploadedAt: new Date().toISOString(),
+        },
+      ]);
+      
+      setSelectedFile(null);
+      
+      toast({
+        title: 'File uploaded successfully',
+        variant: 'default',
+      });
+    }, 1500);
+  };
+
+  // Handle comment submission
+  const submitComment = () => {
+    if (!comment.trim()) return;
+    commentMutation.mutate(comment);
+  };
+
+  // Helpers for mentions
+  const handleCommentInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    setComment(value);
+    
+    // Check for @ mentions
+    const lastAtPos = value.lastIndexOf('@');
+    if (lastAtPos !== -1 && (lastAtPos === 0 || value[lastAtPos - 1] === ' ')) {
+      const query = value.substring(lastAtPos + 1).split(' ')[0];
+      setMentionQuery(query);
+      
+      // Calculate position for the mention popover
       if (commentInputRef.current) {
-        const caretPosition = commentInputRef.current.selectionStart;
-        const textBeforeCaret = text.substring(0, caretPosition);
-        const lines = textBeforeCaret.split('\n');
-        const lineHeight = 24; // Approximate line height in pixels
-        const lineCount = lines.length;
-        const charCountInLastLine = lines[lines.length - 1].length;
+        const cursorPos = commentInputRef.current.selectionStart;
+        const textBeforeCursor = value.substring(0, cursorPos);
+        const lines = textBeforeCursor.split('\n');
+        const currentLineIndex = lines.length - 1;
+        const currentLineChars = lines[currentLineIndex].length;
         
-        // Set position relative to textarea
+        // Rough estimation of position
+        const lineHeight = 24;
+        const charWidth = 8;
+        
         setMentionPosition({
-          top: lineCount * lineHeight,
-          left: charCountInLastLine * 8 // Approximate char width
+          top: (currentLineIndex * lineHeight) + 24,
+          left: Math.min(currentLineChars * charWidth, 300),
         });
       }
-    } else if (lastAtPos !== -1) {
-      const queryText = text.substring(lastAtPos + 1).split(' ')[0];
-      setMentionQuery(queryText);
+      
       setShowMentions(true);
     } else {
       setShowMentions(false);
     }
   };
 
-  // Insert mention into comment
+  // Insert a mention into the comment
   const insertMention = (username: string) => {
-    const atPos = comment.lastIndexOf('@');
-    if (atPos !== -1) {
-      const newComment = comment.substring(0, atPos) + `@${username} `;
-      setComment(newComment);
+    const lastAtPos = comment.lastIndexOf('@');
+    if (lastAtPos !== -1) {
+      const before = comment.substring(0, lastAtPos);
+      const after = comment.substring(lastAtPos).split(' ');
+      after[0] = `@${username}`;
+      setComment(before + after.join(' '));
     }
     setShowMentions(false);
-    commentInputRef.current?.focus();
-  };
-
-  // Submit comment
-  const submitComment = () => {
-    if (comment.trim()) {
-      commentMutation.mutate(comment);
-    }
-  };
-
-  // Create/Update task mutation
-  const taskMutation = useMutation({
-    mutationFn: async (values: TaskFormValues) => {
-      // Clean up data for API submission - ensure proper types for backend
-      const processedValues = {
-        ...values,
-        // Convert empty strings to null for optional fields
-        description: values.description?.trim() === '' ? null : values.description,
-        startDate: values.startDate?.trim() === '' ? null : values.startDate,
-        dueDate: values.dueDate?.trim() === '' ? null : values.dueDate,
-        // Ensure numerical fields are properly handled
-        projectId: values.projectId === undefined ? null : values.projectId,
-        assigneeId: values.assigneeId === undefined ? null : values.assigneeId,
-        categoryId: values.categoryId === undefined ? null : values.categoryId
-      };
-      
-      if (isEditMode && task) {
-        return apiRequest('PATCH', `/api/tasks/${task.id}`, processedValues);
-      } else {
-        return apiRequest('POST', '/api/tasks', processedValues);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tasks/statistics'] });
-      toast({
-        title: isEditMode ? "Task updated" : "Task created",
-        description: isEditMode 
-          ? "Task has been updated successfully." 
-          : "Task has been created successfully.",
-      });
-      onClose();
-    },
-    onError: (err) => {
-      toast({
-        title: "Error",
-        description: `Failed to ${isEditMode ? 'update' : 'create'} task: ${err}`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  const onSubmit = (values: TaskFormValues) => {
-    // Directly submit the values, processing happens in the mutation function
-    taskMutation.mutate(values);
-  };
-  
-  // File upload handling
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-  
-  const uploadFile = async () => {
-    if (!selectedFile || !task?.id) return;
     
-    setFileUploading(true);
-    
-    // In a real implementation, we would upload the file to a server
-    // For demonstration, we'll simulate an upload and add it to our local state
-    setTimeout(() => {
-      const newFile = {
-        id: Math.floor(Math.random() * 10000),
-        name: selectedFile.name,
-        size: selectedFile.size,
-        url: URL.createObjectURL(selectedFile),
-        uploadedAt: new Date().toISOString()
-      };
-      
-      setTaskFiles([...taskFiles, newFile]);
-      setSelectedFile(null);
-      setFileUploading(false);
-      
-      toast({
-        title: "File uploaded",
-        description: `${selectedFile.name} has been uploaded successfully.`
-      });
-    }, 1500);
+    // Focus back on the textarea
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
   };
-  
-  // Format file size for display
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  // Helper for file size formatting
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
-          <DialogTitle>{isEditMode ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-          <p className="text-sm text-gray-500 mt-2">
-            {isEditMode ? 'Edit task details below.' : 'Fill out the form below to create a new task.'}
-          </p>
+          <DialogTitle>{task ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+          <DialogDescription>
+            {task ? 'Update task details, add comments, or view history' : 'Fill in the details to create a new task'}
+          </DialogDescription>
         </DialogHeader>
         
-        {isEditMode && task?.id ? (
-          <Tabs defaultValue="details" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+        {task ? (
+          <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="comments">Comments</TabsTrigger>
               <TabsTrigger value="files">Files</TabsTrigger>
@@ -308,52 +350,34 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
             </TabsList>
             
             <TabsContent value="details">
-              <div className="py-2">
+              <div className="py-2 space-y-6">
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Task Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter task title..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe the task..." 
-                              rows={3} 
-                              {...field} 
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ScrollArea className="h-[500px] pr-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                       <FormField
                         control={form.control}
-                        name="startDate"
+                        name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Start Date</FormLabel>
+                            <FormLabel>Task Title</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="date" 
+                              <Input placeholder="Enter task title..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Describe the task..." 
+                                rows={3} 
                                 {...field} 
                                 value={field.value || ''}
                               />
@@ -363,125 +387,143 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         )}
                       />
                       
-                      <FormField
-                        control={form.control}
-                        name="dueDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Due Date</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="date" 
-                                {...field} 
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="startDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Start Date</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date" 
+                                  {...field} 
+                                  value={field.value || ''}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="dueDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Due Date</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date" 
+                                  {...field} 
+                                  value={field.value || ''}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="priority"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Priority</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="todo">To Do</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="projectId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Project</FormLabel>
-                            <Select
-                              value={field.value?.toString() || '-1'}
-                              onValueChange={(value) => {
-                                if (value === '-1') {
-                                  field.onChange(null);
-                                } else {
-                                  field.onChange(parseInt(value));
-                                }
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select project" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="-1">No Project</SelectItem>
-                                {projects.map((project) => (
-                                  <SelectItem key={project.id} value={project.id.toString()}>
-                                    {project.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="priority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Priority</FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select priority" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       
-                      <AvatarField
-                        control={form.control}
-                        name="assigneeId"
-                        label="Assign To"
-                        placeholder="Select assignee"
-                        includeUnassigned
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="todo">To Do</SelectItem>
+                                  <SelectItem value="in_progress">In Progress</SelectItem>
+                                  <SelectItem value="completed">Completed</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="projectId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Project</FormLabel>
+                              <Select
+                                value={field.value?.toString() || '-1'}
+                                onValueChange={(value) => {
+                                  if (value === '-1') {
+                                    field.onChange(null);
+                                  } else {
+                                    field.onChange(parseInt(value));
+                                  }
+                                }}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select project" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="-1">No Project</SelectItem>
+                                  {projects.map((project) => (
+                                    <SelectItem key={project.id} value={project.id.toString()}>
+                                      {project.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <AvatarField
+                          control={form.control}
+                          name="assigneeId"
+                          label="Assign To"
+                          placeholder="Select assignee"
+                          includeUnassigned
+                        />
+                      </div>
+
                       <FormField
                         control={form.control}
                         name="categoryId"
@@ -553,28 +595,28 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           </FormItem>
                         )}
                       />
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={onClose}
-                        disabled={taskMutation.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit"
-                        disabled={taskMutation.isPending}
-                      >
-                        {taskMutation.isPending 
-                          ? 'Saving...' 
-                          : 'Update Task'
-                        }
-                      </Button>
-                    </DialogFooter>
-                  </form>
+                      
+                      <DialogFooter>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={onClose}
+                          disabled={taskMutation.isPending}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={taskMutation.isPending}
+                        >
+                          {taskMutation.isPending 
+                            ? 'Saving...' 
+                            : 'Update Task'
+                          }
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </ScrollArea>
                 </Form>
               </div>
             </TabsContent>
@@ -798,340 +840,6 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 <TaskUpdateHistory taskId={task.id} />
               </div>
             </TabsContent>
-            
-            <TabsContent value="details">
-              <div className="py-2 space-y-6">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                    <FormField
-                      control={form.control}
-                      name="title"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Task Title</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter task title..." {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="Describe the task..." 
-                              rows={3} 
-                              {...field} 
-                              value={field.value || ''}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Start Date</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="date" 
-                                {...field} 
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <FormField
-                        control={form.control}
-                        name="dueDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Due Date</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="date" 
-                                {...field} 
-                                value={field.value || ''}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="priority"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Priority</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="low">Low</SelectItem>
-                                <SelectItem value="medium">Medium</SelectItem>
-                                <SelectItem value="high">High</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="todo">To Do</SelectItem>
-                                <SelectItem value="in_progress">In Progress</SelectItem>
-                                <SelectItem value="completed">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="projectId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Project</FormLabel>
-                            <Select
-                              value={field.value?.toString() || '-1'}
-                              onValueChange={(value) => {
-                                if (value === '-1') {
-                                  field.onChange(null);
-                                } else {
-                                  field.onChange(parseInt(value));
-                                }
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select project" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="-1">No Project</SelectItem>
-                                {projects.map((project) => (
-                                  <SelectItem key={project.id} value={project.id.toString()}>
-                                    {project.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <AvatarField
-                        control={form.control}
-                        name="assigneeId"
-                        label="Assign To"
-                        placeholder="Select assignee"
-                        includeUnassigned
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select
-                            value={field.value?.toString() || '-1'}
-                            onValueChange={(value) => {
-                              if (value === '-1') {
-                                field.onChange(null);
-                              } else {
-                                field.onChange(parseInt(value));
-                              }
-                            }}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="-1">No Category</SelectItem>
-                              
-                              {(() => {
-                                // Create a map of departments to categories
-                                const departmentMap: Record<string, typeof categories> = {};
-                                const departmentsById: Record<number, string> = {};
-                                
-                                // Create a mapping of department IDs to names
-                                departments.forEach((dept: Department) => {
-                                  departmentsById[dept.id] = dept.name;
-                                });
-                                
-                                categories.forEach(category => {
-                                  const deptName = category.departmentId 
-                                    ? (departmentsById[category.departmentId] || 'Unknown') 
-                                    : 'General';
-                                  
-                                  if (!departmentMap[deptName]) {
-                                    departmentMap[deptName] = [];
-                                  }
-                                  departmentMap[deptName].push(category);
-                                });
-                                
-                                // Return the grouped categories
-                                return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                                  <React.Fragment key={department}>
-                                    <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
-                                      {department}
-                                    </SelectItem>
-                                    {deptCategories.map((category) => (
-                                      <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
-                                        <div className="flex items-center">
-                                          <div 
-                                            className="w-3 h-3 rounded-full mr-2" 
-                                            style={{ backgroundColor: category.color || '#6b7280' }}
-                                          />
-                                          {category.name}
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </React.Fragment>
-                                ));
-                              })()}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div>
-                      <h3 className="text-lg font-medium mb-2">Add Comment</h3>
-                      <div className="relative">
-                        <Textarea
-                          ref={commentInputRef}
-                          placeholder="Type your comment here... Use @ to mention team members"
-                          className="min-h-[100px] resize-none"
-                          value={comment}
-                          onChange={handleCommentInput}
-                        />
-                        
-                        {showMentions && (
-                          <Popover open={showMentions} onOpenChange={setShowMentions}>
-                            <PopoverContent 
-                              className="w-64 p-0" 
-                              align="start"
-                              style={{
-                                position: 'absolute',
-                                top: `${mentionPosition.top}px`,
-                                left: `${mentionPosition.left}px`,
-                              }}
-                            >
-                              <ScrollArea className="h-64">
-                                <div className="p-2">
-                                  {users
-                                    .filter((user: User) => 
-                                      mentionQuery === '' || 
-                                      user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-                                      user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
-                                    )
-                                    .map((user: User) => (
-                                      <div 
-                                        key={user.id}
-                                        className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
-                                        onClick={() => insertMention(user.username)}
-                                      >
-                                        <Avatar className="h-6 w-6">
-                                          <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
-                                          <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-                                        </Avatar>
-                                        <div>
-                                          <p className="text-sm font-medium">{user.name || user.username}</p>
-                                          <p className="text-xs text-gray-500">@{user.username}</p>
-                                        </div>
-                                      </div>
-                                    ))
-                                  }
-                                </div>
-                              </ScrollArea>
-                            </PopoverContent>
-                          </Popover>
-                        )}
-                      </div>
-                      <div className="flex justify-end mt-2">
-                        <Button
-                          type="button"
-                          onClick={submitComment}
-                          disabled={!comment.trim() || commentMutation.isPending}
-                        >
-                          {commentMutation.isPending ? 'Submitting...' : 'Add Comment'}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <DialogFooter>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={onClose}
-                        disabled={taskMutation.isPending}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        type="submit"
-                        disabled={taskMutation.isPending}
-                      >
-                        {taskMutation.isPending 
-                          ? 'Saving...' 
-                          : 'Update Task'
-                        }
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </Form>
-              </div>
-            </TabsContent>
           </Tabs>
         ) : (
           <Form {...form}>
@@ -1205,7 +913,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                     </FormItem>
                   )}
                 />
-                
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="priority"
@@ -1225,6 +935,32 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="todo">To Do</SelectItem>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1278,107 +1014,77 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {isEditMode && (
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="todo">To Do</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-                
-                <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select
-                        value={field.value?.toString() || '-1'}
-                        onValueChange={(value) => {
-                          if (value === '-1') {
-                            field.onChange(null);
-                          } else {
-                            field.onChange(parseInt(value));
-                          }
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="-1">No Category</SelectItem>
+              <FormField
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      value={field.value?.toString() || '-1'}
+                      onValueChange={(value) => {
+                        if (value === '-1') {
+                          field.onChange(null);
+                        } else {
+                          field.onChange(parseInt(value));
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="-1">No Category</SelectItem>
+                        
+                        {(() => {
+                          // Create a map of departments to categories
+                          const departmentMap: Record<string, typeof categories> = {};
+                          const departmentsById: Record<number, string> = {};
                           
-                          {(() => {
-                            // Create a map of departments to categories
-                            const departmentMap: Record<string, typeof categories> = {};
-                            const departmentsById: Record<number, string> = {};
+                          // Create a mapping of department IDs to names
+                          departments.forEach((dept: Department) => {
+                            departmentsById[dept.id] = dept.name;
+                          });
+                          
+                          categories.forEach(category => {
+                            const deptName = category.departmentId 
+                              ? (departmentsById[category.departmentId] || 'Unknown') 
+                              : 'General';
                             
-                            // Create a mapping of department IDs to names
-                            departments.forEach((dept: Department) => {
-                              departmentsById[dept.id] = dept.name;
-                            });
-                            
-                            categories.forEach(category => {
-                              const deptName = category.departmentId 
-                                ? (departmentsById[category.departmentId] || 'Unknown') 
-                                : 'General';
-                              
-                              if (!departmentMap[deptName]) {
-                                departmentMap[deptName] = [];
-                              }
-                              departmentMap[deptName].push(category);
-                            });
-                            
-                            // Return the grouped categories
-                            return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                              <React.Fragment key={department}>
-                                <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
-                                  {department}
+                            if (!departmentMap[deptName]) {
+                              departmentMap[deptName] = [];
+                            }
+                            departmentMap[deptName].push(category);
+                          });
+                          
+                          // Return the grouped categories
+                          return Object.entries(departmentMap).map(([department, deptCategories]) => (
+                            <React.Fragment key={department}>
+                              <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                                {department}
+                              </SelectItem>
+                              {deptCategories.map((category) => (
+                                <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                                  <div className="flex items-center">
+                                    <div 
+                                      className="w-3 h-3 rounded-full mr-2" 
+                                      style={{ backgroundColor: category.color || '#6b7280' }}
+                                    />
+                                    {category.name}
+                                  </div>
                                 </SelectItem>
-                                {deptCategories.map((category) => (
-                                  <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
-                                    <div className="flex items-center">
-                                      <div 
-                                        className="w-3 h-3 rounded-full mr-2" 
-                                        style={{ backgroundColor: category.color || '#6b7280' }}
-                                      />
-                                      {category.name}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </React.Fragment>
-                            ));
-                          })()}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                              ))}
+                            </React.Fragment>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <DialogFooter>
                 <Button 
@@ -1395,9 +1101,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 >
                   {taskMutation.isPending 
                     ? 'Saving...' 
-                    : isEditMode 
-                      ? 'Update Task' 
-                      : 'Create Task'
+                    : 'Create Task'
                   }
                 </Button>
               </DialogFooter>
