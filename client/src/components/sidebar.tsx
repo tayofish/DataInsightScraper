@@ -86,6 +86,9 @@ export function Sidebar() {
         <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
           Departments
         </NavItem>
+        <NavItem href="/reports" icon={<BarChart2 size={20} />} isActive={location === '/reports'}>
+          Reports
+        </NavItem>
         <NavItem href="#" icon={<Globe size={20} />} isActive={false}>
           Web Scraping
         </NavItem>

@@ -1403,6 +1403,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
+  // === REPORTS ROUTES ===
+  // Get all reports
+  app.get("/api/reports", async (req, res) => {
+    try {
+      const reports = await storage.getAllReports();
+      return res.status(200).json(reports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      return res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  // Get report by ID
+  app.get("/api/reports/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      return res.status(200).json(report);
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      return res.status(500).json({ message: "Failed to fetch report" });
+    }
+  });
+
+  // Create report
+  app.post("/api/reports", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to create a report" });
+      }
+
+      const reportData = reportInsertSchema.parse({
+        ...req.body,
+        createdBy: req.user.id
+      });
+      
+      const newReport = await storage.createReport(reportData);
+      return res.status(201).json(newReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid report data", errors: error.errors });
+      }
+      console.error("Error creating report:", error);
+      return res.status(500).json({ message: "Failed to create report" });
+    }
+  });
+
+  // Generate report
+  app.post("/api/reports/:id/generate", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Update the last run timestamp
+      await storage.updateReport(id, { lastRunAt: new Date() });
+
+      // Generate the report data based on type
+      let reportData;
+      switch (report.type) {
+        case 'tasks_by_project':
+          reportData = await storage.generateTasksByProjectReport(report.parameters);
+          break;
+        case 'user_performance':
+          reportData = await storage.generateUserPerformanceReport(report.parameters);
+          break;
+        case 'task_status_summary':
+          reportData = await storage.generateTaskStatusSummaryReport(report.parameters);
+          break;
+        default:
+          return res.status(400).json({ message: "Unsupported report type" });
+      }
+
+      return res.status(200).json(reportData);
+    } catch (error) {
+      console.error("Error generating report:", error);
+      return res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+
+  // Update report
+  app.patch("/api/reports/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to update a report" });
+      }
+
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Ensure only the creator can update the report
+      if (report.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to update this report" });
+      }
+
+      const reportData = reportInsertSchema.partial().parse(req.body);
+      const updatedReport = await storage.updateReport(id, reportData);
+      
+      if (!updatedReport) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      return res.status(200).json(updatedReport);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid report data", errors: error.errors });
+      }
+      console.error("Error updating report:", error);
+      return res.status(500).json({ message: "Failed to update report" });
+    }
+  });
+
+  // Delete report
+  app.delete("/api/reports/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid report ID" });
+      }
+
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "You must be logged in to delete a report" });
+      }
+
+      const report = await storage.getReportById(id);
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+
+      // Ensure only the creator can delete the report
+      if (report.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to delete this report" });
+      }
+
+      await storage.deleteReport(id);
+      return res.status(200).json({ message: "Report deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      return res.status(500).json({ message: "Failed to delete report" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
