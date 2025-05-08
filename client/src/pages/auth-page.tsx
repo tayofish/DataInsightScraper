@@ -60,24 +60,29 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [authError, setAuthError] = useState<string | null>(null);
-  
+
   // Query auth settings
-  const { data: authSettings, isLoading: isLoadingSettings } = useQuery<AuthSettings>({
-    queryKey: ['/api/app-settings/auth/all'],
-    queryFn: async () => {
-      try {
-        const response = await fetch('/api/app-settings/auth/all');
-        if (!response.ok) {
-          throw new Error('Failed to fetch auth settings');
+  const { data: authSettings, isLoading: isLoadingSettings } =
+    useQuery<AuthSettings>({
+      queryKey: ["/api/app-settings/auth/all"],
+      queryFn: async () => {
+        try {
+          const response = await fetch("/api/app-settings/auth/all");
+          if (!response.ok) {
+            throw new Error("Failed to fetch auth settings");
+          }
+          return response.json();
+        } catch (error) {
+          console.error("Error fetching auth settings:", error);
+          // Return defaults if there's an error
+          return {
+            localAuth: true,
+            microsoftAuth: true,
+            userRegistration: true,
+          };
         }
-        return response.json();
-      } catch (error) {
-        console.error('Error fetching auth settings:', error);
-        // Return defaults if there's an error
-        return { localAuth: true, microsoftAuth: true, userRegistration: true };
-      }
-    },
-  });
+      },
+    });
 
   // Get error message from URL if present
   useEffect(() => {
@@ -104,10 +109,14 @@ export default function AuthPage() {
       window.location.href = "/";
     }
   }, [user]);
-  
+
   // Make sure the active tab is valid based on settings
   useEffect(() => {
-    if (authSettings && !authSettings.userRegistration && activeTab === "register") {
+    if (
+      authSettings &&
+      !authSettings.userRegistration &&
+      activeTab === "register"
+    ) {
       setActiveTab("login");
     }
   }, [authSettings, activeTab]);
@@ -163,7 +172,9 @@ export default function AuthPage() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className={`grid w-full ${authSettings?.userRegistration ? 'grid-cols-2' : 'grid-cols-1'} mb-8 p-1 bg-gray-100/80 rounded-xl`}>
+            <TabsList
+              className={`grid w-full ${authSettings?.userRegistration ? "grid-cols-2" : "grid-cols-1"} mb-8 p-1 bg-gray-100/80 rounded-xl`}
+            >
               <TabsTrigger
                 value="login"
                 className="rounded-lg text-sm font-medium"
@@ -453,11 +464,11 @@ export default function AuthPage() {
 
             {/* Content */}
             <div className="max-w-2xl mx-auto text-white relative z-10">
-              <div className="inline-block px-4 py-1 rounded-full bg-white/30 backdrop-blur-md mb-3 text-sm font-medium text-white text-shadow">
+              <div className="inline-block px-4 py-1 rounded-full bg-white/30 backdrop-blur-md mb-3 text-sm font-medium text-white">
                 Modern Task Management
               </div>
-              <h1 className="text-5xl font-bold mb-6 leading-tight text-shadow">
-                Streamline Your{" "}
+              <h1 className="text-5xl font-bold mb-6 leading-tight">
+                <span className="text-white text-shadow">Streamline Your</span>{" "}
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
                   Workflow
                 </span>
