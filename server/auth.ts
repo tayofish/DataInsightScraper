@@ -22,6 +22,47 @@ declare global {
 
 const scryptAsync = promisify(scrypt);
 
+// Helper function to get authentication settings
+async function getAuthSettings() {
+  const defaults = {
+    localAuth: true,
+    microsoftAuth: true,
+    userRegistration: false
+  };
+  
+  try {
+    // Try to get local auth setting
+    const localAuthSetting = await storage.getAppSettingByKey("local_auth");
+    if (localAuthSetting) {
+      defaults.localAuth = localAuthSetting.value === "true";
+    }
+  } catch (error) {
+    console.error("Error fetching local_auth setting:", error);
+  }
+  
+  try {
+    // Try to get Microsoft auth setting
+    const microsoftAuthSetting = await storage.getAppSettingByKey("microsoft_auth");
+    if (microsoftAuthSetting) {
+      defaults.microsoftAuth = microsoftAuthSetting.value === "true";
+    }
+  } catch (error) {
+    console.error("Error fetching microsoft_auth setting:", error);
+  }
+  
+  try {
+    // Try to get user registration setting
+    const userRegSetting = await storage.getAppSettingByKey("allow_registration");
+    if (userRegSetting) {
+      defaults.userRegistration = userRegSetting.value === "true";
+    }
+  } catch (error) {
+    console.error("Error fetching allow_registration setting:", error);
+  }
+  
+  return defaults;
+}
+
 export async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -142,6 +183,12 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      // Check if registration is allowed
+      const authSettings = await getAuthSettings();
+      if (!authSettings.userRegistration) {
+        return res.status(403).json({ error: "User registration is currently disabled" });
+      }
+      
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
@@ -161,16 +208,26 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate('local', (err: any, user: Express.User, info: any) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ error: "Invalid credentials" });
+  app.post("/api/login", async (req, res, next) => {
+    try {
+      // Check if local auth is allowed
+      const authSettings = await getAuthSettings();
+      if (!authSettings.localAuth) {
+        return res.status(403).json({ error: "Local authentication is currently disabled" });
+      }
       
-      req.login(user, (err: any) => {
+      passport.authenticate('local', (err: any, user: Express.User, info: any) => {
         if (err) return next(err);
-        return res.status(200).json(user);
-      });
-    })(req, res, next);
+        if (!user) return res.status(401).json({ error: "Invalid credentials" });
+        
+        req.login(user, (err: any) => {
+          if (err) return next(err);
+          return res.status(200).json(user);
+        });
+      })(req, res, next);
+    } catch (err) {
+      next(err);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
@@ -186,34 +243,58 @@ export function setupAuth(app: Express) {
   });
   
   // Microsoft Entra ID routes
-  app.get('/api/auth/entra', passport.authenticate('azuread-openidconnect', {
-    session: true,
-    failureRedirect: '/auth',
-    failureFlash: false
-  }));
+  app.get('/api/auth/entra', async (req, res, next) => {
+    try {
+      // Check if Microsoft auth is allowed
+      const authSettings = await getAuthSettings();
+      if (!authSettings.microsoftAuth) {
+        return res.redirect('/auth?error=microsoft_auth_disabled');
+      }
+      
+      passport.authenticate('azuread-openidconnect', {
+        session: true,
+        failureRedirect: '/auth',
+        failureFlash: false
+      })(req, res, next);
+    } catch (err) {
+      console.error('Error checking Microsoft auth settings:', err);
+      return res.redirect('/auth?error=server_error');
+    }
+  });
 
-  app.get('/api/auth/entra/callback', (req, res, next) => {
-    passport.authenticate('azuread-openidconnect', {
-      session: true,
-      failureRedirect: '/auth',
-      failureFlash: false
-    }, (err: any, user: any) => {
-      if (err) {
-        console.error('Microsoft Entra authentication error:', err);
-        return res.redirect('/auth?error=microsoft_auth_error');
+  app.get('/api/auth/entra/callback', async (req, res, next) => {
+    try {
+      // Verify Microsoft auth is still enabled
+      const authSettings = await getAuthSettings();
+      if (!authSettings.microsoftAuth) {
+        return res.redirect('/auth?error=microsoft_auth_disabled');
       }
       
-      if (!user) {
-        return res.redirect('/auth?error=microsoft_auth_failed');
-      }
-      
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error('Login error after Microsoft authentication:', loginErr);
-          return res.redirect('/auth?error=microsoft_login_error');
+      passport.authenticate('azuread-openidconnect', {
+        session: true,
+        failureRedirect: '/auth',
+        failureFlash: false
+      }, (err: any, user: any) => {
+        if (err) {
+          console.error('Microsoft Entra authentication error:', err);
+          return res.redirect('/auth?error=microsoft_auth_error');
         }
-        return res.redirect('/');
-      });
-    })(req, res, next);
+        
+        if (!user) {
+          return res.redirect('/auth?error=microsoft_auth_failed');
+        }
+        
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error('Login error after Microsoft authentication:', loginErr);
+            return res.redirect('/auth?error=microsoft_login_error');
+          }
+          return res.redirect('/');
+        });
+      })(req, res, next);
+    } catch (err) {
+      console.error('Error in Microsoft auth callback:', err);
+      return res.redirect('/auth?error=server_error');
+    }
   });
 }
