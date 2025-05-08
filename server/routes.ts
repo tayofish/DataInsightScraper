@@ -253,6 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               projectId: task.projectId,
               categoryId: task.categoryId,
               departmentId: task.departmentId
+              // Remove creatorId as it's not in our schema
             };
             await storage.createTask(taskData);
           }
