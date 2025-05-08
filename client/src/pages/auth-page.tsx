@@ -27,6 +27,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { FaMicrosoft } from "react-icons/fa";
+import { useQuery } from "@tanstack/react-query";
 
 // Login form schema
 const loginSchema = z.object({
@@ -46,12 +47,37 @@ const registerSchema = z.object({
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
+// Define interface for auth settings
+interface AuthSettings {
+  localAuth: boolean;
+  microsoftAuth: boolean;
+  userRegistration: boolean;
+}
+
 export default function AuthPage() {
   const [location] = useLocation();
   const search = useSearch();
   const { user, loginMutation, registerMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [authError, setAuthError] = useState<string | null>(null);
+  
+  // Query auth settings
+  const { data: authSettings, isLoading: isLoadingSettings } = useQuery<AuthSettings>({
+    queryKey: ['/api/app-settings/auth/all'],
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/app-settings/auth/all');
+        if (!response.ok) {
+          throw new Error('Failed to fetch auth settings');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching auth settings:', error);
+        // Return defaults if there's an error
+        return { localAuth: true, microsoftAuth: true, userRegistration: true };
+      }
+    },
+  });
 
   // Get error message from URL if present
   useEffect(() => {
@@ -130,19 +156,21 @@ export default function AuthPage() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-gray-100/80 rounded-xl">
+            <TabsList className={`grid w-full ${authSettings?.userRegistration ? 'grid-cols-2' : 'grid-cols-1'} mb-8 p-1 bg-gray-100/80 rounded-xl`}>
               <TabsTrigger
                 value="login"
                 className="rounded-lg text-sm font-medium"
               >
                 Login
               </TabsTrigger>
-              <TabsTrigger
-                value="register"
-                className="rounded-lg text-sm font-medium"
-              >
-                Register
-              </TabsTrigger>
+              {authSettings?.userRegistration && (
+                <TabsTrigger
+                  value="register"
+                  className="rounded-lg text-sm font-medium"
+                >
+                  Register
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Login Tab */}
@@ -222,32 +250,36 @@ export default function AuthPage() {
                         </Alert>
                       )}
 
-                      {/* Separator */}
-                      <div className="relative mt-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-gray-300 dark:border-gray-700" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                            Or continue with
-                          </span>
-                        </div>
-                      </div>
+                      {/* Separator and Microsoft Login only shown if microsoftAuth is enabled */}
+                      {authSettings?.microsoftAuth && (
+                        <>
+                          <div className="relative mt-6">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                Or continue with
+                              </span>
+                            </div>
+                          </div>
 
-                      {/* Microsoft Login Button */}
-                      <a
-                        href="/api/auth/entra"
-                        className="inline-block w-full mt-4"
-                      >
-                        <Button
-                          variant="outline"
-                          className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-                          type="button"
-                        >
-                          <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
-                          Sign in with Microsoft
-                        </Button>
-                      </a>
+                          {/* Microsoft Login Button */}
+                          <a
+                            href="/api/auth/entra"
+                            className="inline-block w-full mt-4"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                              type="button"
+                            >
+                              <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
+                              Sign in with Microsoft
+                            </Button>
+                          </a>
+                        </>
+                      )}
                     </form>
                   </Form>
                 </CardContent>
@@ -357,32 +389,36 @@ export default function AuthPage() {
                         </Alert>
                       )}
 
-                      {/* Separator */}
-                      <div className="relative mt-6">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-gray-300 dark:border-gray-700" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                            Or continue with
-                          </span>
-                        </div>
-                      </div>
+                      {/* Separator and Microsoft Login only shown if microsoftAuth is enabled */}
+                      {authSettings?.microsoftAuth && (
+                        <>
+                          <div className="relative mt-6">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                Or continue with
+                              </span>
+                            </div>
+                          </div>
 
-                      {/* Microsoft Login Button */}
-                      <a
-                        href="/api/auth/entra"
-                        className="inline-block w-full mt-4"
-                      >
-                        <Button
-                          variant="outline"
-                          className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-                          type="button"
-                        >
-                          <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
-                          Sign up with Microsoft
-                        </Button>
-                      </a>
+                          {/* Microsoft Login Button */}
+                          <a
+                            href="/api/auth/entra"
+                            className="inline-block w-full mt-4"
+                          >
+                            <Button
+                              variant="outline"
+                              className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
+                              type="button"
+                            >
+                              <FaMicrosoft className="h-4 w-4 text-[#0078d4]" />
+                              Sign up with Microsoft
+                            </Button>
+                          </a>
+                        </>
+                      )}
                     </form>
                   </Form>
                 </CardContent>
