@@ -453,7 +453,7 @@ export default function AuthPage() {
 
             {/* Content */}
             <div className="max-w-2xl mx-auto text-white relative z-10">
-              <div className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-md mb-3 text-sm font-medium">
+              <div className="inline-block px-4 py-1 rounded-full bg-white/30 backdrop-blur-md mb-3 text-sm font-medium text-white">
                 Modern Task Management
               </div>
               <h1 className="text-5xl font-bold mb-6 leading-tight">
@@ -462,7 +462,7 @@ export default function AuthPage() {
                   Workflow
                 </span>
               </h1>
-              <p className="text-xl mb-10 text-blue-50 font-light leading-relaxed">
+              <p className="text-xl mb-10 text-white font-normal leading-relaxed">
                 Track tasks, collaborate with team members, and boost
                 productivity with our intuitive task management platform.
               </p>
@@ -487,7 +487,7 @@ export default function AuthPage() {
                     </svg>
                     Organize Tasks
                   </h3>
-                  <p className="text-blue-100">
+                  <p className="text-white font-medium">
                     Categorize and prioritize tasks to stay on top of your
                     workload
                   </p>
@@ -514,7 +514,7 @@ export default function AuthPage() {
                     </svg>
                     Track Progress
                   </h3>
-                  <p className="text-blue-100">
+                  <p className="text-white font-medium">
                     Monitor task status and deadlines in real-time
                   </p>
                 </div>
@@ -537,7 +537,7 @@ export default function AuthPage() {
                     </svg>
                     Team Collaboration
                   </h3>
-                  <p className="text-blue-100">
+                  <p className="text-white font-medium">
                     Assign tasks and communicate with team members
                   </p>
                 </div>
@@ -560,7 +560,7 @@ export default function AuthPage() {
                     </svg>
                     Custom Categories
                   </h3>
-                  <p className="text-blue-100">
+                  <p className="text-white font-medium">
                     Create department-specific categories for better
                     organization
                   </p>
