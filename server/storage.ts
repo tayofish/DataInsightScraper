@@ -165,12 +165,20 @@ export const storage = {
     categoryId?: number,
     department?: string,
     departmentId?: string,
-    search?: string
+    search?: string,
+    isOverdue?: boolean
   }): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null, department?: Department | null })[]> => {
     const conditions = [];
 
     if (filters?.status && filters.status !== 'all') {
-      conditions.push(eq(tasks.status, filters.status as any));
+      // Handle pipe-separated status values (converted from comma-separated in API)
+      if (filters.status.includes('|')) {
+        const statusValues = filters.status.split('|');
+        const statusConditions = statusValues.map(status => eq(tasks.status, status as any));
+        conditions.push(or(...statusConditions));
+      } else {
+        conditions.push(eq(tasks.status, filters.status as any));
+      }
     }
 
     if (filters?.priority && filters.priority !== 'all') {
@@ -214,6 +222,19 @@ export const storage = {
       if (!isNaN(departmentId)) {
         conditions.push(eq(tasks.departmentId, departmentId));
       }
+    }
+    
+    // Handle overdue tasks filter
+    if (filters?.isOverdue === true) {
+      const now = new Date();
+      conditions.push(
+        and(
+          // Due date is in the past
+          sql`${tasks.dueDate} < ${now}`,
+          // Task is not completed
+          sql`${tasks.status} != 'completed'`
+        )
+      );
     }
     
     if (filters?.search) {

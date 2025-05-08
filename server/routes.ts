@@ -633,15 +633,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all tasks with optional filters
   app.get("/api/tasks", async (req, res) => {
     try {
+      const customFilter = req.query.customFilter as string | undefined;
+      
+      // Special handling for overdue filter
+      const now = new Date();
+      let statusFilter: string | undefined = req.query.status as string | undefined;
+      
+      // Handle comma-separated status values (e.g., 'todo,in_progress')
+      if (statusFilter && statusFilter.includes(',')) {
+        statusFilter = statusFilter.split(',').join('|'); // Convert to pipe-separated for OR in SQL
+      }
+      
       const filters = {
-        status: req.query.status as string | undefined,
+        status: statusFilter,
         priority: req.query.priority as string | undefined,
         projectId: req.query.projectId ? parseInt(req.query.projectId as string) : undefined,
         assigneeId: req.query.assigneeId ? parseInt(req.query.assigneeId as string) : undefined,
         categoryId: req.query.categoryId ? parseInt(req.query.categoryId as string) : undefined,
         department: req.query.department as string | undefined,
         departmentId: req.query.departmentId as string | undefined,
-        search: req.query.search as string | undefined
+        search: req.query.search as string | undefined,
+        isOverdue: customFilter === 'overdue' ? true : undefined,
+        // If we have a custom filter for 'all', we clear other filters to show all tasks
+        ...(customFilter === 'all' ? {
+          status: undefined,
+          priority: undefined,
+          projectId: undefined,
+          assigneeId: undefined,
+          categoryId: undefined,
+          department: undefined
+        } : {})
       };
 
       // If user is not authenticated, return 401

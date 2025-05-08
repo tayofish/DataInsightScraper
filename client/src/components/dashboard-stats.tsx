@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCheck, Clock, ListTodo, AlertTriangle } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface StatCardProps {
   title: string;
@@ -11,11 +12,15 @@ interface StatCardProps {
   iconBgColor: string;
   iconColor: string;
   isLoading?: boolean;
+  onClick?: () => void;
 }
 
-const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false }: StatCardProps) => {
+const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false, onClick }: StatCardProps) => {
   return (
-    <Card className="dashboard-stat-card hover:scale-105 overflow-hidden">
+    <Card 
+      className="dashboard-stat-card hover:scale-105 overflow-hidden cursor-pointer"
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-center">
           <div className={`flex-shrink-0 ${iconBgColor} rounded-xl p-3 shadow-sm`}>
@@ -56,12 +61,17 @@ export default function DashboardStats() {
   const { data, isLoading } = useQuery<TaskStatistics>({
     queryKey: ['/api/tasks/statistics'],
   });
+  const [, navigate] = useLocation();
 
   const statistics = {
     total: data?.total || 0,
     completed: data?.completed || 0,
     pending: data?.pending || 0,
     overdue: data?.overdue || 0
+  };
+
+  const handleCardClick = (filter: string, value: string) => {
+    navigate(`/tasks?${filter}=${value}`);
   };
 
   return (
@@ -73,6 +83,7 @@ export default function DashboardStats() {
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         isLoading={isLoading}
+        onClick={() => handleCardClick('customFilter', 'all')}
       />
       
       <StatCard
@@ -82,6 +93,7 @@ export default function DashboardStats() {
         iconBgColor="bg-green-100"
         iconColor="text-green-600"
         isLoading={isLoading}
+        onClick={() => handleCardClick('status', 'completed')}
       />
       
       <StatCard
@@ -91,6 +103,7 @@ export default function DashboardStats() {
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
         isLoading={isLoading}
+        onClick={() => handleCardClick('status', 'todo,in_progress')}
       />
       
       <StatCard
@@ -100,6 +113,7 @@ export default function DashboardStats() {
         iconBgColor="bg-red-100"
         iconColor="text-red-600"
         isLoading={isLoading}
+        onClick={() => handleCardClick('customFilter', 'overdue')}
       />
     </div>
   );

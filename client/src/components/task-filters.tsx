@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import { type Project, type Category, type Department } from '@shared/schema';
 import { useForm } from 'react-hook-form';
 import { Form } from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { RotateCcw } from 'lucide-react';
 
 interface TaskFiltersProps {
   onFilterChange: (filters: TaskFilterValues) => void;
@@ -36,17 +38,19 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
     queryKey: ['/api/departments'],
   });
 
+  const defaultValues = {
+    assigneeId: -2, // -2 means "All Users"
+    projectId: -2,  // -2 means "All Projects"
+    categoryId: -2, // -2 means "All Categories"
+    department: 'all',
+    status: 'all',
+    priority: 'all',
+    search: '',
+    sortBy: 'dueDate'
+  };
+
   const form = useForm<TaskFilterValues>({
-    defaultValues: {
-      assigneeId: -2, // -2 means "All Users"
-      projectId: -2,  // -2 means "All Projects"
-      categoryId: -2, // -2 means "All Categories"
-      department: 'all',
-      status: 'all',
-      priority: 'all',
-      search: '',
-      sortBy: 'dueDate'
-    }
+    defaultValues
   });
 
   // Apply filters whenever form values change
@@ -56,6 +60,11 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
     });
     return () => subscription.unsubscribe();
   }, [form.watch, onFilterChange]);
+
+  // Function to reset all filters
+  const resetFilters = React.useCallback(() => {
+    form.reset(defaultValues);
+  }, [form]);
 
   return (
     <Form {...form}>
@@ -157,7 +166,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
         </div>
         
         {/* Row 2: Secondary filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
           <div>
             <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700">
               Category
@@ -265,6 +274,17 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 <SelectItem value="updatedAt">Recently Updated</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="flex items-end">
+            <Button 
+              onClick={resetFilters} 
+              variant="outline" 
+              className="w-full"
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset Filters
+            </Button>
           </div>
         </div>
       </div>
