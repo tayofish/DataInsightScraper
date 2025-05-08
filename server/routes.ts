@@ -689,7 +689,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get task statistics for dashboard
   app.get("/api/tasks/statistics", async (req, res) => {
     try {
-      const statistics = await storage.getTaskStatistics();
+      // If user is not authenticated, return 401
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get the authenticated user
+      const user = req.user as Express.User;
+      
+      let statistics;
+      
+      // Admin users can see global statistics
+      if (user.isAdmin) {
+        statistics = await storage.getTaskStatistics();
+      } else {
+        // Regular users see only their own statistics
+        const userDepartmentId = user.departmentId;
+        const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
+        const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
+        
+        statistics = await storage.getUserTaskStatistics(
+          user.id,
+          userDepartmentId || null,
+          userProjectIds
+        );
+      }
+      
       return res.status(200).json(statistics);
     } catch (error) {
       console.error("Error fetching task statistics:", error);

@@ -403,6 +403,7 @@ export const storage = {
     return result;
   },
 
+  // Global task statistics - for admin users
   getTaskStatistics: async (): Promise<{ 
     total: number, 
     completed: number, 
@@ -416,6 +417,54 @@ export const storage = {
     const completed = allTasks.filter(task => task.status === 'completed').length;
     const pending = allTasks.filter(task => task.status !== 'completed').length;
     const overdue = allTasks.filter(task => 
+      task.status !== 'completed' && 
+      task.dueDate && 
+      new Date(task.dueDate) < now
+    ).length;
+
+    return { total, completed, pending, overdue };
+  },
+
+  // User-specific task statistics - for regular users
+  getUserTaskStatistics: async (
+    userId: number,
+    departmentId: number | null,
+    projectIds: number[]
+  ): Promise<{ 
+    total: number, 
+    completed: number, 
+    pending: number, 
+    overdue: number 
+  }> => {
+    // Get tasks accessible to this user (same logic as getAllTasksForUser but without filters)
+    const accessConditions = [];
+    
+    // 1. Department condition - if user has a department
+    if (departmentId) {
+      accessConditions.push(eq(tasks.departmentId, departmentId));
+    }
+    
+    // 2. Project assignments condition - if user has project assignments
+    if (projectIds && projectIds.length > 0) {
+      projectIds.forEach(projectId => {
+        accessConditions.push(eq(tasks.projectId, projectId));
+      });
+    }
+    
+    // 3. Tasks directly assigned to the user
+    accessConditions.push(eq(tasks.assigneeId, userId));
+    
+    // Get all tasks accessible to this user
+    const userTasks = await db.query.tasks.findMany({
+      where: or(...accessConditions)
+    });
+    
+    const now = new Date();
+    
+    const total = userTasks.length;
+    const completed = userTasks.filter(task => task.status === 'completed').length;
+    const pending = userTasks.filter(task => task.status !== 'completed').length;
+    const overdue = userTasks.filter(task => 
       task.status !== 'completed' && 
       task.dueDate && 
       new Date(task.dueDate) < now
