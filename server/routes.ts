@@ -644,7 +644,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         search: req.query.search as string | undefined
       };
 
-      const tasks = await storage.getAllTasks(filters);
+      // If user is not authenticated, return 401
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get the authenticated user
+      const user = req.user as Express.User;
+      
+      let tasks;
+      
+      // Admin users can access all tasks
+      if (user.isAdmin) {
+        tasks = await storage.getAllTasks(filters);
+      } else {
+        // Regular users can only see tasks from:
+        // 1. Their department OR
+        // 2. Projects they're assigned to
+        
+        // Get user's department and project assignments
+        const userDepartmentId = user.departmentId;
+        const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
+        const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
+        
+        // Add these conditions to the filters for the query
+        const restrictedTasks = await storage.getAllTasksForUser(
+          user.id,
+          userDepartmentId || null,
+          userProjectIds,
+          filters
+        );
+        
+        tasks = restrictedTasks;
+      }
+      
       return res.status(200).json(tasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);

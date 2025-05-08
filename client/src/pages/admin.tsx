@@ -34,7 +34,8 @@ const userFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address").optional().nullable(),
   avatar: z.string().nullable().optional(),
-  isAdmin: z.boolean().default(false)
+  isAdmin: z.boolean().default(false),
+  departmentId: z.number().nullable().optional()
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -146,7 +147,8 @@ export default function AdminPage() {
       name: "",
       email: "",
       avatar: null,
-      isAdmin: false
+      isAdmin: false,
+      departmentId: null
     });
     setUserToEdit(null);
   };
@@ -166,7 +168,8 @@ export default function AdminPage() {
       name: user.name || "",
       email: user.email || "",
       avatar: user.avatar,
-      isAdmin: user.isAdmin || false
+      isAdmin: user.isAdmin || false,
+      departmentId: user.departmentId || null
     });
     setIsUserDialogOpen(true);
   };
@@ -733,6 +736,35 @@ export default function AdminPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={userForm.control}
+                  name="departmentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                        value={field.value?.toString() || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a department" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">No Department</SelectItem>
+                          {departments?.map((department) => (
+                            <SelectItem key={department.id} value={department.id.toString()}>
+                              {department.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
                 <FormField
                   control={userForm.control}
                   name="isAdmin"
