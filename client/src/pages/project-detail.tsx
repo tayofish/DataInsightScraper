@@ -87,6 +87,17 @@ export default function ProjectDetailPage() {
     task.dueDate && 
     new Date(task.dueDate) < now
   ).length;
+  
+  // Function to reset filters before applying new ones
+  const resetAndApplyFilter = (filterObj: Partial<TaskFilterValues>) => {
+    setTaskFilters({
+      ...taskFilters,
+      status: 'all',
+      priority: 'all',
+      customFilter: undefined,
+      ...filterObj
+    });
+  };
 
   if (projectLoading) {
     return (
@@ -162,7 +173,7 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <button
-              onClick={() => setTaskFilters(prev => ({ ...prev, status: 'completed' }))}
+              onClick={() => resetAndApplyFilter({ status: 'completed' })}
               className="w-full flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
             >
               <div className="text-3xl font-bold mb-2">{completionPercentage}%</div>
@@ -181,21 +192,21 @@ export default function ProjectDetailPage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'todo' }))}
+                onClick={() => resetAndApplyFilter({ status: 'todo' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-yellow-500">{todoTasks}</div>
                 <div className="text-xs text-muted-foreground">To Do</div>
               </button>
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'in_progress' }))}
+                onClick={() => resetAndApplyFilter({ status: 'in_progress' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-blue-500">{inProgressTasks}</div>
                 <div className="text-xs text-muted-foreground">In Progress</div>
               </button>
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, status: 'completed' }))}
+                onClick={() => resetAndApplyFilter({ status: 'completed' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-green-500">{completedTasks}</div>
@@ -212,21 +223,21 @@ export default function ProjectDetailPage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4 text-center">
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'high' }))}
+                onClick={() => resetAndApplyFilter({ priority: 'high' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-red-500">{highPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">High</div>
               </button>
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'medium' }))}
+                onClick={() => resetAndApplyFilter({ priority: 'medium' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-orange-500">{mediumPriorityTasks}</div>
                 <div className="text-xs text-muted-foreground">Medium</div>
               </button>
               <button 
-                onClick={() => setTaskFilters(prev => ({ ...prev, priority: 'low' }))}
+                onClick={() => resetAndApplyFilter({ priority: 'low' })}
                 className="hover:bg-gray-50 p-2 rounded-md transition-colors"
               >
                 <div className="text-xl font-bold text-green-500">{lowPriorityTasks}</div>
@@ -242,15 +253,7 @@ export default function ProjectDetailPage() {
           </CardHeader>
           <CardContent>
             <button 
-              onClick={() => {
-                // Custom filter for overdue tasks
-                const now = new Date();
-                setTaskFilters(prev => ({ 
-                  ...prev, 
-                  // We'll use a custom filter function in TaskList component to show only overdue tasks
-                  customFilter: 'overdue'
-                }));
-              }}
+              onClick={() => resetAndApplyFilter({ customFilter: 'overdue' })}
               className="w-full flex flex-col items-center hover:bg-gray-50 p-3 rounded-md transition-colors"
             >
               <div className={`text-3xl font-bold mb-1 ${overdueTasks > 0 ? "text-red-500" : ""}`}>
@@ -313,7 +316,13 @@ export default function ProjectDetailPage() {
                   ...taskFilters,
                   status: 'all',
                   priority: 'all',
-                  customFilter: undefined
+                  customFilter: undefined,
+                  assigneeId: null,
+                  projectId: projectId,
+                  categoryId: null,
+                  department: '',
+                  search: '',
+                  sortBy: 'dueDate'
                 })}
                 className="text-xs"
               >
