@@ -104,6 +104,13 @@ export default function AuthPage() {
       window.location.href = "/";
     }
   }, [user]);
+  
+  // Make sure the active tab is valid based on settings
+  useEffect(() => {
+    if (authSettings && !authSettings.userRegistration && activeTab === "register") {
+      setActiveTab("login");
+    }
+  }, [authSettings, activeTab]);
 
   // Login form
   const loginForm = useForm<LoginValues>({
@@ -284,12 +291,14 @@ export default function AuthPage() {
                   </Form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
-                  <Button
-                    variant="link"
-                    onClick={() => setActiveTab("register")}
-                  >
-                    Don't have an account? Sign up
-                  </Button>
+                  {authSettings?.userRegistration && (
+                    <Button
+                      variant="link"
+                      onClick={() => setActiveTab("register")}
+                    >
+                      Don't have an account? Sign up
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             </TabsContent>

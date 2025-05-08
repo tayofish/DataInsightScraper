@@ -2524,17 +2524,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Get all authentication settings
+  // Get all authentication settings - public endpoint
   app.get("/api/app-settings/auth/all", async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Authentication required" });
-      }
-      
-      if (!req.user.isAdmin) {
-        return res.status(403).json({ message: "Admin privileges required" });
-      }
-      
+      // This endpoint needs to be accessible without authentication
+      // so the login page can show the appropriate options
       const settings = {
         localAuth: true,
         microsoftAuth: true,
