@@ -81,7 +81,7 @@ export default function Dashboard() {
       {/* Task List */}
       <div className="px-4 sm:px-6 md:px-8 mb-8">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden border border-gray-100 dark:border-gray-700">
-          <div className="p-5 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-5">
             <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Task List</h2>
           </div>
           <TaskList filters={filters} />
