@@ -492,8 +492,8 @@ export default function AuthPage() {
                     workload
                   </p>
                 </div>
-                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -518,8 +518,8 @@ export default function AuthPage() {
                     Monitor task status and deadlines in real-time
                   </p>
                 </div>
-                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -541,8 +541,8 @@ export default function AuthPage() {
                     Assign tasks and communicate with team members
                   </p>
                 </div>
-                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
