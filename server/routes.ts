@@ -658,16 +658,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.isAdmin) {
         tasks = await storage.getAllTasks(filters);
       } else {
-        // Regular users can only see tasks from:
-        // 1. Their department OR
-        // 2. Projects they're assigned to
+        // Regular users can only see tasks that match ANY of these conditions:
+        // 1. Tasks in the user's department OR
+        // 2. Tasks from projects they're assigned to OR
+        // 3. Tasks directly assigned to them
         
         // Get user's department and project assignments
         const userDepartmentId = user.departmentId;
         const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
         const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
         
-        // Add these conditions to the filters for the query
+        // Get restricted tasks using our access control logic
         const restrictedTasks = await storage.getAllTasksForUser(
           user.id,
           userDepartmentId || null,
@@ -727,7 +728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
       const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
       
-      // User can access a task if:
+      // User can access a task if ANY of these conditions are true:
       // 1. Task is in their department, OR
       // 2. Task is from a project they're assigned to, OR
       // 3. Task is assigned to them

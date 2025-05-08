@@ -303,53 +303,53 @@ export const storage = {
       search?: string
     }
   ): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null, department?: Department | null })[]> => {
-    // Build the base conditions from the standard filter params
-    const conditions = [];
+    // Build the base filter conditions (status, priority, etc.)
+    const filterConditions = [];
     
     // Add standard filters
     if (filters?.status && filters.status !== 'all') {
-      conditions.push(eq(tasks.status, filters.status as any));
+      filterConditions.push(eq(tasks.status, filters.status as any));
     }
 
     if (filters?.priority && filters.priority !== 'all') {
-      conditions.push(eq(tasks.priority, filters.priority as any));
+      filterConditions.push(eq(tasks.priority, filters.priority as any));
     }
 
     if (filters?.projectId && filters.projectId !== -1) {
-      conditions.push(eq(tasks.projectId, filters.projectId));
+      filterConditions.push(eq(tasks.projectId, filters.projectId));
     }
 
     if (filters?.assigneeId) {
       if (filters.assigneeId === -1) {
-        conditions.push(isNull(tasks.assigneeId));
+        filterConditions.push(isNull(tasks.assigneeId));
       } else if (filters.assigneeId !== -2) {
-        conditions.push(eq(tasks.assigneeId, filters.assigneeId));
+        filterConditions.push(eq(tasks.assigneeId, filters.assigneeId));
       }
     }
     
     if (filters?.categoryId) {
       if (filters.categoryId === -1) {
-        conditions.push(isNull(tasks.categoryId));
+        filterConditions.push(isNull(tasks.categoryId));
       } else if (filters.categoryId !== -2) {
-        conditions.push(eq(tasks.categoryId, filters.categoryId));
+        filterConditions.push(eq(tasks.categoryId, filters.categoryId));
       }
     }
     
     if (filters?.departmentId && filters.departmentId !== 'all') {
       const deptId = parseInt(filters.departmentId);
       if (!isNaN(deptId)) {
-        conditions.push(eq(tasks.departmentId, deptId));
+        filterConditions.push(eq(tasks.departmentId, deptId));
       }
     } 
     else if (filters?.department && filters.department !== 'all') {
       const departmentId = parseInt(filters.department);
       if (!isNaN(departmentId)) {
-        conditions.push(eq(tasks.departmentId, departmentId));
+        filterConditions.push(eq(tasks.departmentId, departmentId));
       }
     }
     
     if (filters?.search) {
-      conditions.push(
+      filterConditions.push(
         or(
           sql`${tasks.title} ILIKE ${'%' + filters.search + '%'}`,
           sql`${tasks.description} ILIKE ${'%' + filters.search + '%'}`
@@ -357,53 +357,48 @@ export const storage = {
       );
     }
     
-    // Add restrictions based on user's department and project assignments
-    // The user can see tasks if either:
-    // 1. Task is in the user's department OR
+    // Build access conditions separately
+    // A user can see tasks that match ANY of these conditions:
+    // 1. Task is in the user's department
     // 2. Task is from a project the user is assigned to
+    // 3. Task is directly assigned to the user
     const accessConditions = [];
     
-    // Department condition - if user has a department
+    // 1. Department condition - if user has a department
     if (departmentId) {
       accessConditions.push(eq(tasks.departmentId, departmentId));
     }
     
-    // Project assignments condition - if user has project assignments
+    // 2. Project assignments condition - if user has project assignments
     if (projectIds && projectIds.length > 0) {
-      // Create an OR condition for each project ID
-      const projectConditions = projectIds.map(projectId => eq(tasks.projectId, projectId));
-      if (projectConditions.length > 0) {
-        accessConditions.push(or(...projectConditions));
-      }
+      // Add each project ID as a condition
+      projectIds.forEach(projectId => {
+        accessConditions.push(eq(tasks.projectId, projectId));
+      });
     }
     
-    // Also allow tasks assigned directly to the user
+    // 3. Tasks directly assigned to the user
     accessConditions.push(eq(tasks.assigneeId, userId));
     
-    // Add the access conditions (department OR project assignments OR assigned to user)
-    if (accessConditions.length > 0) {
-      conditions.push(or(...accessConditions));
-    }
+    // Combine all conditions: 
+    // (filterCondition1 AND filterCondition2 AND ...) AND (accessCondition1 OR accessCondition2 OR ...)
+    const whereCondition = and(
+      // If there are filter conditions, include them all with AND
+      ...(filterConditions.length > 0 ? [and(...filterConditions)] : []),
+      // Add the access conditions with OR - user must satisfy at least one access condition
+      or(...accessConditions)
+    );
     
     // Execute the query with all conditions
-    const result = conditions.length > 0
-      ? await db.query.tasks.findMany({
-          where: and(...conditions),
-          with: {
-            project: true,
-            assignee: true,
-            category: true,
-            department: true
-          }
-        })
-      : await db.query.tasks.findMany({
-          with: {
-            project: true,
-            assignee: true,
-            category: true,
-            department: true
-          }
-        });
+    const result = await db.query.tasks.findMany({
+      where: whereCondition,
+      with: {
+        project: true,
+        assignee: true,
+        category: true,
+        department: true
+      }
+    });
     
     return result;
   },
