@@ -222,7 +222,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                   
                   // Return the grouped categories
                   return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                    <React.Fragment key={department}>
+                    <div key={department}>
                       <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
                         {department}
                       </SelectItem>
@@ -237,7 +237,7 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                           </div>
                         </SelectItem>
                       ))}
-                    </React.Fragment>
+                    </div>
                   ));
                 })()}
               </SelectContent>
