@@ -64,6 +64,13 @@ export default function AdminPage() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
+  // Authentication settings state
+  const [authSettings, setAuthSettings] = useState({
+    localAuth: true,
+    microsoftAuth: true,
+    userRegistration: false
+  });
+  
   // Project assignment states
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -126,6 +133,62 @@ export default function AdminPage() {
       const res = await fetch("/api/departments");
       if (!res.ok) throw new Error("Failed to fetch departments");
       return res.json() as Promise<Department[]>;
+    }
+  });
+  
+  // Fetch authentication settings
+  useQuery({
+    queryKey: ["/api/app-settings/auth"],
+    queryFn: async () => {
+      try {
+        // Try to fetch the authentication settings, handling cases where they don't exist yet
+        const responses = await Promise.all([
+          fetch("/api/app-settings/local_auth"),
+          fetch("/api/app-settings/microsoft_auth"),
+          fetch("/api/app-settings/allow_registration")
+        ]);
+        
+        const localAuth = responses[0].ok ? (await responses[0].json()).value === "true" : true;
+        const microsoftAuth = responses[1].ok ? (await responses[1].json()).value === "true" : true;
+        const userRegistration = responses[2].ok ? (await responses[2].json()).value === "true" : false;
+        
+        setAuthSettings({
+          localAuth,
+          microsoftAuth,
+          userRegistration
+        });
+        
+        return { localAuth, microsoftAuth, userRegistration };
+      } catch (error) {
+        console.error("Failed to fetch authentication settings:", error);
+        return null;
+      }
+    }
+  });
+  
+  // Update auth settings mutation
+  const updateAuthSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: boolean }) => {
+      const res = await apiRequest("POST", "/api/app-settings", {
+        key,
+        value: String(value),
+        description: `Authentication setting for ${key}`
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/app-settings/auth"] });
+      toast({
+        title: "Setting updated",
+        description: "Authentication setting has been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update setting",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -345,6 +408,19 @@ export default function AdminPage() {
   // Handle assignment form submission
   const onAssignmentSubmit = (values: ProjectAssignmentFormValues) => {
     createAssignmentMutation.mutate(values);
+  };
+  
+  // Handle auth toggle changes
+  const handleAuthToggle = (setting: 'localAuth' | 'microsoftAuth' | 'userRegistration') => {
+    const newValue = !authSettings[setting];
+    setAuthSettings({ ...authSettings, [setting]: newValue });
+    
+    const settingKey = 
+      setting === 'localAuth' ? 'local_auth' :
+      setting === 'microsoftAuth' ? 'microsoft_auth' : 
+      'allow_registration';
+      
+    updateAuthSettingMutation.mutate({ key: settingKey, value: newValue });
   };
   
   // Render project assignments tab
@@ -917,24 +993,63 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>Authentication Settings</CardTitle>
                 <CardDescription>
-                  Configure user authentication methods.
+                  Configure user authentication methods and registration options.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">Local Authentication</h4>
                     <p className="text-sm text-muted-foreground">Allow users to login with username and password</p>
                   </div>
-                  <Badge>Enabled</Badge>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="local-auth" 
+                      checked={authSettings.localAuth}
+                      onCheckedChange={() => handleAuthToggle('localAuth')}
+                    />
+                    <Badge variant={authSettings.localAuth ? "default" : "outline"}>
+                      {authSettings.localAuth ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
                 </div>
+                
                 <Separator />
+                
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">Microsoft Authentication</h4>
                     <p className="text-sm text-muted-foreground">Allow users to login with Microsoft Entra ID</p>
                   </div>
-                  <Badge>Enabled</Badge>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="microsoft-auth" 
+                      checked={authSettings.microsoftAuth}
+                      onCheckedChange={() => handleAuthToggle('microsoftAuth')}
+                    />
+                    <Badge variant={authSettings.microsoftAuth ? "default" : "outline"}>
+                      {authSettings.microsoftAuth ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">User Registration</h4>
+                    <p className="text-sm text-muted-foreground">Allow new users to register accounts</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="user-registration" 
+                      checked={authSettings.userRegistration}
+                      onCheckedChange={() => handleAuthToggle('userRegistration')}
+                    />
+                    <Badge variant={authSettings.userRegistration ? "default" : "outline"}>
+                      {authSettings.userRegistration ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
                 </div>
               </CardContent>
             </Card>
