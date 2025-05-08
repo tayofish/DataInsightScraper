@@ -19,10 +19,10 @@ interface StatCardProps {
 const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false, onClick }: StatCardProps) => {
   return (
     <Card 
-      className="dashboard-stat-card hover:scale-105 overflow-hidden cursor-pointer"
+      className="dashboard-stat-card hover:scale-105 overflow-hidden cursor-pointer relative transition-all duration-200"
       onClick={onClick}
     >
-      <CardContent className="p-6">
+      <CardContent className="p-6 pb-7">
         <div className="flex items-center">
           <div className={`flex-shrink-0 ${iconBgColor} rounded-xl p-3 shadow-sm`}>
             <div className={iconColor}>{icon}</div>
@@ -40,11 +40,13 @@ const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = fals
             </dl>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 w-full h-1" style={{ 
+        <div className="absolute bottom-0 left-0 right-0 w-full h-1.5" style={{ 
           background: `linear-gradient(to right, ${iconColor.includes('blue') ? '#3b82f6' : 
                                              iconColor.includes('green') ? '#10b981' : 
                                              iconColor.includes('amber') ? '#f59e0b' : 
-                                             '#ef4444'}, transparent)` 
+                                             '#ef4444'}, transparent)`,
+          borderBottomLeftRadius: '0.5rem',
+          borderBottomRightRadius: '0.5rem'
         }}></div>
       </CardContent>
     </Card>
