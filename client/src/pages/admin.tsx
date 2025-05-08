@@ -141,7 +141,15 @@ export default function AdminPage() {
     queryKey: ["/api/app-settings/auth"],
     queryFn: async () => {
       try {
-        // Try to fetch the authentication settings, handling cases where they don't exist yet
+        // First try to get all auth settings at once from our new endpoint
+        const allResponse = await fetch("/api/app-settings/auth/all");
+        if (allResponse.ok) {
+          const settings = await allResponse.json();
+          setAuthSettings(settings);
+          return settings;
+        }
+        
+        // Fallback to individual queries if the endpoint fails
         const responses = await Promise.all([
           fetch("/api/app-settings/local_auth"),
           fetch("/api/app-settings/microsoft_auth"),

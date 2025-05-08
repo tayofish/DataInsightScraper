@@ -2524,6 +2524,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get all authentication settings
+  app.get("/api/app-settings/auth/all", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      if (!req.user.isAdmin) {
+        return res.status(403).json({ message: "Admin privileges required" });
+      }
+      
+      const settings = {
+        localAuth: true,
+        microsoftAuth: true,
+        userRegistration: false
+      };
+      
+      try {
+        const localAuthSetting = await storage.getAppSettingByKey("local_auth");
+        if (localAuthSetting) {
+          settings.localAuth = localAuthSetting.value === "true";
+        }
+      } catch (error) {
+        console.error("Error fetching local_auth setting:", error);
+      }
+      
+      try {
+        const microsoftAuthSetting = await storage.getAppSettingByKey("microsoft_auth");
+        if (microsoftAuthSetting) {
+          settings.microsoftAuth = microsoftAuthSetting.value === "true";
+        }
+      } catch (error) {
+        console.error("Error fetching microsoft_auth setting:", error);
+      }
+      
+      try {
+        const userRegSetting = await storage.getAppSettingByKey("allow_registration");
+        if (userRegSetting) {
+          settings.userRegistration = userRegSetting.value === "true";
+        }
+      } catch (error) {
+        console.error("Error fetching allow_registration setting:", error);
+      }
+      
+      return res.status(200).json(settings);
+    } catch (error) {
+      console.error("Error getting authentication settings:", error);
+      return res.status(500).json({ message: "Failed to get authentication settings" });
+    }
+  });
+  
   // Upload logo
   app.post("/api/app-settings/logo", upload.single('logo'), async (req, res) => {
     try {
