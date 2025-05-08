@@ -310,7 +310,7 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
   if (assignee.email) {
     await sendEmail({
       to: assignee.email,
-      subject: `[TaskScout] You've been assigned a task: ${task.title}`,
+      subject: `[Promellon] You've been assigned a task: ${task.title}`,
       html: `
         <h2>Task Assignment</h2>
         <p>Hello ${assigneeName},</p>
@@ -362,7 +362,7 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
   if (mentionedUser.email) {
     await sendEmail({
       to: mentionedUser.email,
-      subject: `[TaskScout] You were mentioned in a task: ${task.title}`,
+      subject: `[Promellon] You were mentioned in a task: ${task.title}`,
       html: `
         <h2>Mention in Task</h2>
         <p>Hello ${userName},</p>
@@ -425,7 +425,7 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
       try {
         await sendEmail({
           to: user.email,
-          subject: `[TaskScout] New comment on task: ${task.title}`,
+          subject: `[Promellon] New comment on task: ${task.title}`,
           html: `
             <h2>New Comment on Task</h2>
             <p>Hello ${userName},</p>
@@ -470,7 +470,7 @@ export async function notifyUserCreation(user: any, password: string | null, adm
   try {
     await createNotification(
       user.id,
-      `Welcome to TaskScout`,
+      `Welcome to Promellon`,
       `Your account has been created by ${adminName}. Please check your email for login information.`,
       'user_creation',
       user.id,
