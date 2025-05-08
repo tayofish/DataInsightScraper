@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCheck, Clock, ListTodo, AlertTriangle } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { TaskFilterValues } from './task-filters';
 
 interface StatCardProps {
   title: string;
@@ -57,7 +58,11 @@ interface TaskStatistics {
   overdue: number;
 }
 
-export default function DashboardStats() {
+interface DashboardStatsProps {
+  onFilterChange?: (filters: TaskFilterValues) => void;
+}
+
+export default function DashboardStats({ onFilterChange }: DashboardStatsProps) {
   const { data, isLoading } = useQuery<TaskStatistics>({
     queryKey: ['/api/tasks/statistics'],
   });
@@ -70,8 +75,31 @@ export default function DashboardStats() {
     overdue: data?.overdue || 0
   };
 
-  const handleCardClick = (filter: string, value: string) => {
-    navigate(`/tasks?${filter}=${value}`);
+  // Function to reset filters to default and apply only specific filters
+  const resetAndApplyFilter = (filterUpdates: Partial<TaskFilterValues>) => {
+    if (onFilterChange) {
+      // If onFilterChange prop is provided, use it (for in-page filtering)
+      onFilterChange({
+        assigneeId: null,
+        projectId: null,
+        categoryId: null,
+        department: '',
+        status: 'all',
+        priority: 'all',
+        search: '',
+        sortBy: 'dueDate',
+        ...filterUpdates
+      });
+    } else {
+      // Otherwise, navigate to tasks page with query params (for cross-page navigation)
+      const queryParams = new URLSearchParams();
+      Object.entries(filterUpdates).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          queryParams.set(key, value.toString());
+        }
+      });
+      navigate(`/tasks?${queryParams.toString()}`);
+    }
   };
 
   return (
@@ -83,7 +111,7 @@ export default function DashboardStats() {
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         isLoading={isLoading}
-        onClick={() => handleCardClick('customFilter', 'all')}
+        onClick={() => resetAndApplyFilter({})} // Reset to show all tasks
       />
       
       <StatCard
@@ -93,7 +121,7 @@ export default function DashboardStats() {
         iconBgColor="bg-green-100"
         iconColor="text-green-600"
         isLoading={isLoading}
-        onClick={() => handleCardClick('status', 'completed')}
+        onClick={() => resetAndApplyFilter({ status: 'completed' })}
       />
       
       <StatCard
@@ -103,7 +131,7 @@ export default function DashboardStats() {
         iconBgColor="bg-amber-100"
         iconColor="text-amber-600"
         isLoading={isLoading}
-        onClick={() => handleCardClick('status', 'todo,in_progress')}
+        onClick={() => resetAndApplyFilter({ status: 'todo,in_progress' })}
       />
       
       <StatCard
@@ -113,7 +141,7 @@ export default function DashboardStats() {
         iconBgColor="bg-red-100"
         iconColor="text-red-600"
         isLoading={isLoading}
-        onClick={() => handleCardClick('customFilter', 'overdue')}
+        onClick={() => resetAndApplyFilter({ customFilter: 'overdue' })}
       />
     </div>
   );

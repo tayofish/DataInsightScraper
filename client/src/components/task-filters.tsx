@@ -63,7 +63,17 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
 
   // Function to reset all filters
   const resetFilters = React.useCallback(() => {
-    form.reset(defaultValues);
+    form.reset({
+      assigneeId: -2, // -2 means "All Users"
+      projectId: -2,  // -2 means "All Projects"
+      categoryId: -2, // -2 means "All Categories"
+      department: 'all',
+      status: 'all',
+      priority: 'all',
+      search: '',
+      sortBy: 'dueDate',
+      customFilter: undefined
+    });
   }, [form]);
 
   return (

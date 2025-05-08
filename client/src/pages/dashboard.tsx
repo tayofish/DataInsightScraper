@@ -66,7 +66,7 @@ export default function Dashboard() {
       <div className="px-4 sm:px-6 md:px-8 mb-8">
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-100/50 dark:border-blue-800/20 shadow-sm">
           <h2 className="text-lg font-semibold mb-5 text-gray-800 dark:text-gray-200">Task Overview</h2>
-          <DashboardStats />
+          <DashboardStats onFilterChange={handleFilterChange} />
         </div>
       </div>
 
