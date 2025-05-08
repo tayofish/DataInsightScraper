@@ -953,31 +953,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (taskData.description && taskData.description !== currentTask.description) {
           const mentions = extractMentions(taskData.description);
           if (mentions.length > 0) {
+            console.log(`Found ${mentions.length} mentions in task description for task ${id}: [${mentions.join(', ')}]`);
+            
             // Process mentions (e.g. notify mentioned users)
             for (const username of mentions) {
-              // Record mention update
-              await storage.createTaskUpdate({
-                taskId: id,
-                userId: userId,
-                updateType: 'Mention',
-                previousValue: "",
-                newValue: username,
-                comment: `@${username} mentioned in task description`
-              });
-              
-              // Send email notification to mentioned user
               try {
                 const mentionedUser = await storage.getUserByUsername(username);
-                if (mentionedUser) {
-                  await emailService.notifyMention(
-                    updatedTask, 
-                    mentionedUser, 
-                    req.user, 
-                    taskData.description || ''
-                  );
+                
+                // Skip self-mentions
+                if (mentionedUser && mentionedUser.id !== userId) {
+                  console.log(`Processing description mention for user ${mentionedUser.username} (${mentionedUser.id})`);
+                  
+                  try {
+                    // Record mention update
+                    const mentionUpdate = await storage.createTaskUpdate({
+                      taskId: id,
+                      userId: userId,
+                      updateType: 'Mention',
+                      previousValue: "",
+                      newValue: username,
+                      comment: `@${username} mentioned in task description`
+                    });
+                    
+                    console.log(`Created mention update record: ${mentionUpdate.id}`);
+                    
+                    // Send mention notification
+                    try {
+                      await emailService.notifyMention(
+                        updatedTask, 
+                        mentionedUser, 
+                        req.user, 
+                        taskData.description || ''
+                      );
+                      console.log(`Successfully sent mention notification to ${mentionedUser.username} for task description mention`);
+                    } catch (mentionError) {
+                      console.error(`Error sending mention notification to ${mentionedUser.username} for task description:`, mentionError);
+                    }
+                  } catch (updateError) {
+                    console.error(`Error creating mention update for ${username} in task description:`, updateError);
+                  }
+                } else if (mentionedUser) {
+                  console.log(`Skipping self-mention for user ${username} in task description`);
+                } else {
+                  console.log(`Could not find user with username ${username} for task description mention notification`);
                 }
-              } catch (emailError) {
-                console.error(`Failed to send mention notification to ${username}:`, emailError);
+              } catch (userLookupError) {
+                console.error(`Error looking up mentioned user ${username} for task description:`, userLookupError);
               }
             }
           }
