@@ -179,7 +179,7 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
       try {
         const success = await sendEmail({
           to: assignee.email,
-          subject: `[TaskScout] New task assigned: ${task.title}`,
+          subject: `[Promellon] New task assigned: ${task.title}`,
           html: `
             <h2>New Task Assigned</h2>
             <p>Hello ${assigneeName},</p>
@@ -242,7 +242,7 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
         try {
           const success = await sendEmail({
             to: member.email,
-            subject: `[TaskScout] New task created in your project: ${task.title}`,
+            subject: `[Promellon] New task created in your project: ${task.title}`,
             html: `
               <h2>New Task Created</h2>
               <p>Hello ${memberName},</p>

@@ -96,7 +96,7 @@ export function Sidebar() {
             className="h-10 w-auto object-contain" 
           />
         ) : (
-          <span className="text-2xl font-bold gradient-heading">TaskScout</span>
+          <span className="text-2xl font-bold gradient-heading">Promellon</span>
         )}
       </div>
       <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">

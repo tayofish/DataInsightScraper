@@ -244,7 +244,7 @@ export default function SmtpConfigForm() {
                   <FormItem>
                     <FormLabel>From Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="TaskScout Notifications" {...field} />
+                      <Input placeholder="Promellon Notifications" {...field} />
                     </FormControl>
                     <FormDescription>
                       The name that will appear in the "From" field.

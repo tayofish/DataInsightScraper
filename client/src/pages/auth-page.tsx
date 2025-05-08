@@ -7,8 +7,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -42,16 +56,19 @@ export default function AuthPage() {
   // Get error message from URL if present
   useEffect(() => {
     const params = new URLSearchParams(search);
-    const error = params.get('error');
-    
+    const error = params.get("error");
+
     if (error) {
       const errorMessages: Record<string, string> = {
-        'microsoft_auth_error': 'An error occurred during Microsoft authentication. Please try again.',
-        'microsoft_auth_failed': 'Microsoft authentication failed. Please try again or use another login method.',
-        'microsoft_login_error': 'Unable to log you in with Microsoft account. Please try again later.'
+        microsoft_auth_error:
+          "An error occurred during Microsoft authentication. Please try again.",
+        microsoft_auth_failed:
+          "Microsoft authentication failed. Please try again or use another login method.",
+        microsoft_login_error:
+          "Unable to log you in with Microsoft account. Please try again later.",
       };
-      
-      setAuthError(errorMessages[error] || 'An authentication error occurred.');
+
+      setAuthError(errorMessages[error] || "An authentication error occurred.");
     }
   }, [search]);
 
@@ -99,31 +116,52 @@ export default function AuthPage() {
         <div className="w-full max-w-md mx-auto lg:w-96">
           <div className="mb-8">
             <h2 className="mt-6 text-3xl font-extrabold gradient-heading">
-              Welcome to TaskScout
+              Welcome to Promellon
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              {activeTab === "login" ? "Sign in to your account" : "Create a new account"}
+              {activeTab === "login"
+                ? "Sign in to your account"
+                : "Create a new account"}
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-2 mb-8 p-1 bg-gray-100/80 rounded-xl">
-              <TabsTrigger value="login" className="rounded-lg text-sm font-medium">Login</TabsTrigger>
-              <TabsTrigger value="register" className="rounded-lg text-sm font-medium">Register</TabsTrigger>
+              <TabsTrigger
+                value="login"
+                className="rounded-lg text-sm font-medium"
+              >
+                Login
+              </TabsTrigger>
+              <TabsTrigger
+                value="register"
+                className="rounded-lg text-sm font-medium"
+              >
+                Register
+              </TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
             <TabsContent value="login">
               <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden hover-card">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-xl text-gray-800">Welcome Back</CardTitle>
+                  <CardTitle className="text-xl text-gray-800">
+                    Welcome Back
+                  </CardTitle>
                   <CardDescription>
                     Enter your credentials to access your account
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...loginForm}>
-                    <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-4">
+                    <form
+                      onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={loginForm.control}
                         name="username"
@@ -131,10 +169,10 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="username" 
+                              <Input
+                                placeholder="username"
                                 className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -149,11 +187,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="••••••••" 
+                              <Input
+                                type="password"
+                                placeholder="••••••••"
                                 className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -161,9 +199,9 @@ export default function AuthPage() {
                         )}
                       />
 
-                      <Button 
-                        type="submit" 
-                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700" 
+                      <Button
+                        type="submit"
+                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
                         disabled={loginMutation.isPending}
                       >
                         {loginMutation.isPending ? (
@@ -197,11 +235,11 @@ export default function AuthPage() {
                       </div>
 
                       {/* Microsoft Login Button */}
-                      <a 
-                        href="/api/auth/entra" 
+                      <a
+                        href="/api/auth/entra"
                         className="inline-block w-full mt-4"
                       >
-                        <Button 
+                        <Button
                           variant="outline"
                           className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
                           type="button"
@@ -228,14 +266,19 @@ export default function AuthPage() {
             <TabsContent value="register">
               <Card className="border border-gray-200 shadow-lg rounded-xl overflow-hidden hover-card">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-xl text-gray-800">Join TaskScout</CardTitle>
+                  <CardTitle className="text-xl text-gray-800">
+                    Join Promellon
+                  </CardTitle>
                   <CardDescription>
                     Enter your information to create a new account
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Form {...registerForm}>
-                    <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
+                    <form
+                      onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                      className="space-y-4"
+                    >
                       <FormField
                         control={registerForm.control}
                         name="name"
@@ -243,10 +286,10 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="John Doe" 
+                              <Input
+                                placeholder="John Doe"
                                 className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -261,10 +304,10 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="johndoe" 
+                              <Input
+                                placeholder="johndoe"
                                 className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -279,11 +322,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="password" 
-                                placeholder="••••••••" 
+                              <Input
+                                type="password"
+                                placeholder="••••••••"
                                 className="rounded-lg py-6 px-4 border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                {...field} 
+                                {...field}
                               />
                             </FormControl>
                             <FormMessage />
@@ -291,9 +334,9 @@ export default function AuthPage() {
                         )}
                       />
 
-                      <Button 
-                        type="submit" 
-                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" 
+                      <Button
+                        type="submit"
+                        className="w-full py-6 text-base font-medium animated-button bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                         disabled={registerMutation.isPending}
                       >
                         {registerMutation.isPending ? (
@@ -327,11 +370,11 @@ export default function AuthPage() {
                       </div>
 
                       {/* Microsoft Login Button */}
-                      <a 
-                        href="/api/auth/entra" 
+                      <a
+                        href="/api/auth/entra"
                         className="inline-block w-full mt-4"
                       >
-                        <Button 
+                        <Button
                           variant="outline"
                           className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
                           type="button"
@@ -344,10 +387,7 @@ export default function AuthPage() {
                   </Form>
                 </CardContent>
                 <CardFooter className="flex justify-center">
-                  <Button
-                    variant="link"
-                    onClick={() => setActiveTab("login")}
-                  >
+                  <Button variant="link" onClick={() => setActiveTab("login")}>
                     Already have an account? Sign in
                   </Button>
                 </CardFooter>
@@ -365,34 +405,61 @@ export default function AuthPage() {
             <div className="absolute top-[-100px] right-[-50px] w-[300px] h-[300px] rounded-full bg-white/5 backdrop-blur-xl"></div>
             <div className="absolute bottom-[-150px] left-[-100px] w-[400px] h-[400px] rounded-full bg-white/5 backdrop-blur-sm"></div>
             <div className="absolute top-[30%] left-[20%] w-[200px] h-[200px] rounded-full bg-white/5 backdrop-blur-md"></div>
-            
+
             {/* Content */}
             <div className="max-w-2xl mx-auto text-white relative z-10">
               <div className="inline-block px-4 py-1 rounded-full bg-white/20 backdrop-blur-md mb-3 text-sm font-medium">
                 Modern Task Management
               </div>
               <h1 className="text-5xl font-bold mb-6 leading-tight">
-                Streamline Your <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">Workflow</span>
+                Streamline Your{" "}
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
+                  Workflow
+                </span>
               </h1>
               <p className="text-xl mb-10 text-blue-50 font-light leading-relaxed">
-                Track tasks, collaborate with team members, and boost productivity with our intuitive task management platform.
+                Track tasks, collaborate with team members, and boost
+                productivity with our intuitive task management platform.
               </p>
-              
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
                   <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <rect width="18" height="18" x="3" y="3" rx="2" />
                       <path d="m9 15 3-3 3 3" />
                       <path d="M9 9h6" />
                     </svg>
                     Organize Tasks
                   </h3>
-                  <p className="text-blue-100">Categorize and prioritize tasks to stay on top of your workload</p>
+                  <p className="text-blue-100">
+                    Categorize and prioritize tasks to stay on top of your
+                    workload
+                  </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
                   <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M12 20v-6" />
                       <path d="M6 20v-6" />
                       <path d="M18 20v-6" />
@@ -402,29 +469,56 @@ export default function AuthPage() {
                     </svg>
                     Track Progress
                   </h3>
-                  <p className="text-blue-100">Monitor task status and deadlines in real-time</p>
+                  <p className="text-blue-100">
+                    Monitor task status and deadlines in real-time
+                  </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
                   <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M18 8c0-3.3-2.7-6-6-6s-6 2.7-6 6 2.7 6 6 6h10" />
                       <path d="M18 16v-2" />
                       <path d="M18 20v-2" />
                     </svg>
                     Team Collaboration
                   </h3>
-                  <p className="text-blue-100">Assign tasks and communicate with team members</p>
+                  <p className="text-blue-100">
+                    Assign tasks and communicate with team members
+                  </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/10 hover:border-white/30 transition-all">
                   <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <path d="M8 2h8" />
                       <path d="M9 2v6.4a3 3 0 0 1-.8 2l-6.8 6.2a1 1 0 0 0 .8 1.8h8.8" />
                       <path d="M15 2v7.6a3 3 0 0 0 .8 2l6.8 6.2a1 1 0 0 1-.8 1.8H5.1" />
                     </svg>
                     Custom Categories
                   </h3>
-                  <p className="text-blue-100">Create department-specific categories for better organization</p>
+                  <p className="text-blue-100">
+                    Create department-specific categories for better
+                    organization
+                  </p>
                 </div>
               </div>
             </div>

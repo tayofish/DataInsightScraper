@@ -2154,7 +2154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: configData.username,
         password: configData.password,
         fromEmail: configData.fromEmail,
-        fromName: configData.fromName || 'TaskScout Notifications',
+        fromName: configData.fromName || 'Promellon Notifications',
         enableTls: configData.enableTls,
         active: configData.active,
       }).returning();
@@ -2228,7 +2228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: configData.username,
           password: passwordToUse,
           fromEmail: configData.fromEmail,
-          fromName: configData.fromName || 'TaskScout Notifications',
+          fromName: configData.fromName || 'Promellon Notifications',
           enableTls: configData.enableTls,
           active: configData.active,
           updatedAt: new Date(),
