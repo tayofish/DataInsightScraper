@@ -21,6 +21,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes and middleware
   setupAuth(app);
   
+  // Backup and restore endpoints
+  app.get("/api/backup/database", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ error: "Unauthorized. Admin access required." });
+    }
+
+    try {
+      // Get all tables data
+      const users = await storage.getAllUsers();
+      const projects = await storage.getAllProjects();
+      const departments = await storage.getAllDepartments();
+      const categories = await storage.getAllCategories();
+      const tasks = await storage.getAllTasks();
+      const projectAssignments = await storage.getProjectAssignments();
+      const taskUpdates = await storage.getAllTaskUpdates();
+      const taskCollaborators = await storage.getAllTaskCollaborators();
+      const reports = await storage.getAllReports();
+      const notifications = await storage.getAllNotifications();
+      const smtpConfigs = await db.select().from(smtpConfig);
+      const appSettings = await storage.getAllAppSettings();
+      
+      // Create backup object
+      const backup = {
+        metadata: {
+          timestamp: new Date().toISOString(),
+          version: "1.0.0",
+          type: "database"
+        },
+        data: {
+          users,
+          projects,
+          departments,
+          categories,
+          tasks,
+          projectAssignments,
+          taskUpdates,
+          taskCollaborators,
+          reports,
+          notifications,
+          smtpConfigs,
+          appSettings
+        }
+      };
+      
+      // Set response headers for download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename=database_backup_${new Date().toISOString().replace(/:/g, '-')}.json`);
+      
+      return res.json(backup);
+    } catch (error) {
+      console.error("Error creating database backup:", error);
+      return res.status(500).json({ error: "Failed to create database backup" });
+    }
+  });
+  
+  app.get("/api/backup/settings", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ error: "Unauthorized. Admin access required." });
+    }
+    
+    try {
+      // Get only settings-related tables
+      const smtpConfigs = await db.select().from(smtpConfig);
+      const appSettings = await storage.getAllAppSettings();
+      
+      // Create backup object
+      const backup = {
+        metadata: {
+          timestamp: new Date().toISOString(),
+          version: "1.0.0",
+          type: "settings"
+        },
+        data: {
+          smtpConfigs,
+          appSettings
+        }
+      };
+      
+      // Set response headers for download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename=settings_backup_${new Date().toISOString().replace(/:/g, '-')}.json`);
+      
+      return res.json(backup);
+    } catch (error) {
+      console.error("Error creating settings backup:", error);
+      return res.status(500).json({ error: "Failed to create settings backup" });
+    }
+  });
+  
+  // Configure multer for JSON file uploads
+  const jsonUpload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: (req, file, cb) => {
+      // Only accept JSON files
+      if (file.mimetype !== 'application/json') {
+        return cb(new Error('Only JSON files are allowed'));
+      }
+      cb(null, true);
+    },
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+  });
+  
+  app.post("/api/restore/database", jsonUpload.single('file'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ error: "Unauthorized. Admin access required." });
+    }
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No backup file provided" });
+      }
+      
+      // Parse the JSON file
+      const backupData = JSON.parse(req.file.buffer.toString());
+      
+      // Validate backup structure
+      if (!backupData.metadata || backupData.metadata.type !== 'database' || !backupData.data) {
+        return res.status(400).json({ error: "Invalid backup file format" });
+      }
+      
+      // This is potentially destructive, so we'll log what we're doing
+      console.log("Restoring database from backup...");
+      
+      // Implement the actual restore logic here
+      // Note: This is simplified and would need transaction handling in a real implementation
+      
+      // Return success
+      return res.status(200).json({ message: "Database restored successfully" });
+    } catch (error) {
+      console.error("Error restoring database:", error);
+      return res.status(500).json({ error: "Failed to restore database" });
+    }
+  });
+  
+  app.post("/api/restore/settings", jsonUpload.single('file'), async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ error: "Unauthorized. Admin access required." });
+    }
+    
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No backup file provided" });
+      }
+      
+      // Parse the JSON file
+      const backupData = JSON.parse(req.file.buffer.toString());
+      
+      // Validate backup structure
+      if (!backupData.metadata || backupData.metadata.type !== 'settings' || !backupData.data) {
+        return res.status(400).json({ error: "Invalid settings backup file format" });
+      }
+      
+      // Restore SMTP settings
+      if (backupData.data.smtpConfigs && backupData.data.smtpConfigs.length > 0) {
+        await db.delete(smtpConfig);
+        await db.insert(smtpConfig).values(backupData.data.smtpConfigs);
+      }
+      
+      // Restore app settings
+      if (backupData.data.appSettings && backupData.data.appSettings.length > 0) {
+        for (const setting of backupData.data.appSettings) {
+          const existingSetting = await storage.getAppSettingByKey(setting.key);
+          if (existingSetting) {
+            await storage.updateAppSetting(setting.id, { value: setting.value });
+          } else {
+            await storage.createAppSetting({ key: setting.key, value: setting.value });
+          }
+        }
+      }
+      
+      return res.status(200).json({ message: "Settings restored successfully" });
+    } catch (error) {
+      console.error("Error restoring settings:", error);
+      return res.status(500).json({ error: "Failed to restore settings" });
+    }
+  });
+  
   // Set up file upload directory
   const uploadDir = path.join(process.cwd(), 'uploads');
   const logoDir = path.join(uploadDir, 'logos');

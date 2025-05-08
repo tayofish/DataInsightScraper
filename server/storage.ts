@@ -616,6 +616,16 @@ export const storage = {
     return newUpdate;
   },
   
+  // Task Update operations for backup and restore
+  getAllTaskUpdates: async (): Promise<TaskUpdate[]> => {
+    return db.query.taskUpdates.findMany();
+  },
+  
+  // Task Collaborator operations for backup and restore
+  getAllTaskCollaborators: async (): Promise<TaskCollaborator[]> => {
+    return db.query.taskCollaborators.findMany();
+  },
+  
   // Task Collaborator operations
   getTaskCollaborators: async (taskId: number): Promise<(TaskCollaborator & { user?: User, inviter?: User })[]> => {
     return db.query.taskCollaborators.findMany({
@@ -958,6 +968,10 @@ export const storage = {
     const result = await db.delete(notifications)
       .where(eq(notifications.userId, userId));
     return result.rowCount || 0;
+  },
+  
+  getAllNotifications: async (): Promise<Notification[]> => {
+    return db.query.notifications.findMany();
   },
   
   getUnreadNotificationCount: async (userId: number): Promise<number> => {
