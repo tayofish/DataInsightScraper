@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
   Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail, ImageIcon,
-  Settings
+  Settings, Loader2
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -70,6 +70,57 @@ export default function AdminPage() {
     microsoftAuth: true,
     userRegistration: false
   });
+  
+  // Backup and restore state and handlers
+  const [isBackupRestoreLoading, setIsBackupRestoreLoading] = useState<boolean>(false);
+  
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'database' | 'settings') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsBackupRestoreLoading(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const endpoint = type === 'database' ? '/api/restore/database' : '/api/restore/settings';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to import ${type}`);
+      }
+      
+      toast({
+        title: "Success",
+        description: `${type.charAt(0).toUpperCase() + type.slice(1)} imported successfully.`,
+      });
+      
+      // Refresh the page to reflect the changes
+      if (type === 'settings') {
+        // For settings we just need to refresh the data
+        queryClient.invalidateQueries();
+      } else {
+        // For database we need a full page refresh
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error(`Error importing ${type}:`, error);
+      toast({
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : `Failed to import ${type}.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsBackupRestoreLoading(false);
+      // Reset the file input
+      e.target.value = '';
+    }
+  };
   
   // Project assignment states
   const [isAssignmentDialogOpen, setIsAssignmentDialogOpen] = useState(false);
@@ -976,20 +1027,94 @@ export default function AdminPage() {
               <CardContent className="space-y-4">
                 <div className="flex flex-col space-y-2">
                   <div className="flex space-x-2">
-                    <Button variant="outline">
-                      Export Database
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsBackupRestoreLoading(true);
+                        // Use a timeout to show loading state briefly before navigating
+                        setTimeout(() => {
+                          window.location.href = "/api/backup/database";
+                          // Reset loading state after download starts
+                          setTimeout(() => setIsBackupRestoreLoading(false), 1000);
+                        }, 200);
+                      }}
+                      disabled={isBackupRestoreLoading}
+                    >
+                      {isBackupRestoreLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        'Export Database'
+                      )}
                     </Button>
-                    <Button variant="outline">
-                      Export Settings
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setIsBackupRestoreLoading(true);
+                        // Use a timeout to show loading state briefly before navigating
+                        setTimeout(() => {
+                          window.location.href = "/api/backup/settings";
+                          // Reset loading state after download starts
+                          setTimeout(() => setIsBackupRestoreLoading(false), 1000);
+                        }, 200);
+                      }}
+                      disabled={isBackupRestoreLoading}
+                    >
+                      {isBackupRestoreLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Exporting...
+                        </>
+                      ) : (
+                        'Export Settings'
+                      )}
                     </Button>
                   </div>
                   <div className="flex space-x-2">
-                    <Button variant="outline">
-                      Import Database
-                    </Button>
-                    <Button variant="outline">
-                      Import Settings
-                    </Button>
+                    <label className={`cursor-pointer ${isBackupRestoreLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <Button variant="outline" asChild disabled={isBackupRestoreLoading}>
+                        <span>
+                          {isBackupRestoreLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Importing...
+                            </>
+                          ) : (
+                            'Import Database'
+                          )}
+                        </span>
+                      </Button>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="application/json"
+                        onChange={(e) => handleFileUpload(e, 'database')}
+                        disabled={isBackupRestoreLoading}
+                      />
+                    </label>
+                    <label className={`cursor-pointer ${isBackupRestoreLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+                      <Button variant="outline" asChild disabled={isBackupRestoreLoading}>
+                        <span>
+                          {isBackupRestoreLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Importing...
+                            </>
+                          ) : (
+                            'Import Settings'
+                          )}
+                        </span>
+                      </Button>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept="application/json"
+                        onChange={(e) => handleFileUpload(e, 'settings')}
+                        disabled={isBackupRestoreLoading}
+                      />
+                    </label>
                   </div>
                 </div>
               </CardContent>

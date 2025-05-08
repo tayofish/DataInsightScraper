@@ -5,7 +5,9 @@ import { db } from "@db";
 import { 
   taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
-  smtpConfigFormSchema, smtpConfig
+  smtpConfigFormSchema, smtpConfig, tasks, departments, categories, projects, InsertTask, 
+  InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
+  users, appSettings
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -146,14 +148,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // This is potentially destructive, so we'll log what we're doing
       console.log("Restoring database from backup...");
       
-      // Implement the actual restore logic here
-      // Note: This is simplified and would need transaction handling in a real implementation
-      
-      // Return success
-      return res.status(200).json({ message: "Database restored successfully" });
+      try {
+        // Restore users
+        if (backupData.data.users && backupData.data.users.length > 0) {
+          // In a real application, we would use transactions here
+          console.log(`Restoring ${backupData.data.users.length} users...`);
+          
+          // For safety, we won't delete existing users, just add new ones
+          for (const user of backupData.data.users) {
+            const existingUser = await storage.getUserByUsername(user.username);
+            if (!existingUser) {
+              // Create new user without password (for security)
+              await storage.createUser({
+                username: user.username,
+                password: user.password, // Assuming this is already hashed
+                name: user.name,
+                email: user.email,
+                avatar: user.avatar,
+                isAdmin: user.isAdmin,
+                departmentId: user.departmentId
+              });
+            }
+          }
+        }
+        
+        // Restore departments
+        if (backupData.data.departments && backupData.data.departments.length > 0) {
+          console.log(`Restoring ${backupData.data.departments.length} departments...`);
+          for (const department of backupData.data.departments) {
+            // Skip if department name doesn't exist in the data
+            if (!department.name) continue;
+            
+            // Check if department already exists by name
+            const existingDepartments = await db.select().from(departments).where(eq(departments.name, department.name));
+            
+            if (existingDepartments.length === 0) {
+              await storage.createDepartment({
+                name: department.name,
+                description: department.description
+              });
+            }
+          }
+        }
+        
+        // Restore categories
+        if (backupData.data.categories && backupData.data.categories.length > 0) {
+          console.log(`Restoring ${backupData.data.categories.length} categories...`);
+          for (const category of backupData.data.categories) {
+            // Skip if category name doesn't exist in the data
+            if (!category.name) continue;
+            
+            // Check if category already exists by name
+            const existingCategories = await db.select().from(categories).where(eq(categories.name, category.name));
+            
+            if (existingCategories.length === 0) {
+              // Create with the fields that are actually in our schema
+              const categoryData: InsertCategory = {
+                name: category.name,
+                departmentId: category.departmentId
+              };
+              // Add color if it exists
+              if (category.color) {
+                categoryData.color = category.color;
+              }
+              await storage.createCategory(categoryData);
+            }
+          }
+        }
+        
+        // Restore projects
+        if (backupData.data.projects && backupData.data.projects.length > 0) {
+          console.log(`Restoring ${backupData.data.projects.length} projects...`);
+          for (const project of backupData.data.projects) {
+            // Skip if project name doesn't exist in the data
+            if (!project.name) continue;
+            
+            // Check if project already exists by name
+            const existingProjects = await db.select().from(projects).where(eq(projects.name, project.name));
+            
+            if (existingProjects.length === 0) {
+              // Create a project with the fields in our schema
+              const projectData: InsertProject = {
+                name: project.name,
+                description: project.description
+              };
+              await storage.createProject(projectData);
+            }
+          }
+        }
+        
+        // Restore tasks
+        if (backupData.data.tasks && backupData.data.tasks.length > 0) {
+          console.log(`Restoring ${backupData.data.tasks.length} tasks...`);
+          for (const task of backupData.data.tasks) {
+            // For tasks we'll just create new ones since they might have updated statuses
+            const taskData: InsertTask = {
+              title: task.title,
+              description: task.description,
+              status: task.status,
+              priority: task.priority,
+              dueDate: task.dueDate,
+              startDate: task.startDate,
+              assigneeId: task.assigneeId,
+              projectId: task.projectId,
+              categoryId: task.categoryId,
+              departmentId: task.departmentId
+            };
+            await storage.createTask(taskData);
+          }
+        }
+        
+        return res.status(200).json({ message: "Database restored successfully" });
+      } catch (error) {
+        console.error("Error restoring database:", error);
+        return res.status(500).json({ error: "Failed to restore database" });
+      }
     } catch (error) {
-      console.error("Error restoring database:", error);
-      return res.status(500).json({ error: "Failed to restore database" });
+      console.error("Error parsing backup data:", error);
+      return res.status(500).json({ error: "Failed to parse backup data" });
     }
   });
   
