@@ -1204,31 +1204,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add mentioned users
           if (mentions.length > 0) {
+            console.log(`Found ${mentions.length} mentions in comment for task ${taskId}: [${mentions.join(', ')}]`);
+            
             for (const username of mentions) {
-              const mentionedUser = await storage.getUserByUsername(username);
-              if (mentionedUser && mentionedUser.id !== commentUser.id) {
-                // Record mention update
-                await storage.createTaskUpdate({
-                  taskId,
-                  userId: commentUser.id,
-                  updateType: 'Mention',
-                  previousValue: '',
-                  newValue: username,
-                  comment: `@${username} was mentioned in a comment`
-                });
+              try {
+                const mentionedUser = await storage.getUserByUsername(username);
                 
-                // Add to notification list if not already included
-                if (!usersToNotify.some(u => u.id === mentionedUser.id)) {
-                  usersToNotify.push(mentionedUser);
+                // Skip self-mentions
+                if (mentionedUser && mentionedUser.id !== commentUser.id) {
+                  console.log(`Processing mention for user ${mentionedUser.username} (${mentionedUser.id})`);
                   
-                  // Send mention notification
-                  await emailService.notifyMention(
-                    taskWithDetails, 
-                    mentionedUser, 
-                    commentUser, 
-                    commentData.comment
-                  );
+                  try {
+                    // Record mention update
+                    const mentionUpdate = await storage.createTaskUpdate({
+                      taskId,
+                      userId: commentUser.id,
+                      updateType: 'Mention',
+                      previousValue: '',
+                      newValue: username,
+                      comment: `@${username} was mentioned in a comment`
+                    });
+                    
+                    console.log(`Created mention update record: ${mentionUpdate.id}`);
+                    
+                    // Add to notification list if not already included
+                    if (!usersToNotify.some(u => u.id === mentionedUser.id)) {
+                      usersToNotify.push(mentionedUser);
+                      
+                      // Send mention notification immediately
+                      try {
+                        await emailService.notifyMention(
+                          taskWithDetails, 
+                          mentionedUser, 
+                          commentUser, 
+                          commentData.comment
+                        );
+                        console.log(`Successfully sent mention notification to ${mentionedUser.username}`);
+                      } catch (mentionError) {
+                        console.error(`Error sending mention notification to ${mentionedUser.username}:`, mentionError);
+                        // Continue processing other mentions even if this one failed
+                      }
+                    } else {
+                      console.log(`User ${mentionedUser.username} already in notification list, skipping duplicate mention notification`);
+                    }
+                  } catch (updateError) {
+                    console.error(`Error creating mention update for ${username}:`, updateError);
+                  }
+                } else if (mentionedUser) {
+                  console.log(`Skipping self-mention for user ${username}`);
+                } else {
+                  console.log(`Could not find user with username ${username} for mention notification`);
                 }
+              } catch (userLookupError) {
+                console.error(`Error looking up mentioned user ${username}:`, userLookupError);
               }
             }
           }

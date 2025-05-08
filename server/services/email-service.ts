@@ -340,38 +340,59 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
   console.log('Sending mention notification:', {
     taskId: task.id,
     mentionedUserId: mentionedUser.id,
-    mentionedUserEmail: mentionedUser.email,
-    mentionedById: mentionedBy?.id
+    mentionedUserEmail: mentionedUser.email || 'no-email',
+    mentionedById: mentionedBy?.id,
+    mentionerUsername: mentionedBy?.username || 'unknown',
+    mentionContent: comment.substring(0, 30) + (comment.length > 30 ? '...' : '')
   });
   
   const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
   const userName = mentionedUser.name || mentionedUser.username || 'User';
   const mentionerName = mentionedBy?.name || mentionedBy?.username || 'Admin';
   
-  // Create in-app notification
-  await createNotification(
-    mentionedUser.id,
-    `Mentioned in task: ${task.title}`,
-    `${mentionerName} mentioned you in a task: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
-    'task_mention',
-    task.id,
-    'task'
-  );
-  
-  // Send email notification if email is available
-  if (mentionedUser.email) {
-    await sendEmail({
-      to: mentionedUser.email,
-      subject: `[Promellon] You were mentioned in a task: ${task.title}`,
-      html: `
-        <h2>Mention in Task</h2>
-        <p>Hello ${userName},</p>
-        <p>${mentionerName} mentioned you in a task:</p>
-        <p><strong>${task.title}</strong></p>
-        <p>Comment: ${comment}</p>
-        <p><a href="${taskUrl}">View Task</a></p>
-      `,
-    });
+  try {
+    // Create in-app notification (always attempt this, regardless of email status)
+    const notification = await createNotification(
+      mentionedUser.id,
+      `Mentioned in task: ${task.title}`,
+      `${mentionerName} mentioned you in a task: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
+      'task_mention',
+      task.id,
+      'task'
+    );
+    
+    console.log(`Created in-app mention notification: ${notification?.id || 'unknown'} for user ${mentionedUser.id}`);
+    
+    // Send email notification if email is available
+    if (mentionedUser.email) {
+      try {
+        const emailSent = await sendEmail({
+          to: mentionedUser.email,
+          subject: `[Promellon] You were mentioned in a task: ${task.title}`,
+          html: `
+            <h2>Mention in Task</h2>
+            <p>Hello ${userName},</p>
+            <p>${mentionerName} mentioned you in a task:</p>
+            <p><strong>${task.title}</strong></p>
+            <p>Comment: ${comment}</p>
+            <p><a href="${taskUrl}">View Task</a></p>
+          `,
+        });
+        
+        console.log(`Email notification for mention sent: ${emailSent ? 'success' : 'failed'} for user ${mentionedUser.id}`);
+      } catch (emailError) {
+        console.error(`Failed to send mention email notification to ${mentionedUser.username}:`, emailError);
+        // Email failure doesn't mean the notification failed completely
+        // The in-app notification was still created
+      }
+    } else {
+      console.log(`User ${mentionedUser.id} (${mentionedUser.username}) has no email address, skipping email notification`);
+    }
+    
+    return notification;
+  } catch (error) {
+    console.error(`Failed to process mention notification for user ${mentionedUser.id}:`, error);
+    throw error; // Rethrow to allow the caller to handle it
   }
 }
 
