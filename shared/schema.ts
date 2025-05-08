@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   email: text("email"),
   avatar: text("avatar"),
   isAdmin: boolean("is_admin").default(false),
+  departmentId: integer("department_id").references(() => departments.id),
 });
 
 // Projects table
@@ -144,13 +145,17 @@ export const appSettings = pgTable("app_settings", {
 });
 
 // Define relationships
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   tasks: many(tasks),
   projectAssignments: many(projectAssignments),
   taskUpdates: many(taskUpdates),
   taskCollaborations: many(taskCollaborators),
   reportsCreated: many(reports, { relationName: "reportCreator" }),
   notifications: many(notifications),
+  department: one(departments, {
+    fields: [users.departmentId],
+    references: [departments.id],
+  }),
 }));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
@@ -160,6 +165,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
 
 export const departmentsRelations = relations(departments, ({ many }) => ({
   categories: many(categories),
+  users: many(users),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
