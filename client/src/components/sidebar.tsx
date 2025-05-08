@@ -65,10 +65,39 @@ export function Sidebar() {
     logoutMutation.mutate();
   };
 
+  const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    // Fetch the logo URL from the server
+    async function fetchLogo() {
+      try {
+        const response = await fetch('/api/app-settings/logo');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.value) {
+            setLogoUrl(data.value);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching logo:', error);
+      }
+    }
+    
+    fetchLogo();
+  }, []);
+
   const sidebarContent = (
     <>
       <div className="flex items-center flex-shrink-0 px-6 py-6">
-        <span className="text-2xl font-bold gradient-heading">TaskScout</span>
+        {logoUrl ? (
+          <img 
+            src={logoUrl} 
+            alt="Company Logo" 
+            className="h-10 w-auto object-contain" 
+          />
+        ) : (
+          <span className="text-2xl font-bold gradient-heading">TaskScout</span>
+        )}
       </div>
       <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">
         <NavItem href="/" icon={<LayoutDashboard size={20} />} isActive={location === '/'}>
