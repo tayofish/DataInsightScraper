@@ -24,7 +24,30 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 
+import { useEffect, useState } from "react";
+
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch the logo URL from the server
+    async function fetchLogo() {
+      try {
+        const response = await fetch('/api/app-settings/logo');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.value) {
+            setLogoUrl(data.value);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching logo:', error);
+      }
+    }
+    
+    fetchLogo();
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -40,6 +63,15 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="bg-primary/10 rounded-full px-3 py-1.5 flex items-center text-xs font-medium shadow-inner text-primary">
               <span className="mr-1">✨</span> Modern UI activated
             </div>
+            {logoUrl && (
+              <div className="h-10 w-auto overflow-hidden rounded-md border border-gray-100 shadow-sm">
+                <img 
+                  src={logoUrl} 
+                  alt="Company Logo" 
+                  className="h-full w-auto object-contain" 
+                />
+              </div>
+            )}
             <NotificationDropdown />
           </div>
         </header>
