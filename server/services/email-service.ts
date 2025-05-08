@@ -486,15 +486,15 @@ export async function notifyUserCreation(user: any, password: string | null, adm
     try {
       await sendEmail({
         to: user.email,
-        subject: `[TaskScout] Welcome to TaskScout - Account Created`,
+        subject: `[Promellon] Welcome to Promellon - Account Created`,
         html: `
-          <h2>Welcome to TaskScout</h2>
+          <h2>Welcome to Promellon</h2>
           <p>Hello ${userName},</p>
           <p>Your account has been created by ${adminName}.</p>
           <p>Here are your login details:</p>
           <p>Username: ${user.username}</p>
           ${password ? `<p>Password: ${password}</p>` : ''}
-          <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
+          <p>Please login at <a href="${loginUrl}">Promellon</a>.</p>
           ${password ? `<p>For security reasons, please change your password after the first login.</p>` : ''}
         `,
       });
@@ -544,13 +544,13 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
     try {
       await sendEmail({
         to: user.email,
-        subject: `[TaskScout] Your Password Has Been Reset`,
+        subject: `[Promellon] Your Password Has Been Reset`,
         html: `
           <h2>Password Reset</h2>
           <p>Hello ${userName},</p>
           <p>Your password has been reset.</p>
           <p>Your new password is: ${newPassword}</p>
-          <p>Please login at <a href="${loginUrl}">TaskScout</a>.</p>
+          <p>Please login at <a href="${loginUrl}">Promellon</a>.</p>
           <p>For security reasons, please change your password after login.</p>
         `,
       });
@@ -606,7 +606,7 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
     try {
       const success = await sendEmail({
         to: user.email,
-        subject: `[TaskScout] You've been invited to collaborate on: ${task.title}`,
+        subject: `[Promellon] You've been invited to collaborate on: ${task.title}`,
         html: `
           <h2>Task Collaboration Invitation</h2>
           <p>Hello ${userName},</p>
@@ -674,7 +674,7 @@ export async function notifyProjectAssignment(project: any, user: any, assignedB
     try {
       const success = await sendEmail({
         to: user.email,
-        subject: `[TaskScout] You've been added to project: ${project.name}`,
+        subject: `[Promellon] You've been added to project: ${project.name}`,
         html: `
           <h2>Project Assignment</h2>
           <p>Hello ${userName},</p>
