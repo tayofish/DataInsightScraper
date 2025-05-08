@@ -699,6 +699,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get task by ID
   app.get("/api/tasks/:id", async (req, res) => {
     try {
+      // If user is not authenticated, return 401
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid task ID" });
@@ -707,6 +712,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const task = await storage.getTaskById(id);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
+      }
+
+      // Get the authenticated user
+      const user = req.user as Express.User;
+      
+      // Admin users can access any task
+      if (user.isAdmin) {
+        return res.status(200).json(task);
+      }
+      
+      // For regular users, check if they have access to this task
+      const userDepartmentId = user.departmentId;
+      const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
+      const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
+      
+      // User can access a task if:
+      // 1. Task is in their department, OR
+      // 2. Task is from a project they're assigned to, OR
+      // 3. Task is assigned to them
+      const hasAccess = 
+        (userDepartmentId && task.departmentId === userDepartmentId) || 
+        (task.projectId && userProjectIds.includes(task.projectId)) ||
+        (task.assigneeId === user.id);
+      
+      if (!hasAccess) {
+        return res.status(403).json({ message: "Access denied to this task" });
       }
 
       return res.status(200).json(task);
