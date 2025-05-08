@@ -321,7 +321,8 @@ export const storage = {
       categoryId?: number,
       department?: string,
       departmentId?: string,
-      search?: string
+      search?: string,
+      isOverdue?: boolean
     }
   ): Promise<(Task & { project?: Project | null, assignee?: User | null, category?: Category | null, department?: Department | null })[]> => {
     // Build the base filter conditions (status, priority, etc.)
@@ -329,7 +330,14 @@ export const storage = {
     
     // Add standard filters
     if (filters?.status && filters.status !== 'all') {
-      filterConditions.push(eq(tasks.status, filters.status as any));
+      // Handle pipe-separated status values (converted from comma-separated in API)
+      if (filters.status.includes('|')) {
+        const statusValues = filters.status.split('|');
+        const statusConditions = statusValues.map(status => eq(tasks.status, status as any));
+        filterConditions.push(or(...statusConditions));
+      } else {
+        filterConditions.push(eq(tasks.status, filters.status as any));
+      }
     }
 
     if (filters?.priority && filters.priority !== 'all') {
@@ -374,6 +382,19 @@ export const storage = {
         or(
           sql`${tasks.title} ILIKE ${'%' + filters.search + '%'}`,
           sql`${tasks.description} ILIKE ${'%' + filters.search + '%'}`
+        )
+      );
+    }
+    
+    // Handle overdue tasks filter
+    if (filters?.isOverdue === true) {
+      const now = new Date();
+      filterConditions.push(
+        and(
+          // Due date is in the past
+          sql`${tasks.dueDate} < ${now}`,
+          // Task is not completed
+          sql`${tasks.status} != 'completed'`
         )
       );
     }
