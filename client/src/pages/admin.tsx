@@ -743,8 +743,8 @@ export default function AdminPage() {
                     <FormItem>
                       <FormLabel>Department</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                        value={field.value?.toString() || ""}
+                        onValueChange={(value) => field.onChange(value === "null" ? null : parseInt(value))}
+                        value={field.value?.toString() || "null"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -752,7 +752,7 @@ export default function AdminPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No Department</SelectItem>
+                          <SelectItem value="null">No Department</SelectItem>
                           {departments?.map((department) => (
                             <SelectItem key={department.id} value={department.id.toString()}>
                               {department.name}
