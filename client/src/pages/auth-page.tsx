@@ -453,10 +453,10 @@ export default function AuthPage() {
 
             {/* Content */}
             <div className="max-w-2xl mx-auto text-white relative z-10">
-              <div className="inline-block px-4 py-1 rounded-full bg-white/30 backdrop-blur-md mb-3 text-sm font-medium text-white">
+              <div className="inline-block px-4 py-1 rounded-full bg-white/30 backdrop-blur-md mb-3 text-sm font-medium text-white text-shadow">
                 Modern Task Management
               </div>
-              <h1 className="text-5xl font-bold mb-6 leading-tight">
+              <h1 className="text-5xl font-bold mb-6 leading-tight text-shadow">
                 Streamline Your{" "}
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
                   Workflow
@@ -469,7 +469,7 @@ export default function AuthPage() {
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
-                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white text-shadow">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -493,7 +493,7 @@ export default function AuthPage() {
                   </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
-                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white text-shadow">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -519,7 +519,7 @@ export default function AuthPage() {
                   </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
-                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white text-shadow">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
@@ -542,7 +542,7 @@ export default function AuthPage() {
                   </p>
                 </div>
                 <div className="glass-effect p-5 rounded-xl backdrop-blur-sm border border-white/20 bg-white/20 hover:border-white/40 hover:bg-white/25 transition-all">
-                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white">
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-2 text-white text-shadow">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       width="18"
