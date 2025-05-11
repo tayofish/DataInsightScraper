@@ -156,18 +156,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // For safety, we won't delete existing users, just add new ones
           for (const user of backupData.data.users) {
-            const existingUser = await storage.getUserByUsername(user.username);
-            if (!existingUser) {
-              // Create new user without password (for security)
-              await storage.createUser({
-                username: user.username,
-                password: user.password, // Assuming this is already hashed
-                name: user.name,
-                email: user.email,
-                avatar: user.avatar,
-                isAdmin: user.isAdmin,
-                departmentId: user.departmentId
-              });
+            try {
+              const existingUser = await storage.getUserByUsername(user.username);
+              if (!existingUser) {
+                console.log(`Creating user: ${user.username}`);
+                
+                // Process creation date fields if present
+                if (user.created_at && typeof user.created_at === 'string') {
+                  user.created_at = new Date(user.created_at);
+                }
+                
+                // Create new user with password (already hashed in backup)
+                await storage.createUser({
+                  username: user.username,
+                  password: user.password, // Assuming this is already hashed
+                  name: user.name || '',
+                  email: user.email || '',
+                  avatar: user.avatar,
+                  isAdmin: user.isAdmin || false,
+                  departmentId: user.departmentId
+                });
+              } else {
+                console.log(`User ${user.username} already exists, skipping`);
+              }
+            } catch (userError) {
+              console.error(`Error restoring user ${user.username}:`, userError);
+              // Continue with other users even if one fails
             }
           }
         }
@@ -176,17 +190,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (backupData.data.departments && backupData.data.departments.length > 0) {
           console.log(`Restoring ${backupData.data.departments.length} departments...`);
           for (const department of backupData.data.departments) {
-            // Skip if department name doesn't exist in the data
-            if (!department.name) continue;
-            
-            // Check if department already exists by name
-            const existingDepartments = await db.select().from(departments).where(eq(departments.name, department.name));
-            
-            if (existingDepartments.length === 0) {
-              await storage.createDepartment({
-                name: department.name,
-                description: department.description
-              });
+            try {
+              // Skip if department name doesn't exist in the data
+              if (!department.name) {
+                console.log("Skipping department with no name");
+                continue;
+              }
+              
+              // Process creation date fields if present
+              if (department.created_at && typeof department.created_at === 'string') {
+                department.created_at = new Date(department.created_at);
+              }
+              
+              // Check if department already exists by name
+              const existingDepartments = await db.select().from(departments).where(eq(departments.name, department.name));
+              
+              if (existingDepartments.length === 0) {
+                console.log(`Creating department: ${department.name}`);
+                await storage.createDepartment({
+                  name: department.name,
+                  description: department.description || ''
+                });
+              } else {
+                console.log(`Department ${department.name} already exists, skipping`);
+              }
+            } catch (deptError) {
+              console.error(`Error restoring department ${department.name}:`, deptError);
+              // Continue with other departments even if one fails
             }
           }
         }
@@ -195,23 +225,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (backupData.data.categories && backupData.data.categories.length > 0) {
           console.log(`Restoring ${backupData.data.categories.length} categories...`);
           for (const category of backupData.data.categories) {
-            // Skip if category name doesn't exist in the data
-            if (!category.name) continue;
-            
-            // Check if category already exists by name
-            const existingCategories = await db.select().from(categories).where(eq(categories.name, category.name));
-            
-            if (existingCategories.length === 0) {
-              // Create with the fields that are actually in our schema
-              const categoryData: InsertCategory = {
-                name: category.name,
-                departmentId: category.departmentId
-              };
-              // Add color if it exists
-              if (category.color) {
-                categoryData.color = category.color;
+            try {
+              // Skip if category name doesn't exist in the data
+              if (!category.name) {
+                console.log("Skipping category with no name");
+                continue;
               }
-              await storage.createCategory(categoryData);
+              
+              // Process creation date fields if present
+              if (category.created_at && typeof category.created_at === 'string') {
+                category.created_at = new Date(category.created_at);
+              }
+              
+              // Check if category already exists by name
+              const existingCategories = await db.select().from(categories).where(eq(categories.name, category.name));
+              
+              if (existingCategories.length === 0) {
+                console.log(`Creating category: ${category.name}`);
+                // Create with the fields that are actually in our schema
+                const categoryData: InsertCategory = {
+                  name: category.name,
+                  departmentId: category.departmentId
+                };
+                // Add color if it exists
+                if (category.color) {
+                  categoryData.color = category.color;
+                }
+                await storage.createCategory(categoryData);
+              } else {
+                console.log(`Category ${category.name} already exists, skipping`);
+              }
+            } catch (catError) {
+              console.error(`Error restoring category ${category.name}:`, catError);
+              // Continue with other categories even if one fails
             }
           }
         }
@@ -220,19 +266,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (backupData.data.projects && backupData.data.projects.length > 0) {
           console.log(`Restoring ${backupData.data.projects.length} projects...`);
           for (const project of backupData.data.projects) {
-            // Skip if project name doesn't exist in the data
-            if (!project.name) continue;
-            
-            // Check if project already exists by name
-            const existingProjects = await db.select().from(projects).where(eq(projects.name, project.name));
-            
-            if (existingProjects.length === 0) {
-              // Create a project with the fields in our schema
-              const projectData: InsertProject = {
-                name: project.name,
-                description: project.description
-              };
-              await storage.createProject(projectData);
+            try {
+              // Skip if project name doesn't exist in the data
+              if (!project.name) {
+                console.log("Skipping project with no name");
+                continue;
+              }
+              
+              // Process creation date fields if present
+              if (project.created_at && typeof project.created_at === 'string') {
+                project.created_at = new Date(project.created_at);
+              }
+              
+              // Check if project already exists by name
+              const existingProjects = await db.select().from(projects).where(eq(projects.name, project.name));
+              
+              if (existingProjects.length === 0) {
+                console.log(`Creating project: ${project.name}`);
+                // Create a project with the fields in our schema
+                const projectData: InsertProject = {
+                  name: project.name,
+                  description: project.description || ''
+                };
+                await storage.createProject(projectData);
+              } else {
+                console.log(`Project ${project.name} already exists, skipping`);
+              }
+            } catch (projError) {
+              console.error(`Error restoring project ${project.name}:`, projError);
+              // Continue with other projects even if one fails
             }
           }
         }
@@ -241,34 +303,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (backupData.data.tasks && backupData.data.tasks.length > 0) {
           console.log(`Restoring ${backupData.data.tasks.length} tasks...`);
           for (const task of backupData.data.tasks) {
-            // For tasks we'll just create new ones since they might have updated statuses
-            // Create task data with properly formatted dates
-            const taskData: InsertTask = {
-              title: task.title,
-              description: task.description,
-              status: task.status,
-              priority: task.priority,
-              // Convert string dates to Date objects
-              dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-              startDate: task.startDate ? new Date(task.startDate) : undefined,
-              assigneeId: task.assigneeId,
-              projectId: task.projectId,
-              categoryId: task.categoryId,
-              departmentId: task.departmentId
-              // Remove creatorId as it's not in our schema
-            };
-            await storage.createTask(taskData);
+            try {
+              // Skip if task title doesn't exist in the data
+              if (!task.title) {
+                console.log("Skipping task with no title");
+                continue;
+              }
+              
+              console.log(`Creating task: ${task.title}`);
+              // Create task data with properly formatted dates
+              const taskData: InsertTask = {
+                title: task.title,
+                description: task.description || '',
+                status: task.status || 'todo',
+                priority: task.priority || 'medium',
+                // Convert string dates to Date objects
+                dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+                startDate: task.startDate ? new Date(task.startDate) : undefined,
+                assigneeId: task.assigneeId,
+                projectId: task.projectId,
+                categoryId: task.categoryId,
+                departmentId: task.departmentId
+              };
+              await storage.createTask(taskData);
+            } catch (taskError) {
+              console.error(`Error restoring task ${task.title}:`, taskError);
+              // Continue with other tasks even if one fails
+            }
           }
         }
         
         return res.status(200).json({ message: "Database restored successfully" });
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("Error restoring database:", error);
-        return res.status(500).json({ error: "Failed to restore database" });
+        return res.status(500).json({ error: `Failed to restore database: ${errorMessage}` });
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error parsing backup data:", error);
-      return res.status(500).json({ error: "Failed to parse backup data" });
+      return res.status(500).json({ error: `Failed to parse backup data: ${errorMessage}` });
     }
   });
   
@@ -345,8 +419,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       return res.status(200).json({ message: "Settings restored successfully" });
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error restoring settings:", error);
-      return res.status(500).json({ error: "Failed to restore settings" });
+      return res.status(500).json({ error: `Failed to restore settings: ${errorMessage}` });
     }
   });
   
