@@ -23,19 +23,40 @@ export async function initializeEmailService() {
     smtpSettings = configs[0];
     
     // Create the transporter
-    transporter = nodemailer.createTransport({
-      host: smtpSettings.host,
-      port: smtpSettings.port,
-      secure: smtpSettings.port === 465, // Only use secure for port 465
-      auth: {
-        user: smtpSettings.username,
-        pass: smtpSettings.password,
-      },
-      tls: {
-        // Do not fail on invalid certs
-        rejectUnauthorized: false
-      }
-    });
+    // Special case for Zeptomail which requires specific authentication
+    if (smtpSettings.host.includes('zeptomail')) {
+      console.log('Using Zeptomail-specific configuration');
+      transporter = nodemailer.createTransport({
+        host: smtpSettings.host,
+        port: smtpSettings.port,
+        secure: smtpSettings.port === 465, // Only use secure for port 465
+        auth: {
+          user: smtpSettings.username,
+          pass: smtpSettings.password.includes('/') 
+            ? smtpSettings.password.replace(/\s/g, '') // Remove any spaces that might have been introduced
+            : smtpSettings.password, // Use password as is if it doesn't look like an encrypted version
+        },
+        tls: {
+          // Do not fail on invalid certs
+          rejectUnauthorized: false
+        }
+      });
+    } else {
+      // Standard configuration for other SMTP providers
+      transporter = nodemailer.createTransport({
+        host: smtpSettings.host,
+        port: smtpSettings.port,
+        secure: smtpSettings.port === 465, // Only use secure for port 465
+        auth: {
+          user: smtpSettings.username,
+          pass: smtpSettings.password,
+        },
+        tls: {
+          // Do not fail on invalid certs
+          rejectUnauthorized: false
+        }
+      });
+    }
     
     // Verify connection
     await transporter.verify();
