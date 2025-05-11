@@ -242,13 +242,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Restoring ${backupData.data.tasks.length} tasks...`);
           for (const task of backupData.data.tasks) {
             // For tasks we'll just create new ones since they might have updated statuses
+            // Create task data with properly formatted dates
             const taskData: InsertTask = {
               title: task.title,
               description: task.description,
               status: task.status,
               priority: task.priority,
-              dueDate: task.dueDate,
-              startDate: task.startDate,
+              // Convert string dates to Date objects
+              dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+              startDate: task.startDate ? new Date(task.startDate) : undefined,
               assigneeId: task.assigneeId,
               projectId: task.projectId,
               categoryId: task.categoryId,
@@ -291,17 +293,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Restore SMTP settings
       if (backupData.data.smtpConfigs && backupData.data.smtpConfigs.length > 0) {
         await db.delete(smtpConfig);
-        await db.insert(smtpConfig).values(backupData.data.smtpConfigs);
+        
+        // Process and fix date fields before insertion
+        const processedConfigs = backupData.data.smtpConfigs.map(config => {
+          const processed = { ...config };
+          
+          // Convert string timestamps to Date objects
+          if (processed.created_at && typeof processed.created_at === 'string') {
+            processed.created_at = new Date(processed.created_at);
+          }
+          
+          if (processed.updated_at && typeof processed.updated_at === 'string') {
+            processed.updated_at = new Date(processed.updated_at);
+          }
+          
+          return processed;
+        });
+        
+        await db.insert(smtpConfig).values(processedConfigs);
       }
       
       // Restore app settings
       if (backupData.data.appSettings && backupData.data.appSettings.length > 0) {
         for (const setting of backupData.data.appSettings) {
-          const existingSetting = await storage.getAppSettingByKey(setting.key);
-          if (existingSetting) {
-            await storage.updateAppSetting(setting.id, { value: setting.value });
-          } else {
-            await storage.createAppSetting({ key: setting.key, value: setting.value });
+          try {
+            // Process dates if they exist
+            const settingData = { ...setting };
+            
+            // Convert string timestamps to Date objects if they exist
+            if (settingData.created_at && typeof settingData.created_at === 'string') {
+              settingData.created_at = new Date(settingData.created_at);
+            }
+            
+            if (settingData.updated_at && typeof settingData.updated_at === 'string') {
+              settingData.updated_at = new Date(settingData.updated_at);
+            }
+            
+            // Check if setting already exists
+            const existingSetting = await storage.getAppSettingByKey(setting.key);
+            if (existingSetting) {
+              await storage.updateAppSetting(setting.id, { value: setting.value });
+            } else {
+              await storage.createAppSetting({ key: setting.key, value: setting.value });
+            }
+          } catch (error) {
+            console.error(`Error restoring app setting ${setting.key}:`, error);
+            // Continue with other settings even if one fails
           }
         }
       }
