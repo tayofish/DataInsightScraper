@@ -557,9 +557,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: "Authentication required" });
     }
     
-    // For now, we're considering user with ID 4 (admin) as the admin user
-    // In a production system, you'd have a proper role system
-    if (req.user.id !== 4) {
+    // Check the isAdmin flag on the user object
+    if (!req.user.isAdmin) {
       return res.status(403).json({ message: "Admin privileges required" });
     }
     
