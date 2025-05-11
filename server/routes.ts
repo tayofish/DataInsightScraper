@@ -242,6 +242,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (existingCategories.length === 0) {
                 console.log(`Creating category: ${category.name}`);
+                
+                // Check if referenced department exists (if specified)
+                if (category.departmentId) {
+                  const departmentExists = await db.select().from(departments).where(eq(departments.id, category.departmentId));
+                  if (departmentExists.length === 0) {
+                    console.log(`Category ${category.name} references non-existent department ID ${category.departmentId}, setting to null`);
+                    category.departmentId = null;
+                  }
+                }
+                
                 // Create with the fields that are actually in our schema
                 const categoryData: InsertCategory = {
                   name: category.name,
@@ -308,6 +318,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (!task.title) {
                 console.log("Skipping task with no title");
                 continue;
+              }
+              
+              // Verify that referenced foreign keys exist before creating the task
+              if (task.assigneeId) {
+                const userExists = await db.select().from(users).where(eq(users.id, task.assigneeId));
+                if (userExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced assignee ID ${task.assigneeId} does not exist`);
+                  continue;
+                }
+              }
+              
+              if (task.projectId) {
+                const projectExists = await db.select().from(projects).where(eq(projects.id, task.projectId));
+                if (projectExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced project ID ${task.projectId} does not exist`);
+                  continue;
+                }
+              }
+              
+              if (task.categoryId) {
+                const categoryExists = await db.select().from(categories).where(eq(categories.id, task.categoryId));
+                if (categoryExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced category ID ${task.categoryId} does not exist`);
+                  continue;
+                }
+              }
+              
+              if (task.departmentId) {
+                const departmentExists = await db.select().from(departments).where(eq(departments.id, task.departmentId));
+                if (departmentExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced department ID ${task.departmentId} does not exist`);
+                  continue;
+                }
               }
               
               console.log(`Creating task: ${task.title}`);
