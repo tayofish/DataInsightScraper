@@ -2797,15 +2797,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Special case for Zeptomail which requires specific authentication
       if (configData.host.includes('zeptomail')) {
         console.log('Using Zeptomail-specific configuration for test');
+        
+        // Use the environment variable API key if available, otherwise use the provided password
+        const apiKey = process.env.ZEPTOMAIL_API_KEY || configData.password;
+        
         transporter = nodemailer.createTransport({
           host: configData.host,
           port: configData.port,
           secure: configData.port === 465, // Only use secure for port 465
           auth: {
             user: configData.username,
-            pass: configData.password.includes('/') 
-              ? configData.password.replace(/\s/g, '') // Remove any spaces that might have been introduced
-              : configData.password, // Use password as is if it doesn't look like an encrypted version
+            pass: apiKey
           },
           tls: {
             // Do not fail on invalid certs

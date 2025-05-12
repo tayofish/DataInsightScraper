@@ -26,15 +26,17 @@ export async function initializeEmailService() {
     // Special case for Zeptomail which requires specific authentication
     if (smtpSettings.host.includes('zeptomail')) {
       console.log('Using Zeptomail-specific configuration');
+      
+      // Use the environment variable API key if available, otherwise fall back to database stored key
+      const apiKey = process.env.ZEPTOMAIL_API_KEY || smtpSettings.password;
+      
       transporter = nodemailer.createTransport({
         host: smtpSettings.host,
         port: smtpSettings.port,
         secure: smtpSettings.port === 465, // Only use secure for port 465
         auth: {
           user: smtpSettings.username,
-          pass: smtpSettings.password.includes('/') 
-            ? smtpSettings.password.replace(/\s/g, '') // Remove any spaces that might have been introduced
-            : smtpSettings.password, // Use password as is if it doesn't look like an encrypted version
+          pass: apiKey
         },
         tls: {
           // Do not fail on invalid certs
