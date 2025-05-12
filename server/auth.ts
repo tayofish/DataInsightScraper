@@ -125,7 +125,7 @@ export function setupAuth(app: Express) {
     responseType: 'code',
     responseMode: 'query',
     redirectUrl: process.env.NODE_ENV === 'production' 
-      ? 'https://yourdomain.com/api/auth/entra/callback' 
+      ? 'https://mist.promellon.com/api/auth/entra/callback' 
       : 'http://localhost:5000/api/auth/entra/callback',
     clientSecret: process.env.ENTRA_CLIENT_SECRET || '',
     validateIssuer: true,
