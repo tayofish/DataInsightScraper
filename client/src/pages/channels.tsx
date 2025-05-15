@@ -470,9 +470,10 @@ const ChannelsPage: FC = () => {
           // Rough calculation - can be refined
           const charWidth = 8; // Approximate width of a character
           
+          // Position dropdown below the input, aligned with cursor position
           setMentionPosition({
-            top: inputRect.height + 5,
-            left: Math.min((lastAtPos * charWidth), inputRect.width - 200)
+            top: inputRect.height + 5, // Position below the input
+            left: 0 // Start at the beginning of the input
           });
         }
         
