@@ -225,4 +225,8 @@ BEGIN
     END IF;
 END$$;
 
-RAISE NOTICE 'Database schema update completed successfully!';
+-- Final success message
+DO $$
+BEGIN
+    RAISE NOTICE 'Database schema update completed successfully!';
+END $$;
