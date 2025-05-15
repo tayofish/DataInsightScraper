@@ -450,12 +450,38 @@ export default function ChannelsPage() {
     if (messageText.trim() === '') return;
     
     if (selectedChannelId) {
+      console.log("Sending message to channel:", selectedChannelId, messageText);
+      
       // Using WebSocket for real-time messaging
       sendMessage({
         type: "channel_message",
         channelId: selectedChannelId,
         content: messageText
       });
+      
+      // Add direct API call as fallback
+      if (wsStatus !== 'connected') {
+        console.log("WebSocket not connected, using API fallback");
+        
+        fetch(`/api/channels/${selectedChannelId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            content: messageText,
+          }),
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log("Message sent via API:", data);
+          // Manually refresh messages
+          messagesQuery.refetch();
+        })
+        .catch(error => {
+          console.error("Error sending message via API:", error);
+        });
+      }
       
       setMessageText("");
       setIsTyping(false);
