@@ -4011,8 +4011,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   userId: user.id,
                   title: "Mentioned in channel",
                   message: `${sender?.name} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-                  link: `/channels/${channelId}`,
-                  read: false
+                  type: "mention",
+                  referenceId: newMessage.id,
+                  referenceType: "channel_message",
+                  isRead: false
                 });
                 
                 try {
@@ -4114,8 +4116,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: receiverId,
             title: "New direct message",
             message: `${sender.name} sent you a message: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-            link: `/messages/${ws.userId}`,
-            read: false
+            type: "direct_message",
+            referenceId: newMessage.id,
+            referenceType: "direct_message",
+            isRead: false
           });
           
           // Send message to receiver if they're connected
