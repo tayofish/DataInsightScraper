@@ -3532,19 +3532,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      // Check if user is a member of any channels
+      const userMemberships = await db.query.channelMembers.findMany({
+        where: eq(channelMembers.userId, req.user!.id),
+      });
+      
+      // Get all member channel IDs
+      const memberChannelIds = userMemberships.map(member => member.channelId);
+      
       const allChannels = await db.query.channels.findMany({
-        where: (fields, { eq, or, and, isNull }) => {
+        where: (fields, { eq, or, and, isNull, inArray }) => {
           return or(
             eq(fields.type, 'public'),
-            and(
-              eq(fields.type, 'private'),
-              // User is a member of this private channel
-              eq(channels.id, db.select({ id: channelMembers.channelId })
-                .from(channelMembers)
-                .where(eq(channelMembers.userId, req.user!.id))
-                .limit(1)
-              )
-            )
+            inArray(fields.id, memberChannelIds)
           );
         },
         with: {
