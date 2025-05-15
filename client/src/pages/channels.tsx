@@ -1,7 +1,21 @@
 import { FC, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
-import { Shield, ChevronRight, Plus, Users, MessagesSquare, Settings, Search } from "lucide-react";
+import { 
+  Shield, 
+  ChevronRight, 
+  Plus, 
+  Users, 
+  MessagesSquare, 
+  Settings, 
+  Search,
+  UserPlus,
+  Trash,
+  Edit,
+  X,
+  Crown,
+  ShieldCheck
+} from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +60,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -69,6 +113,12 @@ const ChannelsPage: FC = () => {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [membersSheetOpen, setMembersSheetOpen] = useState(false);
+  const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
+  const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
+  const [newMemberId, setNewMemberId] = useState<number | null>(null);
+  const [memberRole, setMemberRole] = useState("member");
+  const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<number | null>(null);
   
   // Fetch all available channels
   const {
@@ -80,6 +130,16 @@ const ChannelsPage: FC = () => {
     enabled: !!user,
   });
 
+  // Fetch detailed info for the selected channel
+  const {
+    data: channelDetails,
+    isLoading: isLoadingChannelDetails,
+    error: channelDetailsError,
+  } = useQuery<any>({
+    queryKey: [`/api/channels/${selectedChannelId}`],
+    enabled: !!selectedChannelId && !!user
+  });
+  
   // Fetch messages for the selected channel
   const {
     data: messages = [],
@@ -88,6 +148,15 @@ const ChannelsPage: FC = () => {
   } = useQuery<any[]>({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
     enabled: !!selectedChannelId && !!user
+  });
+  
+  // Fetch all users for member management
+  const {
+    data: allUsers = [],
+    isLoading: isLoadingUsers,
+  } = useQuery<any[]>({
+    queryKey: ['/api/users'],
+    enabled: !!user
   });
 
   // Create a new channel
@@ -149,9 +218,134 @@ const ChannelsPage: FC = () => {
       });
     },
   });
+  
+  // Add a member to the channel
+  const addMemberMutation = useMutation({
+    mutationFn: async (data: { userId: number; role: string }) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to add member");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setNewMemberId(null);
+      setAddMemberDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}`] });
+      toast({
+        title: "Member added",
+        description: "User has been added to the channel",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to add member",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Remove a member from the channel
+  const removeMemberMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members/${userId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to remove member");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setConfirmRemoveMemberId(null);
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}`] });
+      toast({
+        title: "Member removed",
+        description: "User has been removed from the channel",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to remove member",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update a member's role
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async (data: { userId: number; role: string }) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members/${data.userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: data.role }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update member role");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}`] });
+      toast({
+        title: "Role updated",
+        description: "Member's role has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update role",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Update channel settings
+  const updateChannelMutation = useMutation({
+    mutationFn: async (data: { name?: string; description?: string; type?: string }) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update channel");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setSettingsSheetOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+      toast({
+        title: "Channel updated",
+        description: "Channel settings have been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to update channel",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Form for creating a new channel
-  const form = useForm<ChannelFormValues>({
+  const createForm = useForm<ChannelFormValues>({
     resolver: zodResolver(channelFormSchema),
     defaultValues: {
       name: "",
@@ -160,9 +354,35 @@ const ChannelsPage: FC = () => {
     },
   });
 
+  // Form for editing a channel
+  const editForm = useForm<ChannelFormValues>({
+    resolver: zodResolver(channelFormSchema),
+    defaultValues: {
+      name: channelDetails?.name || "",
+      description: channelDetails?.description || "",
+      type: channelDetails?.type || "public",
+    },
+  });
+  
+  // Update form values when channel details change
+  useEffect(() => {
+    if (channelDetails) {
+      editForm.reset({
+        name: channelDetails.name || "",
+        description: channelDetails.description || "",
+        type: channelDetails.type || "public",
+      });
+    }
+  }, [channelDetails, editForm]);
+
   // Submit handler for channel creation form
-  const onSubmit = (values: ChannelFormValues) => {
+  const onCreateSubmit = (values: ChannelFormValues) => {
     createChannelMutation.mutate(values);
+  };
+  
+  // Submit handler for channel edit form
+  const onEditSubmit = (values: ChannelFormValues) => {
+    updateChannelMutation.mutate(values);
   };
 
   // Handle message submission
@@ -266,10 +486,10 @@ const ChannelsPage: FC = () => {
                   Channels are where your team communicates. They're best organized around a topic.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Form {...createForm}>
+                <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -282,7 +502,7 @@ const ChannelsPage: FC = () => {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -399,13 +619,335 @@ const ChannelsPage: FC = () => {
                 </span>
               </div>
               <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Users className="h-4 w-4 mr-2" />
-                  Members
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4" />
-                </Button>
+                <Sheet open={membersSheetOpen} onOpenChange={setMembersSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Users className="h-4 w-4 mr-2" />
+                      Members
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center">
+                        <Users className="mr-2 h-5 w-5" />
+                        Channel Members
+                      </SheetTitle>
+                      <SheetDescription>
+                        Manage members and their roles in this channel
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-4">
+                      <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button className="mb-4">
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Add Member
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Add a new member</DialogTitle>
+                            <DialogDescription>
+                              Select a user and role to add them to this channel.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                              <label htmlFor="user" className="text-sm font-medium">User</label>
+                              <Select
+                                onValueChange={(value) => setNewMemberId(parseInt(value))}
+                                value={newMemberId?.toString() || ""}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a user" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {allUsers
+                                    .filter(u => 
+                                      // Filter out users who are already members
+                                      !channelDetails?.members?.some(m => m.userId === u.id)
+                                    )
+                                    .map(u => (
+                                      <SelectItem key={u.id} value={u.id.toString()}>
+                                        {u.username}
+                                      </SelectItem>
+                                    ))
+                                  }
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <label htmlFor="role" className="text-sm font-medium">Role</label>
+                              <Select
+                                onValueChange={setMemberRole}
+                                defaultValue="member"
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="member">Member</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="owner">Owner</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          <DialogFooter>
+                            <Button 
+                              onClick={() => {
+                                if (newMemberId) {
+                                  addMemberMutation.mutate({
+                                    userId: newMemberId,
+                                    role: memberRole,
+                                  });
+                                }
+                              }}
+                              disabled={!newMemberId || addMemberMutation.isPending}
+                            >
+                              {addMemberMutation.isPending ? "Adding..." : "Add Member"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <div className="space-y-2">
+                        {isLoadingChannelDetails ? (
+                          <div className="space-y-2">
+                            {Array(3).fill(0).map((_, i) => (
+                              <Skeleton key={i} className="h-14 w-full" />
+                            ))}
+                          </div>
+                        ) : channelDetailsError ? (
+                          <div className="text-center text-destructive">
+                            Failed to load channel members
+                          </div>
+                        ) : channelDetails?.members?.length === 0 ? (
+                          <div className="text-center text-muted-foreground py-4">
+                            No members in this channel yet
+                          </div>
+                        ) : (
+                          <div>
+                            {channelDetails?.members?.map((member: any) => (
+                              <div key={member.id} className="flex items-center justify-between p-2 border-b last:border-b-0">
+                                <div className="flex items-center space-x-3">
+                                  <Avatar>
+                                    <AvatarImage src={member.user?.avatar} />
+                                    <AvatarFallback>
+                                      {member.user?.username ? member.user.username.substring(0, 2).toUpperCase() : "??"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-medium flex items-center">
+                                      {member.user?.username}
+                                      {member.role === 'owner' && (
+                                        <Crown className="h-4 w-4 ml-1 text-amber-500" />
+                                      )}
+                                      {member.role === 'admin' && (
+                                        <ShieldCheck className="h-4 w-4 ml-1 text-blue-500" />
+                                      )}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Joined {new Date(member.joinedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Current user is owner or admin or site admin */}
+                                {(channelDetails?.members?.some((m: any) => 
+                                  m.userId === user?.id && ['owner', 'admin'].includes(m.role)
+                                ) || user?.isAdmin) && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <Settings className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>Member Actions</DropdownMenuLabel>
+                                      
+                                      {/* Role selection - only owners can change roles */}
+                                      {(channelDetails?.members?.some((m: any) => 
+                                        m.userId === user?.id && m.role === 'owner'
+                                      ) || user?.isAdmin) && (
+                                        <>
+                                          <DropdownMenuItem
+                                            onClick={() => updateMemberRoleMutation.mutate({
+                                              userId: member.userId,
+                                              role: 'member'
+                                            })}
+                                            disabled={member.role === 'member'}
+                                          >
+                                            Make Member
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => updateMemberRoleMutation.mutate({
+                                              userId: member.userId,
+                                              role: 'admin'
+                                            })}
+                                            disabled={member.role === 'admin'}
+                                          >
+                                            Make Admin
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => updateMemberRoleMutation.mutate({
+                                              userId: member.userId,
+                                              role: 'owner'
+                                            })}
+                                            disabled={member.role === 'owner'}
+                                          >
+                                            Make Owner
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                        </>
+                                      )}
+
+                                      {/* Remove option - with restrictions */}
+                                      {/* Cannot remove self if owner (must transfer ownership first) */}
+                                      {((member.userId !== user?.id || member.role !== 'owner') &&
+                                        // Owners can remove anyone
+                                        (channelDetails?.members?.some((m: any) => 
+                                          m.userId === user?.id && m.role === 'owner'
+                                        ) || 
+                                        // Admins can remove members but not owners
+                                        (channelDetails?.members?.some((m: any) => 
+                                          m.userId === user?.id && m.role === 'admin'
+                                        ) && member.role !== 'owner') ||
+                                        // Site admin can remove anyone
+                                        user?.isAdmin)
+                                      ) && (
+                                        <DropdownMenuItem
+                                          className="text-destructive"
+                                          onClick={() => setConfirmRemoveMemberId(member.userId)}
+                                        >
+                                          <Trash className="h-4 w-4 mr-2" />
+                                          Remove
+                                        </DropdownMenuItem>
+                                      )}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+
+                                {/* Confirmation dialog for member removal */}
+                                <AlertDialog 
+                                  open={confirmRemoveMemberId === member.userId} 
+                                  onOpenChange={(open) => !open && setConfirmRemoveMemberId(null)}
+                                >
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Remove Member</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to remove {member.user?.username} from this channel? 
+                                        This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        onClick={() => removeMemberMutation.mutate(member.userId)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        {removeMemberMutation.isPending ? "Removing..." : "Remove"}
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+                
+                <Sheet open={settingsSheetOpen} onOpenChange={setSettingsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent>
+                    <SheetHeader>
+                      <SheetTitle className="flex items-center">
+                        <Settings className="mr-2 h-5 w-5" />
+                        Channel Settings
+                      </SheetTitle>
+                      <SheetDescription>
+                        Update channel details and permissions
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="py-4">
+                      <Form {...editForm}>
+                        <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                          <FormField
+                            control={editForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Channel Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="e.g. marketing" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="What's this channel about?" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editForm.control}
+                            name="type"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Privacy</FormLabel>
+                                <FormControl>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    defaultValue={field.value}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select channel type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="public">
+                                        Public - Anyone in the workspace can join
+                                      </SelectItem>
+                                      <SelectItem value="private">
+                                        Private - Only invited people can join
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="pt-4">
+                            <Button 
+                              type="submit" 
+                              className="w-full"
+                              disabled={updateChannelMutation.isPending}
+                            >
+                              {updateChannelMutation.isPending ? "Saving..." : "Save Changes"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </div>
+                  </SheetContent>
+                </Sheet>
               </div>
             </div>
 
