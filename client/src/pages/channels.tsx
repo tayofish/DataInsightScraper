@@ -103,7 +103,7 @@ type ChannelFormValues = z.infer<typeof channelFormSchema>;
 
 export default function ChannelsPage() {
   const { user } = useAuth();
-  const { sendMessage } = useWebSocket();
+  const { sendMessage, status: wsStatus } = useWebSocket();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -155,10 +155,15 @@ export default function ChannelsPage() {
   // Get all channels
   const channelsQuery = useQuery({
     queryKey: ["/api/channels"],
+    enabled: !!user, // Only fetch channels if user is authenticated
     onSuccess: (data) => {
-      setChannels(data);
-      if (data.length > 0 && !selectedChannelId) {
-        setSelectedChannelId(data[0].id);
+      if (Array.isArray(data)) {
+        setChannels(data);
+        if (data.length > 0 && !selectedChannelId) {
+          setSelectedChannelId(data[0].id);
+        }
+      } else {
+        console.error("Channels data is not an array:", data);
       }
     },
   });
@@ -166,9 +171,13 @@ export default function ChannelsPage() {
   // Get channel messages
   const messagesQuery = useQuery({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
-    enabled: !!selectedChannelId,
+    enabled: !!selectedChannelId && !!user && wsStatus === 'connected',
     onSuccess: (data) => {
-      setMessages(data);
+      if (Array.isArray(data)) {
+        setMessages(data);
+      } else {
+        console.error("Messages data is not an array:", data);
+      }
     },
   });
   
