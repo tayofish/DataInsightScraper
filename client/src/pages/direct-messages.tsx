@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
@@ -28,13 +29,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Mocked WebSocket connection (will be implemented later)
-let socket: WebSocket | null = null;
-
 const DirectMessagesPage: FC = () => {
   const { id: userId } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { sendMessage, status: wsStatus } = useWebSocket();
   const [message, setMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(userId ? parseInt(userId) : null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

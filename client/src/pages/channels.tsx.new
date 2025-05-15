@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import { FC, useState, useEffect, useRef, KeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { 
@@ -90,14 +90,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Channel, channelFormSchema } from "@shared/schema";
 import { Textarea } from "@/components/ui/textarea";
-
-// Tabs component for channel settings
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
 
 type ChannelFormValues = z.infer<typeof channelFormSchema>;
 
@@ -209,7 +201,7 @@ export default function ChannelsPage() {
         description: `${data.name} has been created successfully`,
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Failed to create channel",
         description: error.message,
@@ -240,7 +232,7 @@ export default function ChannelsPage() {
         description: "The user has been added to the channel",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Failed to add member",
         description: error.message,
@@ -273,7 +265,7 @@ export default function ChannelsPage() {
         description: "Channel settings have been updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Failed to update channel",
         description: error.message,
@@ -303,7 +295,7 @@ export default function ChannelsPage() {
         description: "The channel has been deleted",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Failed to delete channel",
         description: error.message,
@@ -330,9 +322,37 @@ export default function ChannelsPage() {
         description: "The user has been removed from the channel",
       });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({
         title: "Failed to remove member",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Send a message in the channel
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content, type: "text" }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send message");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setMessageText("");
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to send message",
         description: error.message,
         variant: "destructive",
       });
@@ -507,13 +527,13 @@ export default function ChannelsPage() {
     if (!content) return "";
     
     const regex = /@(\w+)/g;
-    const fragments: React.ReactNode[] = [];
+    const fragments = [];
     let lastIndex = 0;
-    let match;
     
     // Match all @mentions in the content
-    while ((match = regex.exec(content)) !== null) {
-      const matchIndex = match.index;
+    for (const match of content.matchAll(regex)) {
+      const matchIndex = match.index || 0;
+      const username = match[1];
       
       // Add text before this mention
       if (matchIndex > lastIndex) {
@@ -533,7 +553,7 @@ export default function ChannelsPage() {
       );
       
       // Update lastIndex to after this mention
-      lastIndex = matchIndex + match[0].length;
+      lastIndex = (match.index || 0) + match[0].length;
     }
     
     // Add any remaining text after the last mention
@@ -744,10 +764,10 @@ export default function ChannelsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => (
+                {messages.map((message, i) => (
                   <div key={message.id} className="flex items-start gap-3 group">
                     <Avatar>
-                      <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                      <AvatarFallback>{message.user?.username[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -789,7 +809,7 @@ export default function ChannelsPage() {
                         onClick={() => insertMention(user)}
                       >
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">{user.username[0]?.toUpperCase() || '?'}</AvatarFallback>
+                          <AvatarFallback className="text-xs">{user.username[0]?.toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <span className="font-medium">{user.username}</span>
                         {user.name && <span className="text-xs text-muted-foreground">({user.name})</span>}
@@ -975,7 +995,7 @@ export default function ChannelsPage() {
                               <div className="flex items-center gap-2">
                                 <Avatar className="h-8 w-8">
                                   <AvatarFallback>
-                                    {member.user?.username?.[0]?.toUpperCase() || '?'}
+                                    {member.user?.username?.[0]?.toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
@@ -1051,3 +1071,11 @@ export default function ChannelsPage() {
     </div>
   );
 }
+
+// Tabs component for channel settings
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
