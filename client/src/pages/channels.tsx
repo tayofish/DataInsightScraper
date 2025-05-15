@@ -515,7 +515,7 @@ const ChannelsPage: FC = () => {
                     )}
                   />
                   <FormField
-                    control={form.control}
+                    control={createForm.control}
                     name="type"
                     render={({ field }) => (
                       <FormItem>
