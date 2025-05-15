@@ -589,55 +589,124 @@ const ChannelsPage: FC = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     if (!user) return;
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-      // Authenticate the WebSocket connection
-      if (socket && user) {
-        socket.send(JSON.stringify({
-          type: "auth",
-          userId: user.id,
-          username: user.username,
-        }));
-      }
-    };
-
-    socket.onmessage = (event) => {
+    let reconnectAttempts = 0;
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    
+    // Function to create and set up the WebSocket
+    const setupWebSocket = () => {
       try {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
-
-        // Handle different message types
-        if (data.type === "new_channel_message" && data.message.channelId === selectedChannelId) {
-          // Add the new message to the current messages
-          queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
-        } else if (data.type === "auth_success") {
-          console.log("WebSocket authentication successful");
+        // Use a relative path for WebSocket to work with Nginx reverse proxy
+        // This ensures the WebSocket connects to the same host/port as the page
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        
+        // For PM2 and Nginx compatibility, use a relative WebSocket URL
+        // that will work regardless of proxy setup
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        console.log("Connecting to WebSocket at:", wsUrl);
+        
+        // Clean up any existing socket
+        if (socket) {
+          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            socket.close();
+          }
         }
+        
+        // Create new socket with improved error handling
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = () => {
+          console.log("WebSocket connection established");
+          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+          
+          // Authenticate the WebSocket connection
+          if (socket && socket.readyState === WebSocket.OPEN && user) {
+            try {
+              const authData = {
+                type: "auth",
+                userId: user.id,
+                username: user.username,
+              };
+              socket.send(JSON.stringify(authData));
+            } catch (err) {
+              console.error("Error sending authentication data:", err);
+            }
+          }
+        };
+        
+        socket.onmessage = (event) => {
+          try {
+            // Make sure the event data is a non-empty string before parsing
+            if (typeof event.data !== 'string' || !event.data.trim()) {
+              console.warn("Received empty or non-string WebSocket message");
+              return;
+            }
+            
+            const data = JSON.parse(event.data);
+            console.log("WebSocket message received:", data);
+            
+            // Handle different message types
+            if (data.type === "new_channel_message" && data.message && data.message.channelId === selectedChannelId) {
+              // Add the new message to the current messages
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
+            } else if (data.type === "auth_success") {
+              console.log("WebSocket authentication successful");
+            } else if (data.type === "welcome") {
+              console.log("Received welcome message from server");
+            }
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error, "Raw data:", 
+              typeof event.data, 
+              event.data?.substring ? event.data.substring(0, 100) : "non-string data"
+            );
+          }
+        };
+        
+        socket.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+        
+        socket.onclose = (event) => {
+          console.log(`WebSocket connection closed: Code ${event.code}${event.reason ? `, Reason: ${event.reason}` : ''}`);
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts < 5) { // Limit reconnection attempts
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff with 30s max
+            console.log(`Attempting to reconnect in ${delay/1000} seconds...`);
+            reconnectTimer = setTimeout(() => {
+              reconnectAttempts++;
+              setupWebSocket();
+            }, delay);
+          } else {
+            console.log("Maximum reconnection attempts reached. Please refresh the page.");
+          }
+        };
       } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
+        console.error("Error setting up WebSocket:", error);
       }
     };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
+    
+    // Set up the WebSocket initially
+    setupWebSocket();
+    
+    // Clean up function
     return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      
       if (socket) {
-        socket.close();
+        try {
+          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            socket.close();
+          }
+        } catch (err) {
+          console.error("Error closing WebSocket:", err);
+        }
       }
     };
-  }, [user, selectedChannelId]);
+  }, [user, selectedChannelId, queryClient]);
 
   // Helper function to highlight mentions in messages
   const renderMessageContent = (content: string) => {

@@ -304,8 +304,15 @@ const DirectMessagesPage: FC = () => {
     // Function to create and set up the WebSocket
     const setupWebSocket = () => {
       try {
+        // Use a relative path for WebSocket to work with Nginx reverse proxy
+        // This ensures the WebSocket connects to the same host/port as the page
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        
+        // For PM2 and Nginx compatibility, use a relative WebSocket URL
+        // that will work regardless of proxy setup
         const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        console.log("Connecting to WebSocket at:", wsUrl);
         
         // Clean up any existing socket
         if (socket) {
@@ -314,7 +321,7 @@ const DirectMessagesPage: FC = () => {
           }
         }
         
-        // Create new socket
+        // Create new socket with improved error handling
         socket = new WebSocket(wsUrl);
         
         socket.onopen = () => {
