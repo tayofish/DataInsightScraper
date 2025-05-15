@@ -124,6 +124,13 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
               queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
             }
+          } else if (data.type === 'error') {
+            console.error('[WebSocket] Error from server:', data.message);
+          } else if (data.type === 'typing_indicator') {
+            // Handle typing indicators
+            console.log('[WebSocket] Typing indicator received:', data);
+          } else {
+            console.log('[WebSocket] Unhandled message type:', data.type);
           }
         } catch (error) {
           console.error('[WebSocket] Error parsing message:', error);
