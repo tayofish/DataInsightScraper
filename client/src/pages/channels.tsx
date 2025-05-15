@@ -470,15 +470,12 @@ const ChannelsPage: FC = () => {
           // Rough calculation - can be refined
           const charWidth = 8; // Approximate width of a character
           
-          // Position dropdown right under the cursor relative to the @ symbol
-          // Get the position of the character closest to the @ symbol
-          const atSymbolX = lastAtPos * 8; // Approximate width of a character
-          
+          // Position dropdown right above the input field
           setMentionPosition({
-            // Position at the top of the input, adjust by negative value to move up from the input
-            top: -240, 
-            // Align with the @ symbol horizontal position
-            left: Math.max(5, Math.min(atSymbolX, inputRect.width - 250))
+            // Position just above the input field with a small gap
+            top: -35,
+            // Start near the beginning of the input with slight offset
+            left: 10
           });
         }
         
@@ -1287,7 +1284,7 @@ const ChannelsPage: FC = () => {
                   {/* Mentions dropdown */}
                   {mentionDropdownOpen && (
                     <div 
-                      className="absolute z-10 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto"
+                      className="absolute z-10 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto mt-1"
                       style={{ 
                         top: mentionPosition.top,
                         left: mentionPosition.left
