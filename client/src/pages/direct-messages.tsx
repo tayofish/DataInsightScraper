@@ -52,20 +52,20 @@ const DirectMessagesPage: FC = () => {
 
   // Fetch all users for new conversation
   const {
-    data: allUsers,
+    data: allUsers = [],
     isLoading: isLoadingUsers,
     error: usersError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/users"],
     enabled: !!user && newConversationDialogOpen,
   });
 
   // Fetch messages for the selected conversation
   const {
-    data: messages,
+    data: messages = [],
     isLoading: isLoadingMessages,
     error: messagesError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/direct-messages", selectedUserId],
     enabled: !!selectedUserId && !!user,
   });
