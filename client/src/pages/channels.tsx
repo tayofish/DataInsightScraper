@@ -157,9 +157,12 @@ export default function ChannelsPage() {
     queryKey: ["/api/channels"],
     enabled: !!user, // Only fetch channels if user is authenticated
     onSuccess: (data) => {
+      console.log("Channel data received:", data);
       if (Array.isArray(data)) {
+        console.log("Setting channels:", data.length);
         setChannels(data);
         if (data.length > 0 && !selectedChannelId) {
+          console.log("Setting selected channel ID:", data[0].id);
           setSelectedChannelId(data[0].id);
         }
       } else {
@@ -662,6 +665,11 @@ export default function ChannelsPage() {
         </div>
         
         <ScrollArea className="flex-1">
+          {(() => {
+            console.log("Rendering channel section. isLoading:", channelsQuery.isLoading);
+            console.log("Current channels state:", channels);
+            return null;
+          })()}
           {channelsQuery.isLoading ? (
             <div className="space-y-2 p-2">
               {[...Array(5)].map((_, i) => (
@@ -670,6 +678,10 @@ export default function ChannelsPage() {
                   <Skeleton className="h-4 w-full" />
                 </div>
               ))}
+            </div>
+          ) : channels.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No channels available. Create a new channel to get started.
             </div>
           ) : (
             <div className="space-y-1 p-2">
