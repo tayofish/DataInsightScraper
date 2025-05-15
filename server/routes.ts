@@ -8,7 +8,7 @@ import {
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
   smtpConfigFormSchema, smtpConfig, tasks, departments, categories, projects, InsertTask, 
   InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
-  users, appSettings,
+  users, appSettings, notifications,
   // Collaboration features
   channelInsertSchema, messageInsertSchema, directMessageInsertSchema, userActivityInsertSchema,
   channels, messages, directMessages, userActivities, InsertChannel, InsertMessage, InsertDirectMessage,
@@ -3490,7 +3490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const isMember = channel.members.some(m => m.userId === user.id);
             if (!isMember && channel.type !== 'public') continue;
             
-            await db.insert(notifications).values({
+            await db.insert(db.dynamic.ref("notifications")).values({
               userId: user.id,
               title: "Mentioned in channel",
               message: `${req.user!.name} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
