@@ -38,7 +38,15 @@ const DirectMessagesPage: FC = () => {
   const [message, setMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(userId ? parseInt(userId) : null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
+  
+  // Mention functionality
+  const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [cursorPosition, setCursorPosition] = useState(0);
   
   // Helper function to highlight mentions in messages
   const renderMessageContent = (content: string) => {
@@ -157,6 +165,115 @@ const DirectMessagesPage: FC = () => {
   const startConversation = (userId: number) => {
     setSelectedUserId(userId);
     setNewConversationDialogOpen(false);
+  };
+
+  // Handle input change and detect mentions
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    
+    // Check for @ mentions
+    const cursorPos = e.target.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    // Find the last @ symbol before cursor
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtPos !== -1 && (lastAtPos === 0 || /\s/.test(value[lastAtPos - 1]))) {
+      // Extract the partial username after @
+      const afterAt = textBeforeCursor.substring(lastAtPos + 1);
+      
+      // If there's no space after the @username part being typed
+      if (!afterAt.includes(' ')) {
+        setMentionQuery(afterAt);
+        setMentionStartIndex(lastAtPos);
+        setSelectedMentionIndex(0); // Reset selection index when query changes
+        
+        setMentionDropdownOpen(true);
+        return;
+      }
+    }
+    
+    // If we get here, we're not in a mention context
+    setMentionDropdownOpen(false);
+  };
+  
+  // Handle keyboard navigation in the mentions dropdown
+  const handleMessageKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!mentionDropdownOpen) return;
+    
+    // Get filtered users based on current query
+    const filteredUsers = allUsers.filter(user => {
+      const query = mentionQuery.toLowerCase();
+      const username = user.username.toLowerCase();
+      
+      if (username.startsWith(query)) return true;
+      if (username.includes('_' + query) || username.includes('.' + query)) return true;
+      return username.includes(query);
+    }).sort((a, b) => {
+      const queryLower = mentionQuery.toLowerCase();
+      const aStartsWith = a.username.toLowerCase().startsWith(queryLower);
+      const bStartsWith = b.username.toLowerCase().startsWith(queryLower);
+      
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+      return a.username.localeCompare(b.username);
+    }).slice(0, 5);
+    
+    const maxIndex = filteredUsers.length - 1;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedMentionIndex(prevIndex => 
+          prevIndex < maxIndex ? prevIndex + 1 : prevIndex
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedMentionIndex(prevIndex => 
+          prevIndex > 0 ? prevIndex - 1 : 0
+        );
+        break;
+      case 'Tab':
+      case 'Enter':
+        if (filteredUsers.length > 0) {
+          e.preventDefault();
+          insertMention(filteredUsers[selectedMentionIndex].username);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setMentionDropdownOpen(false);
+        break;
+    }
+  };
+  
+  // Insert a mention at cursor position
+  const insertMention = (username: string) => {
+    if (mentionStartIndex === -1) return;
+    
+    const beforeMention = message.substring(0, mentionStartIndex);
+    const afterMention = message.substring(cursorPosition);
+    
+    const newMessage = `${beforeMention}@${username} ${afterMention}`;
+    setMessage(newMessage);
+    
+    // Close the dropdown and reset mention state
+    setMentionDropdownOpen(false);
+    setMentionStartIndex(-1);
+    
+    // Focus back on input
+    setTimeout(() => {
+      if (messageInputRef.current) {
+        messageInputRef.current.focus();
+        
+        // Position cursor right after the inserted mention and space
+        const newCursorPos = mentionStartIndex + username.length + 2; // @ + username + space
+        messageInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }, 0);
   };
 
   // Handle message submission
@@ -518,13 +635,107 @@ const DirectMessagesPage: FC = () => {
             {/* Message Input */}
             <div className="p-4 border-t">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  disabled={sendMessageMutation.isPending}
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    ref={messageInputRef}
+                    placeholder="Type a message... (use @ to mention users)"
+                    value={message}
+                    onChange={handleInputChange}
+                    onKeyDown={handleMessageKeyDown}
+                    disabled={sendMessageMutation.isPending}
+                    className="flex-1"
+                  />
+                  
+                  {/* Mentions dropdown */}
+                  {mentionDropdownOpen && (
+                    <div 
+                      className="absolute z-50 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto mt-1"
+                      style={{ 
+                        bottom: "45px", /* Position above the input field */
+                        left: "10px"    /* Offset from the left edge */
+                      }}
+                    >
+                      {allUsers
+                        .filter(user => {
+                          const query = mentionQuery.toLowerCase();
+                          const username = user.username.toLowerCase();
+                          // First prioritize exact prefix matches
+                          if (username.startsWith(query)) {
+                            return true;
+                          }
+                          // Then check for word boundary matches (underscore, period, etc)
+                          if (username.includes('_' + query) || 
+                              username.includes('.' + query)) {
+                            return true;
+                          }
+                          // Finally, include any substring matches
+                          return username.includes(query);
+                        })
+                        // Sort results: exact prefix matches first, then partial matches
+                        .sort((a, b) => {
+                          const queryLower = mentionQuery.toLowerCase();
+                          const aStartsWith = a.username.toLowerCase().startsWith(queryLower);
+                          const bStartsWith = b.username.toLowerCase().startsWith(queryLower);
+                          
+                          if (aStartsWith && !bStartsWith) return -1;
+                          if (!aStartsWith && bStartsWith) return 1;
+                          return a.username.localeCompare(b.username);
+                        })
+                        .slice(0, 5)
+                        .map((user, idx) => {
+                          // Highlight the matching portion of the username
+                          const username = user.username;
+                          const matchIndex = username.toLowerCase().indexOf(mentionQuery.toLowerCase());
+                          
+                          let usernameDisplay;
+                          if (matchIndex >= 0 && mentionQuery.length > 0) {
+                            const before = username.substring(0, matchIndex);
+                            const match = username.substring(matchIndex, matchIndex + mentionQuery.length);
+                            const after = username.substring(matchIndex + mentionQuery.length);
+                            
+                            usernameDisplay = (
+                              <>
+                                {before}
+                                <span className="font-bold text-accent-foreground">{match}</span>
+                                {after}
+                              </>
+                            );
+                          } else {
+                            usernameDisplay = username;
+                          }
+                          
+                          return (
+                            <div
+                              key={user.id}
+                              className={`p-2 cursor-pointer flex items-center ${
+                                selectedMentionIndex === idx 
+                                  ? 'bg-accent font-semibold' 
+                                  : 'hover:bg-accent/50'
+                              }`}
+                              onClick={() => insertMention(user.username)}
+                            >
+                              <Avatar className="h-6 w-6 mr-2">
+                                <AvatarImage src={user.avatar} />
+                                <AvatarFallback>
+                                  {user.username.substring(0, 2).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{usernameDisplay}</span>
+                            </div>
+                          );
+                        })}
+                      {allUsers.filter(user => {
+                        const query = mentionQuery.toLowerCase();
+                        const username = user.username.toLowerCase();
+                        return username.includes(query);
+                      }).length === 0 && (
+                        <div className="p-2 text-muted-foreground">
+                          No users found matching "{mentionQuery}"
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button 
                   type="submit" 
                   disabled={sendMessageMutation.isPending || !message.trim()}
