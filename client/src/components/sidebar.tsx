@@ -16,7 +16,9 @@ import {
   Building2,
   LogOut,
   Shield,
-  BarChart2
+  BarChart2,
+  MessageSquare,
+  MessagesSquare
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -113,6 +115,20 @@ export function Sidebar() {
         <NavItem href="/reports" icon={<BarChart2 size={20} />} isActive={location === '/reports'}>
           Reports
         </NavItem>
+
+        {/* Collaboration features */}
+        <div className="pt-4 pb-2">
+          <h3 className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Collaboration
+          </h3>
+        </div>
+        <NavItem href="/channels" icon={<MessagesSquare size={20} />} isActive={location === '/channels'}>
+          Channels
+        </NavItem>
+        <NavItem href="/direct-messages" icon={<MessageSquare size={20} />} isActive={location.startsWith('/direct-messages')}>
+          Messages
+        </NavItem>
+        
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings
         </NavItem>

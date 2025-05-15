@@ -3344,6 +3344,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add notification for the added user
       await db.insert(notifications).values({
         userId,
+        type: "channel_invitation",
         title: "Channel invitation",
         message: `You have been added to the channel: ${channel.name}`,
         link: `/channels/${channelId}`,

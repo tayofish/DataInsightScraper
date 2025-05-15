@@ -18,6 +18,8 @@ import Settings from "@/pages/settings";
 import AdminPage from "@/pages/admin";
 import AuthPage from "@/pages/auth-page";
 import NotificationsPage from "@/pages/notifications";
+import ChannelsPage from "@/pages/channels";
+import DirectMessagesPage from "@/pages/direct-messages";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -127,6 +129,25 @@ function Router() {
       <ProtectedRoute path="/notifications" component={() => (
         <AppLayout>
           <NotificationsPage />
+        </AppLayout>
+      )} />
+      
+      {/* Collaboration Routes */}
+      <ProtectedRoute path="/channels" component={() => (
+        <AppLayout>
+          <ChannelsPage />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/direct-messages" component={() => (
+        <AppLayout>
+          <DirectMessagesPage />
+        </AppLayout>
+      )} />
+      
+      <ProtectedRoute path="/direct-messages/:id" component={() => (
+        <AppLayout>
+          <DirectMessagesPage />
         </AppLayout>
       )} />
       
