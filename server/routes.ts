@@ -4408,18 +4408,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Create message in database
-          const [newMessage] = await db.insert(messages).values({
-            channelId,
-            userId: ws.userId,
-            parentId: parentId || null,
-            content,
-            type: 'text',
-            createdAt: new Date(),
-            // Store mentions if provided by client
-            mentions: mentions && Array.isArray(mentions) && mentions.length > 0 
-              ? JSON.stringify(mentions) 
-              : null
-          }).returning();
+          let newMessage;
+          try {
+            console.log("Creating new message in database");
+            const result = await db.insert(messages).values({
+              channelId,
+              userId: ws.userId,
+              parentId: parentId || null,
+              content,
+              type: 'text',
+              createdAt: new Date(),
+              // Store mentions if provided by client
+              mentions: mentions && Array.isArray(mentions) && mentions.length > 0 
+                ? JSON.stringify(mentions) 
+                : null
+            }).returning();
+            
+            if (!result || result.length === 0) {
+              console.error("Error creating message: No message returned from database");
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'Error creating message in database' 
+              }));
+              return;
+            }
+            
+            [newMessage] = result;
+            console.log("Message created successfully:", newMessage.id);
+          } catch (dbError) {
+            console.error("Database error creating message:", dbError);
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Database error: Unable to save message' 
+            }));
+            return;
+          }
           
           // Get sender information
           const sender = await db.query.users.findFirst({
