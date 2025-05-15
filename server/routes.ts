@@ -3941,19 +3941,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             try {
               // Send email notification for mention
-              await emailService.sendEmail(
-                process.env.ZEPTOMAIL_API_KEY || "",
-                {
-                  to: user.email || "",
-                  from: process.env.EMAIL_FROM || "notifications@promellon.app",
-                  subject: `You were mentioned in ${channel.name}`,
-                  text: `${req.user!.username} mentioned you in channel ${channel.name}: "${req.body.content}"`,
-                  html: `
-                    <p><strong>${req.user!.username}</strong> mentioned you in channel <strong>${channel.name}</strong>:</p>
-                    <p style="padding: 10px; background-color: #f5f5f5; border-radius: 4px;">${req.body.content}</p>
-                    <p><a href="${process.env.APP_URL || ''}/channels/${channelId}">View in Promellon</a></p>
-                  `
-                }
+              await emailService.sendEmail({
+                to: user.email || "",
+                subject: `You were mentioned in ${channel.name}`,
+                text: `${req.user!.username} mentioned you in channel ${channel.name}: "${req.body.content}"`,
+                html: `
+                  <p><strong>${req.user!.username}</strong> mentioned you in channel <strong>${channel.name}</strong>:</p>
+                  <p style="padding: 10px; background-color: #f5f5f5; border-radius: 4px;">${req.body.content}</p>
+                  <p><a href="${process.env.APP_URL || ''}/channels/${channelId}">View in Promellon</a></p>
+                `
               });
             } catch (emailError) {
               console.error("Failed to send email notification for mention:", emailError);

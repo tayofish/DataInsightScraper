@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useRef } from "react";
+import { FC, useState, useEffect, useRef, KeyboardEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { 
@@ -14,7 +14,9 @@ import {
   Edit,
   X,
   Crown,
-  ShieldCheck
+  ShieldCheck,
+  User,
+  AtSign
 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
