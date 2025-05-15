@@ -1,5 +1,6 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { db } from "@db";
 import { 
@@ -7,7 +8,11 @@ import {
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
   smtpConfigFormSchema, smtpConfig, tasks, departments, categories, projects, InsertTask, 
   InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
-  users, appSettings
+  users, appSettings,
+  // Collaboration features
+  channelInsertSchema, messageInsertSchema, directMessageInsertSchema, userActivityInsertSchema,
+  channels, messages, directMessages, userActivities, InsertChannel, InsertMessage, InsertDirectMessage,
+  channelMembers, InsertChannelMember, channelMemberInsertSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
@@ -3126,6 +3131,1099 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error uploading logo:", error);
       return res.status(500).json({ message: "Failed to upload logo" });
     }
+  });
+
+  // === COLLABORATION FEATURES API ROUTES ===
+  
+  // === CHANNELS ===
+  // Get all channels
+  app.get("/api/channels", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const allChannels = await db.query.channels.findMany({
+        where: (fields, { eq, or, and, isNull }) => {
+          return or(
+            eq(fields.type, 'public'),
+            and(
+              eq(fields.type, 'private'),
+              // User is a member of this private channel
+              eq(channels.id, db.select({ id: channelMembers.channelId })
+                .from(channelMembers)
+                .where(eq(channelMembers.userId, req.user!.id))
+                .limit(1)
+              )
+            )
+          );
+        },
+        with: {
+          members: {
+            with: {
+              user: true
+            }
+          },
+          creator: true
+        },
+        orderBy: [asc(channels.name)]
+      });
+      
+      return res.status(200).json(allChannels);
+    } catch (error) {
+      console.error("Error fetching channels:", error);
+      return res.status(500).json({ message: "Failed to fetch channels" });
+    }
+  });
+  
+  // Get channel by ID
+  app.get("/api/channels/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      const channel = await db.query.channels.findFirst({
+        where: (fields, { eq }) => eq(fields.id, channelId),
+        with: {
+          members: {
+            with: {
+              user: true
+            }
+          },
+          creator: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has access to this channel
+      if (channel.type === 'private') {
+        const isMember = channel.members.some(m => m.userId === req.user!.id);
+        if (!isMember && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "You don't have access to this channel" });
+        }
+      }
+      
+      return res.status(200).json(channel);
+    } catch (error) {
+      console.error("Error fetching channel:", error);
+      return res.status(500).json({ message: "Failed to fetch channel" });
+    }
+  });
+  
+  // Create channel
+  app.post("/api/channels", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelData = channelInsertSchema.parse({
+        ...req.body,
+        createdBy: req.user!.id
+      });
+      
+      // Create channel in transaction to also add creator as a member
+      const newChannel = await db.transaction(async (tx) => {
+        const [channel] = await tx.insert(channels).values(channelData).returning();
+        
+        // Add creator as a member with 'owner' role
+        await tx.insert(channelMembers).values({
+          channelId: channel.id,
+          userId: req.user!.id,
+          role: 'owner'
+        });
+        
+        return channel;
+      });
+      
+      // Create activity record
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'create_channel',
+        resourceType: 'channel',
+        resourceId: newChannel.id,
+        details: JSON.stringify({ channelName: newChannel.name })
+      });
+      
+      return res.status(201).json(newChannel);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid channel data", errors: error.errors });
+      }
+      console.error("Error creating channel:", error);
+      return res.status(500).json({ message: "Failed to create channel" });
+    }
+  });
+  
+  // Add member to channel
+  app.post("/api/channels/:id/members", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      const { userId, role = 'member' } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      // Check if user has permission to add members
+      const channel = await db.query.channels.findFirst({
+        where: (fields, { eq }) => eq(fields.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if current user is admin or owner of the channel
+      const currentMember = channel.members.find(m => m.userId === req.user!.id);
+      if (!currentMember && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to add members to this channel" });
+      }
+      
+      if (currentMember && currentMember.role !== 'owner' && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Only channel owners can add members" });
+      }
+      
+      // Check if user is already a member
+      const existingMember = channel.members.find(m => m.userId === userId);
+      if (existingMember) {
+        return res.status(400).json({ message: "User is already a member of this channel" });
+      }
+      
+      // Add the user to the channel
+      const [newMember] = await db.insert(channelMembers).values({
+        channelId,
+        userId,
+        role
+      }).returning();
+      
+      // Add system message to the channel
+      const user = await db.query.users.findFirst({
+        where: (fields, { eq }) => eq(fields.id, userId)
+      });
+      
+      await db.insert(messages).values({
+        channelId,
+        userId: req.user!.id,
+        content: `${user?.name} has been added to the channel`,
+        type: 'system'
+      });
+      
+      // Create activity record
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'add_channel_member',
+        resourceType: 'channel',
+        resourceId: channelId,
+        details: JSON.stringify({ 
+          channelName: channel.name,
+          addedUserId: userId,
+          addedUserName: user?.name
+        })
+      });
+      
+      // Add notification for the added user
+      await db.insert(notifications).values({
+        userId,
+        title: "Channel invitation",
+        message: `You have been added to the channel: ${channel.name}`,
+        link: `/channels/${channelId}`,
+        read: false
+      });
+      
+      return res.status(201).json(newMember);
+    } catch (error) {
+      console.error("Error adding channel member:", error);
+      return res.status(500).json({ message: "Failed to add channel member" });
+    }
+  });
+  
+  // Get messages for a channel
+  app.get("/api/channels/:id/messages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      // Check if user has access to this channel
+      const channel = await db.query.channels.findFirst({
+        where: (fields, { eq }) => eq(fields.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      if (channel.type === 'private') {
+        const isMember = channel.members.some(m => m.userId === req.user!.id);
+        if (!isMember && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "You don't have access to this channel" });
+        }
+      }
+      
+      // Get messages with pagination
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const channelMessages = await db.query.messages.findMany({
+        where: (fields, { eq, isNull }) => ({
+          channelId: eq(fields.channelId, channelId),
+          parentId: isNull(fields.parentId) // Only get top-level messages, not replies
+        }),
+        limit,
+        offset,
+        orderBy: [desc(messages.createdAt)],
+        with: {
+          user: true,
+          replies: {
+            limit: 3, // Get the latest 3 replies per thread
+            orderBy: [desc(messages.createdAt)],
+            with: {
+              user: true
+            }
+          }
+        }
+      });
+      
+      // Update last read timestamp for the user
+      const membership = await db.query.channelMembers.findFirst({
+        where: (fields, { eq, and }) => 
+          and(
+            eq(fields.channelId, channelId),
+            eq(fields.userId, req.user!.id)
+          )
+      });
+      
+      if (membership) {
+        await db.update(channelMembers)
+          .set({ lastRead: new Date() })
+          .where(eq(channelMembers.id, membership.id));
+      }
+      
+      return res.status(200).json(channelMessages);
+    } catch (error) {
+      console.error("Error fetching channel messages:", error);
+      return res.status(500).json({ message: "Failed to fetch channel messages" });
+    }
+  });
+  
+  // Post message to channel
+  app.post("/api/channels/:id/messages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      // Check if user has access to this channel
+      const channel = await db.query.channels.findFirst({
+        where: (fields, { eq }) => eq(fields.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      if (channel.type !== 'public') {
+        const isMember = channel.members.some(m => m.userId === req.user!.id);
+        if (!isMember && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "You don't have access to this channel" });
+        }
+      }
+      
+      // Validate and create message
+      const messageData = messageInsertSchema.parse({
+        ...req.body,
+        channelId,
+        userId: req.user!.id
+      });
+      
+      const [newMessage] = await db.insert(messages).values(messageData).returning();
+      
+      // Process mentions if any
+      if (req.body.content) {
+        const mentionedUsers = extractMentions(req.body.content);
+        if (mentionedUsers.length > 0) {
+          // Get user IDs for the mentioned users
+          const users = await db.query.users.findMany({
+            where: (fields, { inArray }) => 
+              inArray(fields.username, mentionedUsers)
+          });
+          
+          // Create notifications for mentioned users
+          for (const user of users) {
+            // Only notify if mentioned user is a channel member
+            const isMember = channel.members.some(m => m.userId === user.id);
+            if (!isMember && channel.type !== 'public') continue;
+            
+            await db.insert(notifications).values({
+              userId: user.id,
+              title: "Mentioned in channel",
+              message: `${req.user!.name} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+              link: `/channels/${channelId}`,
+              read: false
+            });
+            
+            try {
+              // Send email notification for mention
+              await emailService.sendMentionNotification({
+                user,
+                mentionedBy: req.user!,
+                content: req.body.content,
+                sourceType: 'channel',
+                sourceId: channelId,
+                sourceName: channel.name
+              });
+            } catch (emailError) {
+              console.error("Failed to send email notification for mention:", emailError);
+              // Continue processing even if email fails
+            }
+          }
+          
+          // Store mentions in the message
+          if (users.length > 0) {
+            await db.update(messages)
+              .set({ 
+                mentions: JSON.stringify(users.map(u => u.id))
+              })
+              .where(eq(messages.id, newMessage.id));
+          }
+        }
+      }
+      
+      // Create activity record
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'send_message',
+        resourceType: 'channel',
+        resourceId: channelId,
+        details: JSON.stringify({ 
+          channelName: channel.name,
+          messageId: newMessage.id
+        })
+      });
+      
+      // Get the complete message with user data
+      const completeMessage = await db.query.messages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, newMessage.id),
+        with: {
+          user: true
+        }
+      });
+      
+      return res.status(201).json(completeMessage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid message data", errors: error.errors });
+      }
+      console.error("Error posting message to channel:", error);
+      return res.status(500).json({ message: "Failed to post message to channel" });
+    }
+  });
+  
+  // === DIRECT MESSAGES ===
+  // Get direct message conversations for current user
+  app.get("/api/direct-messages/conversations", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Find all users the current user has had direct messages with
+      const sentMessages = await db.query.directMessages.findMany({
+        where: (fields, { eq }) => eq(fields.senderId, req.user!.id),
+        with: {
+          receiver: true
+        }
+      });
+      
+      const receivedMessages = await db.query.directMessages.findMany({
+        where: (fields, { eq }) => eq(fields.receiverId, req.user!.id),
+        with: {
+          sender: true
+        }
+      });
+      
+      // Create a set of unique user IDs
+      const conversationUsers = new Set<number>();
+      sentMessages.forEach(msg => conversationUsers.add(msg.receiverId));
+      receivedMessages.forEach(msg => conversationUsers.add(msg.senderId));
+      
+      // Get last message for each conversation
+      const conversations = [];
+      for (const userId of conversationUsers) {
+        // Get the last message between these users (in either direction)
+        const lastMessage = await db.query.directMessages.findFirst({
+          where: (fields, { or, and, eq }) => 
+            or(
+              and(
+                eq(fields.senderId, req.user!.id),
+                eq(fields.receiverId, userId)
+              ),
+              and(
+                eq(fields.senderId, userId),
+                eq(fields.receiverId, req.user!.id)
+              )
+            ),
+          orderBy: [desc(directMessages.createdAt)],
+          with: {
+            sender: true,
+            receiver: true
+          }
+        });
+        
+        // Get unread count for this conversation
+        const unreadCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(directMessages)
+          .where(
+            and(
+              eq(directMessages.senderId, userId),
+              eq(directMessages.receiverId, req.user!.id),
+              eq(directMessages.isRead, false)
+            )
+          );
+        
+        // Add to conversations list
+        if (lastMessage) {
+          const otherUser = lastMessage.senderId === req.user!.id 
+            ? lastMessage.receiver 
+            : lastMessage.sender;
+          
+          conversations.push({
+            user: otherUser,
+            lastMessage,
+            unreadCount: unreadCount[0]?.count || 0
+          });
+        }
+      }
+      
+      // Sort by last message timestamp
+      conversations.sort((a, b) => {
+        return new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime();
+      });
+      
+      return res.status(200).json(conversations);
+    } catch (error) {
+      console.error("Error fetching direct message conversations:", error);
+      return res.status(500).json({ message: "Failed to fetch direct message conversations" });
+    }
+  });
+  
+  // Get direct messages between current user and another user
+  app.get("/api/direct-messages/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const otherUserId = parseInt(req.params.userId);
+      if (isNaN(otherUserId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Verify the other user exists
+      const otherUser = await db.query.users.findFirst({
+        where: (fields, { eq }) => eq(fields.id, otherUserId)
+      });
+      
+      if (!otherUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Get messages with pagination
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      const messages = await db.query.directMessages.findMany({
+        where: (fields, { or, and, eq }) => 
+          or(
+            and(
+              eq(fields.senderId, req.user!.id),
+              eq(fields.receiverId, otherUserId)
+            ),
+            and(
+              eq(fields.senderId, otherUserId),
+              eq(fields.receiverId, req.user!.id)
+            )
+          ),
+        limit,
+        offset,
+        orderBy: [desc(directMessages.createdAt)],
+        with: {
+          sender: true,
+          receiver: true
+        }
+      });
+      
+      // Mark messages from other user as read
+      await db.update(directMessages)
+        .set({ isRead: true })
+        .where(
+          and(
+            eq(directMessages.senderId, otherUserId),
+            eq(directMessages.receiverId, req.user!.id),
+            eq(directMessages.isRead, false)
+          )
+        );
+      
+      return res.status(200).json(messages);
+    } catch (error) {
+      console.error("Error fetching direct messages:", error);
+      return res.status(500).json({ message: "Failed to fetch direct messages" });
+    }
+  });
+  
+  // Send direct message to another user
+  app.post("/api/direct-messages/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const receiverId = parseInt(req.params.userId);
+      if (isNaN(receiverId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Verify receiver exists
+      const receiver = await db.query.users.findFirst({
+        where: (fields, { eq }) => eq(fields.id, receiverId)
+      });
+      
+      if (!receiver) {
+        return res.status(404).json({ message: "Receiver not found" });
+      }
+      
+      // Create the message
+      const messageData = directMessageInsertSchema.parse({
+        ...req.body,
+        senderId: req.user!.id,
+        receiverId
+      });
+      
+      const [newMessage] = await db.insert(directMessages).values(messageData).returning();
+      
+      // Create activity record
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'send_direct_message',
+        resourceType: 'user',
+        resourceId: receiverId,
+        details: JSON.stringify({ 
+          receiverName: receiver.name,
+          messageId: newMessage.id
+        })
+      });
+      
+      // Create notification for the receiver
+      await db.insert(notifications).values({
+        userId: receiverId,
+        title: "New direct message",
+        message: `${req.user!.name} sent you a message: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+        link: `/messages/${req.user!.id}`,
+        read: false
+      });
+      
+      // Get complete message with sender and receiver data
+      const completeMessage = await db.query.directMessages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, newMessage.id),
+        with: {
+          sender: true,
+          receiver: true
+        }
+      });
+      
+      return res.status(201).json(completeMessage);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid message data", errors: error.errors });
+      }
+      console.error("Error sending direct message:", error);
+      return res.status(500).json({ message: "Failed to send direct message" });
+    }
+  });
+  
+  // === USER ACTIVITY ===
+  // Get user activity for current user
+  app.get("/api/user-activity", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get limit and offset from query params
+      const limit = parseInt(req.query.limit as string) || 20;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      // Get user activities
+      const activities = await db.query.userActivities.findMany({
+        where: (fields, { eq }) => eq(fields.userId, req.user!.id),
+        limit,
+        offset,
+        orderBy: [desc(userActivities.timestamp)],
+        with: {
+          user: true
+        }
+      });
+      
+      return res.status(200).json(activities);
+    } catch (error) {
+      console.error("Error fetching user activity:", error);
+      return res.status(500).json({ message: "Failed to fetch user activity" });
+    }
+  });
+  
+  // Get unread message counts
+  app.get("/api/messages/unread", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Count unread direct messages
+      const directMessagesCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(directMessages)
+        .where(
+          and(
+            eq(directMessages.receiverId, req.user!.id),
+            eq(directMessages.isRead, false)
+          )
+        );
+      
+      // Count channels with unread messages
+      const channelMemberships = await db.query.channelMembers.findMany({
+        where: (fields, { eq }) => eq(fields.userId, req.user!.id)
+      });
+      
+      let channelsWithUnread = 0;
+      for (const membership of channelMemberships) {
+        // For each channel, check if there are messages after the last read time
+        const lastReadTime = membership.lastRead || new Date(0); // Default to epoch if never read
+        
+        const unreadMessages = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.channelId, membership.channelId),
+              sql`${messages.createdAt} > ${lastReadTime}`,
+              // Don't count own messages as unread
+              sql`${messages.userId} != ${req.user!.id}`
+            )
+          );
+        
+        if (unreadMessages[0]?.count > 0) {
+          channelsWithUnread++;
+        }
+      }
+      
+      return res.status(200).json({
+        directMessages: directMessagesCount[0]?.count || 0,
+        channelsWithUnread
+      });
+    } catch (error) {
+      console.error("Error fetching unread message counts:", error);
+      return res.status(500).json({ message: "Failed to fetch unread message counts" });
+    }
+  });
+
+  // Create WebSocket server for real-time messaging
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    clientTracking: true
+  });
+  
+  // Store active connections with user IDs
+  const connections = new Map();
+  
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket connection established');
+    
+    // Handle authentication
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle authentication message
+        if (data.type === 'auth') {
+          const userId = data.userId;
+          const username = data.username;
+          
+          if (!userId || !username) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Authentication failed: Missing user information' 
+            }));
+            return;
+          }
+          
+          // Store connection with user ID
+          connections.set(userId, ws);
+          ws.userId = userId;
+          ws.username = username;
+          
+          console.log(`User ${username} (ID: ${userId}) authenticated on WebSocket`);
+          
+          // Send confirmation
+          ws.send(JSON.stringify({ 
+            type: 'auth_success', 
+            message: 'Successfully authenticated' 
+          }));
+          
+          // Log user activity
+          await db.insert(userActivities).values({
+            userId,
+            action: 'websocket_connect',
+            details: JSON.stringify({ 
+              timestamp: new Date().toISOString()
+            })
+          });
+        }
+        
+        // Handle channel message
+        else if (data.type === 'channel_message' && ws.userId) {
+          const { channelId, content, parentId } = data;
+          
+          // Verify user has access to this channel
+          const channel = await db.query.channels.findFirst({
+            where: (fields, { eq }) => eq(fields.id, channelId),
+            with: {
+              members: true
+            }
+          });
+          
+          if (!channel) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Channel not found' 
+            }));
+            return;
+          }
+          
+          // Check permissions for private channels
+          if (channel.type !== 'public') {
+            const user = await db.query.users.findFirst({
+              where: (fields, { eq }) => eq(fields.id, ws.userId)
+            });
+            
+            const isMember = channel.members.some(m => m.userId === ws.userId);
+            if (!isMember && !(user && user.isAdmin)) {
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'You don\'t have access to this channel' 
+              }));
+              return;
+            }
+          }
+          
+          // Create message in database
+          const [newMessage] = await db.insert(messages).values({
+            channelId,
+            userId: ws.userId,
+            parentId: parentId || null,
+            content,
+            type: 'text',
+            createdAt: new Date(),
+          }).returning();
+          
+          // Get sender information
+          const sender = await db.query.users.findFirst({
+            where: (fields, { eq }) => eq(fields.id, ws.userId)
+          });
+          
+          // Process mentions
+          const mentionedUsers = extractMentions(content);
+          if (mentionedUsers.length > 0) {
+            const users = await db.query.users.findMany({
+              where: (fields, { inArray }) => 
+                inArray(fields.username, mentionedUsers)
+            });
+            
+            // Update message with mentions
+            if (users.length > 0) {
+              await db.update(messages)
+                .set({ 
+                  mentions: JSON.stringify(users.map(u => u.id))
+                })
+                .where(eq(messages.id, newMessage.id));
+              
+              // Send notifications to mentioned users
+              for (const user of users) {
+                // Only notify if the user is a channel member for private channels
+                const isMember = channel.members.some(m => m.userId === user.id);
+                if (!isMember && channel.type !== 'public') continue;
+                
+                await db.insert(notifications).values({
+                  userId: user.id,
+                  title: "Mentioned in channel",
+                  message: `${sender?.name} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                  link: `/channels/${channelId}`,
+                  read: false
+                });
+                
+                try {
+                  // Send email notification for mention
+                  if (sender) {
+                    await emailService.sendMentionNotification({
+                      user,
+                      mentionedBy: sender,
+                      content,
+                      sourceType: 'channel',
+                      sourceId: channelId,
+                      sourceName: channel.name
+                    });
+                  }
+                } catch (emailError) {
+                  console.error("Failed to send email notification for mention:", emailError);
+                  // Continue processing even if email fails
+                }
+              }
+            }
+          }
+          
+          // Broadcast message to all users in the channel
+          const broadcastMessage = {
+            type: 'new_channel_message',
+            message: {
+              ...newMessage,
+              user: sender
+            }
+          };
+          
+          // Send to all connected users who are channel members
+          for (const [userId, connection] of connections.entries()) {
+            if (connection.readyState === WebSocket.OPEN) {
+              // For public channels, send to everyone
+              // For private channels, check if user is a member
+              if (channel.type === 'public' || 
+                  channel.members.some(m => m.userId === parseInt(userId))) {
+                connection.send(JSON.stringify(broadcastMessage));
+              }
+            }
+          }
+          
+          // Log the activity
+          await db.insert(userActivities).values({
+            userId: ws.userId,
+            action: 'send_message',
+            resourceType: 'channel',
+            resourceId: channelId,
+            details: JSON.stringify({ 
+              channelName: channel.name,
+              messageId: newMessage.id
+            })
+          });
+        }
+        
+        // Handle direct message
+        else if (data.type === 'direct_message' && ws.userId) {
+          const { receiverId, content } = data;
+          
+          // Verify receiver exists
+          const receiver = await db.query.users.findFirst({
+            where: (fields, { eq }) => eq(fields.id, receiverId)
+          });
+          
+          if (!receiver) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Receiver not found' 
+            }));
+            return;
+          }
+          
+          // Get sender information
+          const sender = await db.query.users.findFirst({
+            where: (fields, { eq }) => eq(fields.id, ws.userId)
+          });
+          
+          if (!sender) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'Sender not found' 
+            }));
+            return;
+          }
+          
+          // Create message in database
+          const [newMessage] = await db.insert(directMessages).values({
+            senderId: ws.userId,
+            receiverId,
+            content,
+            type: 'text',
+            createdAt: new Date(),
+            isRead: false
+          }).returning();
+          
+          // Send notification to receiver
+          await db.insert(notifications).values({
+            userId: receiverId,
+            title: "New direct message",
+            message: `${sender.name} sent you a message: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+            link: `/messages/${ws.userId}`,
+            read: false
+          });
+          
+          // Send message to receiver if they're connected
+          const receiverConnection = connections.get(receiverId);
+          if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
+            receiverConnection.send(JSON.stringify({
+              type: 'new_direct_message',
+              message: {
+                ...newMessage,
+                sender,
+                receiver
+              }
+            }));
+          }
+          
+          // Send confirmation to sender
+          ws.send(JSON.stringify({
+            type: 'direct_message_sent',
+            message: {
+              ...newMessage,
+              sender,
+              receiver
+            }
+          }));
+          
+          // Log the activity
+          await db.insert(userActivities).values({
+            userId: ws.userId,
+            action: 'send_direct_message',
+            resourceType: 'user',
+            resourceId: receiverId,
+            details: JSON.stringify({ 
+              receiverName: receiver.name,
+              messageId: newMessage.id
+            })
+          });
+        }
+        
+        // Handle typing indicator
+        else if (data.type === 'typing' && ws.userId) {
+          const { receiverId, channelId, isTyping } = data;
+          
+          // Create typing notification
+          const typingData = {
+            type: 'typing_indicator',
+            userId: ws.userId,
+            username: ws.username,
+            isTyping
+          };
+          
+          // For direct messages
+          if (receiverId) {
+            const receiverConnection = connections.get(receiverId);
+            if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
+              receiverConnection.send(JSON.stringify(typingData));
+            }
+          }
+          
+          // For channel messages
+          else if (channelId) {
+            // Get channel to check who can receive the typing indicator
+            const channel = await db.query.channels.findFirst({
+              where: (fields, { eq }) => eq(fields.id, channelId),
+              with: {
+                members: true
+              }
+            });
+            
+            if (channel) {
+              // Broadcast typing indicator to appropriate users
+              for (const [userId, connection] of connections.entries()) {
+                if (connection.readyState === WebSocket.OPEN) {
+                  // For public channels, send to everyone
+                  // For private channels, check if user is a member
+                  if (channel.type === 'public' || 
+                      channel.members.some(m => m.userId === parseInt(userId))) {
+                    
+                    // Include channel ID for channel typing indicators
+                    connection.send(JSON.stringify({
+                      ...typingData,
+                      channelId
+                    }));
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("WebSocket message handling error:", error);
+        ws.send(JSON.stringify({ 
+          type: 'error', 
+          message: 'Failed to process message' 
+        }));
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', async () => {
+      console.log('WebSocket connection closed');
+      
+      if (ws.userId) {
+        // Remove from connections map
+        connections.delete(ws.userId);
+        
+        // Log user activity
+        try {
+          await db.insert(userActivities).values({
+            userId: ws.userId,
+            action: 'websocket_disconnect',
+            details: JSON.stringify({ 
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (error) {
+          console.error("Failed to log WebSocket disconnect:", error);
+        }
+      }
+    });
+    
+    // Send initial message
+    ws.send(JSON.stringify({ 
+      type: 'welcome', 
+      message: 'Connected to Promellon WebSocket server' 
+    }));
   });
 
   return httpServer;
