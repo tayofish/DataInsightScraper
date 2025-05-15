@@ -8,7 +8,9 @@ const app = express();
 app.use(express.json({
   verify: (req: any, res, buf, encoding) => {
     if (buf && buf.length) {
-      req.rawBody = buf.toString(encoding || 'utf8');
+      // Use a safe default encoding
+      const safeEncoding: BufferEncoding = (encoding as BufferEncoding) || 'utf8';
+      req.rawBody = buf.toString(safeEncoding);
     }
   }
 }));
@@ -91,6 +93,28 @@ process.on('unhandledRejection', (reason, promise) => {
 (async () => {
   try {
     const server = await registerRoutes(app);
+
+    // Add specific handler for JSON parsing errors
+    app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+      // Express adds status and body properties to the error object for body-parser errors
+      // TypeScript doesn't know about these properties, so we need to check them this way
+      if (err instanceof SyntaxError && 
+          Object.prototype.hasOwnProperty.call(err, 'status') && 
+          err['status'] === 400 && 
+          Object.prototype.hasOwnProperty.call(err, 'body')) {
+        
+        // Handle JSON parsing errors
+        console.error(`JSON parsing error: ${err.message}`);
+        return res.status(400).json({
+          error: 'Invalid JSON',
+          message: 'The request contains invalid JSON data',
+          details: err.message
+        });
+      }
+      
+      // Pass other errors to the general error handler
+      next(err);
+    });
 
     // Add general error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
