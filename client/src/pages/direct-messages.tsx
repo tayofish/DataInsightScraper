@@ -297,70 +297,127 @@ const DirectMessagesPage: FC = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     if (!user) return;
-
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    socket = new WebSocket(wsUrl);
-
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-      // Authenticate the WebSocket connection
-      if (socket && user) {
-        socket.send(JSON.stringify({
-          type: "auth",
-          userId: user.id,
-          username: user.username,
-        }));
-      }
-    };
-
-    socket.onmessage = (event) => {
+    let reconnectAttempts = 0;
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    
+    // Function to create and set up the WebSocket
+    const setupWebSocket = () => {
       try {
-        // Make sure the event data is a non-empty string before parsing
-        if (typeof event.data !== 'string' || !event.data.trim()) {
-          console.warn("Received empty or non-string WebSocket message");
-          return;
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        // Clean up any existing socket
+        if (socket) {
+          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            socket.close();
+          }
         }
         
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
-
-        // Handle different message types
-        if (data.type === "new_direct_message" && data.message) {
-          // If this is a message from or to the currently selected user
-          if (
-            selectedUserId && 
-            (data.message.senderId === selectedUserId && data.message.receiverId === user.id) ||
-            (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
-          ) {
-            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
-          }
+        // Create new socket
+        socket = new WebSocket(wsUrl);
+        
+        socket.onopen = () => {
+          console.log("WebSocket connection established");
+          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
           
-          // Update conversations list to show latest messages
-          queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
-        } else if (data.type === "auth_success") {
-          console.log("WebSocket authentication successful");
-        }
+          // Authenticate the WebSocket connection
+          if (socket && socket.readyState === WebSocket.OPEN && user) {
+            try {
+              const authData = {
+                type: "auth",
+                userId: user.id,
+                username: user.username,
+              };
+              socket.send(JSON.stringify(authData));
+            } catch (err) {
+              console.error("Error sending authentication data:", err);
+            }
+          }
+        };
+        
+        socket.onmessage = (event) => {
+          try {
+            // Make sure the event data is a non-empty string before parsing
+            if (typeof event.data !== 'string' || !event.data.trim()) {
+              console.warn("Received empty or non-string WebSocket message");
+              return;
+            }
+            
+            const data = JSON.parse(event.data);
+            console.log("WebSocket message received:", data);
+            
+            // Handle different message types
+            if (data.type === "new_direct_message" && data.message) {
+              // If this is a message from or to the currently selected user
+              if (
+                selectedUserId && (
+                  (data.message.senderId === selectedUserId && data.message.receiverId === user.id) ||
+                  (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
+                )
+              ) {
+                queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+              }
+              
+              // Update conversations list to show latest messages
+              queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+            } else if (data.type === "auth_success") {
+              console.log("WebSocket authentication successful");
+            } else if (data.type === "welcome") {
+              console.log("Received welcome message from server");
+            }
+          } catch (error) {
+            console.error("Error parsing WebSocket message:", error, "Raw data:", 
+              typeof event.data, 
+              event.data?.substring ? event.data.substring(0, 100) : "non-string data"
+            );
+          }
+        };
+        
+        socket.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+        
+        socket.onclose = (event) => {
+          console.log(`WebSocket connection closed: Code ${event.code}${event.reason ? `, Reason: ${event.reason}` : ''}`);
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts < 5) { // Limit reconnection attempts
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff with 30s max
+            console.log(`Attempting to reconnect in ${delay/1000} seconds...`);
+            reconnectTimer = setTimeout(() => {
+              reconnectAttempts++;
+              setupWebSocket();
+            }, delay);
+          } else {
+            console.log("Maximum reconnection attempts reached. Please refresh the page.");
+          }
+        };
       } catch (error) {
-        console.error("Error parsing WebSocket message:", error, "Raw data:", typeof event.data, event.data?.substring?.(0, 100));
+        console.error("Error setting up WebSocket:", error);
       }
     };
-
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-
+    
+    // Set up the WebSocket initially
+    setupWebSocket();
+    
+    // Clean up function
     return () => {
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+      
       if (socket) {
-        socket.close();
+        try {
+          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            socket.close();
+          }
+        } catch (err) {
+          console.error("Error closing WebSocket:", err);
+        }
       }
     };
-  }, [user, selectedUserId]);
+  }, [user, selectedUserId, queryClient]);
 
   // Set selectedUserId when URL param changes
   useEffect(() => {
