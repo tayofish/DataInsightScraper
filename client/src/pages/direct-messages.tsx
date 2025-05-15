@@ -112,14 +112,14 @@ const DirectMessagesPage: FC = () => {
     enabled: !!user,
   });
 
-  // Fetch all users for new conversation
+  // Fetch all users (for mentions and new conversations)
   const {
     data: allUsers = [],
     isLoading: isLoadingUsers,
     error: usersError,
   } = useQuery<any[]>({
     queryKey: [`/api/users`],
-    enabled: !!user && newConversationDialogOpen,
+    enabled: !!user, // Always fetch users when logged in
   });
 
   // Fetch messages for the selected conversation
