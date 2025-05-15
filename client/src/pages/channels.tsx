@@ -470,10 +470,15 @@ const ChannelsPage: FC = () => {
           // Rough calculation - can be refined
           const charWidth = 8; // Approximate width of a character
           
-          // Position dropdown below the input, aligned with cursor position
+          // Position dropdown right under the cursor relative to the @ symbol
+          // Get the position of the character closest to the @ symbol
+          const atSymbolX = lastAtPos * 8; // Approximate width of a character
+          
           setMentionPosition({
-            top: inputRect.height + 5, // Position below the input
-            left: 0 // Start at the beginning of the input
+            // Position at the top of the input, adjust by negative value to move up from the input
+            top: -240, 
+            // Align with the @ symbol horizontal position
+            left: Math.max(5, Math.min(atSymbolX, inputRect.width - 250))
           });
         }
         
