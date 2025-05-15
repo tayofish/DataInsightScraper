@@ -1314,7 +1314,7 @@ const ChannelsPage: FC = () => {
                           return a.username.localeCompare(b.username);
                         })
                         .slice(0, 5)
-                        .map(user => {
+                        .map((user, idx) => {
                           // Highlight the matching portion of the username
                           const username = user.username;
                           const matchIndex = username.toLowerCase().indexOf(mentionQuery.toLowerCase());
@@ -1340,10 +1340,7 @@ const ChannelsPage: FC = () => {
                             <div
                               key={user.id}
                               className={`p-2 cursor-pointer flex items-center ${
-                                Array.from(allUsers
-                                  .filter(u => u.username.toLowerCase().includes(mentionQuery.toLowerCase()))
-                                  .slice(0, 5))
-                                  .indexOf(user) === selectedMentionIndex 
+                                idx === selectedMentionIndex 
                                   ? 'bg-accent' 
                                   : 'hover:bg-accent/50'
                               }`}
