@@ -343,6 +343,38 @@ const ChannelsPage: FC = () => {
       });
     },
   });
+  
+  // Delete a channel
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  
+  const deleteChannelMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/channels/${selectedChannelId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete channel");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setConfirmDeleteOpen(false);
+      setSettingsSheetOpen(false);
+      setSelectedChannelId(null);
+      queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+      toast({
+        title: "Channel deleted",
+        description: "Channel has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete channel",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Form for creating a new channel
   const createForm = useForm<ChannelFormValues>({
@@ -934,7 +966,7 @@ const ChannelsPage: FC = () => {
                               </FormItem>
                             )}
                           />
-                          <div className="pt-4">
+                          <div className="pt-4 space-y-4">
                             <Button 
                               type="submit" 
                               className="w-full"
@@ -942,7 +974,45 @@ const ChannelsPage: FC = () => {
                             >
                               {updateChannelMutation.isPending ? "Saving..." : "Save Changes"}
                             </Button>
+                            
+                            {/* Delete channel option */}
+                            {(user?.isAdmin || channelDetails?.members?.some((m: any) => 
+                              m.userId === user?.id && ['owner', 'admin'].includes(m.role)
+                            )) && (
+                              <Button 
+                                type="button"
+                                variant="destructive" 
+                                className="w-full"
+                                onClick={() => setConfirmDeleteOpen(true)}
+                              >
+                                <Trash className="h-4 w-4 mr-2" />
+                                Delete Channel
+                              </Button>
+                            )}
                           </div>
+                          
+                          {/* Delete confirmation dialog */}
+                          <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Channel</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this channel? This action cannot be undone 
+                                  and all messages will be permanently deleted.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteChannelMutation.mutate()}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  disabled={deleteChannelMutation.isPending}
+                                >
+                                  {deleteChannelMutation.isPending ? "Deleting..." : "Delete Channel"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </form>
                       </Form>
                     </div>
