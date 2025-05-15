@@ -46,7 +46,7 @@ const DirectMessagesPage: FC = () => {
     isLoading: isLoadingConversations,
     error: conversationsError,
   } = useQuery<any[]>({
-    queryKey: ["/api/direct-messages/conversations"],
+    queryKey: [`/api/direct-messages/conversations`],
     enabled: !!user,
   });
 
@@ -56,7 +56,7 @@ const DirectMessagesPage: FC = () => {
     isLoading: isLoadingUsers,
     error: usersError,
   } = useQuery<any[]>({
-    queryKey: ["/api/users"],
+    queryKey: [`/api/users`],
     enabled: !!user && newConversationDialogOpen,
   });
 
@@ -66,7 +66,7 @@ const DirectMessagesPage: FC = () => {
     isLoading: isLoadingMessages,
     error: messagesError,
   } = useQuery<any[]>({
-    queryKey: ["/api/direct-messages", selectedUserId],
+    queryKey: [`/api/direct-messages/${selectedUserId}`],
     enabled: !!selectedUserId && !!user,
   });
 

@@ -76,7 +76,7 @@ const ChannelsPage: FC = () => {
     isLoading: isLoadingChannels,
     error: channelsError,
   } = useQuery<any[]>({
-    queryKey: ["/api/channels"],
+    queryKey: [`/api/channels`],
     enabled: !!user,
   });
 
@@ -106,7 +106,7 @@ const ChannelsPage: FC = () => {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/channels"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
       setCreateDialogOpen(false);
       toast({
         title: "Channel created",
