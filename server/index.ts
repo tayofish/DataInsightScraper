@@ -3,8 +3,44 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
+
+// Modified body-parser setup to capture raw body for better error handling
+app.use(express.json({
+  verify: (req: any, res, buf, encoding) => {
+    if (buf && buf.length) {
+      req.rawBody = buf.toString(encoding || 'utf8');
+    }
+  }
+}));
 app.use(express.urlencoded({ extended: false }));
+
+// Middleware to handle empty request bodies
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Only check POST, PUT, PATCH requests that should have JSON content
+  if (['POST', 'PUT', 'PATCH'].includes(req.method) && 
+      req.headers['content-type']?.includes('application/json')) {
+    
+    // Check if body is empty on routes that expect JSON
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    
+    if (contentLength === 0) {
+      return res.status(400).json({
+        error: 'Empty request body',
+        message: 'Request body cannot be empty for this operation'
+      });
+    }
+    
+    // Check for incomplete JSON in raw body
+    if ((req as any).rawBody && (req as any).rawBody.trim() === '') {
+      return res.status(400).json({
+        error: 'Empty request body',
+        message: 'Request body cannot be empty for this operation'
+      });
+    }
+  }
+  
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
