@@ -471,7 +471,7 @@ export default function ChannelsPage() {
       
       // Using WebSocket for real-time messaging
       sendMessage({
-        type: "channel_message",
+        type: "channel_message", 
         channelId: selectedChannelId,
         content: messageText,
         mentions: mentionedUserIds
