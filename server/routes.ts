@@ -3877,29 +3877,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
               inArray(fields.username, mentionedUsers)
           });
           
-          // Create notifications for mentioned users
+          // Create notifications for mentioned users and add them to the channel if not already members
           for (const user of users) {
-            // Only notify if mentioned user is a channel member
             const isMember = channel.members.some(m => m.userId === user.id);
-            if (!isMember && channel.type !== 'public') continue;
             
-            await db.insert(db.dynamic.ref("notifications")).values({
+            // Add user to channel if not already a member
+            if (!isMember) {
+              try {
+                // Check if channel is not private or if the mentioning user has permission to add members
+                const canAddMember = channel.type !== 'private' || 
+                                     channel.members.some(m => 
+                                        m.userId === req.user!.id && 
+                                        ['owner', 'admin'].includes(m.role)) ||
+                                     req.user!.isAdmin;
+                
+                if (canAddMember) {
+                  // Add the mentioned user to the channel as a member
+                  await db.insert(channelMembers).values({
+                    channelId,
+                    userId: user.id,
+                    role: 'member',
+                    addedBy: req.user!.id,
+                    joinedAt: new Date()
+                  });
+                  
+                  // Create notification for being added to channel
+                  await db.insert(notifications).values({
+                    userId: user.id,
+                    title: "Added to channel",
+                    message: `You were mentioned by ${req.user!.username} and added to the channel "${channel.name}"`,
+                    link: `/channels/${channelId}`,
+                    read: false,
+                    createdAt: new Date()
+                  });
+                  
+                  // Broadcast member addition to all connected clients
+                  wss.clients.forEach((client: ExtendedWebSocket) => {
+                    if (client.readyState === WebSocket.OPEN) {
+                      client.send(JSON.stringify({
+                        type: "channel_member_added",
+                        channelId,
+                        userId: user.id
+                      }));
+                    }
+                  });
+                } else {
+                  console.log(`User ${req.user!.username} doesn't have permission to add ${user.username} to private channel ${channel.name}`);
+                }
+              } catch (error) {
+                console.error(`Error adding mentioned user ${user.username} to channel:`, error);
+              }
+            }
+            
+            // Send notification about mention
+            await db.insert(notifications).values({
               userId: user.id,
               title: "Mentioned in channel",
-              message: `${req.user!.name} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+              message: `${req.user!.username} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
               link: `/channels/${channelId}`,
-              read: false
+              read: false,
+              createdAt: new Date()
             });
             
             try {
               // Send email notification for mention
-              await emailService.sendMentionNotification({
-                user,
-                mentionedBy: req.user!,
-                content: req.body.content,
-                sourceType: 'channel',
-                sourceId: channelId,
-                sourceName: channel.name
+              await emailService.sendEmail(
+                process.env.ZEPTOMAIL_API_KEY || "",
+                {
+                  to: user.email || "",
+                  from: process.env.EMAIL_FROM || "notifications@promellon.app",
+                  subject: `You were mentioned in ${channel.name}`,
+                  text: `${req.user!.username} mentioned you in channel ${channel.name}: "${req.body.content}"`,
+                  html: `
+                    <p><strong>${req.user!.username}</strong> mentioned you in channel <strong>${channel.name}</strong>:</p>
+                    <p style="padding: 10px; background-color: #f5f5f5; border-radius: 4px;">${req.body.content}</p>
+                    <p><a href="${process.env.APP_URL || ''}/channels/${channelId}">View in Promellon</a></p>
+                  `
+                }
               });
             } catch (emailError) {
               console.error("Failed to send email notification for mention:", emailError);
