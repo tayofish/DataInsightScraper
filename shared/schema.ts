@@ -6,6 +6,8 @@ import { relations } from "drizzle-orm";
 // Enums for task properties
 export const priorityEnum = pgEnum('priority', ['low', 'medium', 'high']);
 export const statusEnum = pgEnum('status', ['todo', 'in_progress', 'completed']);
+export const channelTypeEnum = pgEnum('channel_type', ['public', 'private', 'direct']);
+export const messageTypeEnum = pgEnum('message_type', ['text', 'file', 'system']);
 
 // Users table 
 export const users = pgTable("users", {
