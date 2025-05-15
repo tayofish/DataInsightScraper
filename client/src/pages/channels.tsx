@@ -152,17 +152,36 @@ export default function ChannelsPage() {
     refetchOnWindowFocus: false,
   });
   
-  // Get all channels
+  // Directly fetch channels data for debugging
+  useEffect(() => {
+    if (user) {
+      fetch('/api/channels')
+        .then(res => res.json())
+        .then(data => {
+          console.log("Direct API call result:", data);
+          if (Array.isArray(data) && data.length > 0) {
+            console.log("Setting channels directly:", data.length);
+            setChannels(data);
+            if (!selectedChannelId) {
+              setSelectedChannelId(data[0].id);
+            }
+          }
+        })
+        .catch(err => console.error("Error fetching channels directly:", err));
+    }
+  }, [user, selectedChannelId]);
+
+  // Keep the query for reactive updates, but use our direct data as a backup
   const channelsQuery = useQuery({
     queryKey: ["/api/channels"],
-    enabled: !!user, // Only fetch channels if user is authenticated
+    enabled: !!user && wsStatus === 'connected', // Only fetch channels if user is authenticated and WebSocket is connected
     onSuccess: (data) => {
-      console.log("Channel data received:", data);
+      console.log("Channel data received from query:", data);
       if (Array.isArray(data)) {
-        console.log("Setting channels:", data.length);
+        console.log("Setting channels from query:", data.length);
         setChannels(data);
         if (data.length > 0 && !selectedChannelId) {
-          console.log("Setting selected channel ID:", data[0].id);
+          console.log("Setting selected channel ID from query:", data[0].id);
           setSelectedChannelId(data[0].id);
         }
       } else {
