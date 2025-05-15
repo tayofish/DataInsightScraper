@@ -647,9 +647,18 @@ const ChannelsPage: FC = () => {
             console.log("WebSocket message received:", data);
             
             // Handle different message types
-            if (data.type === "new_channel_message" && data.message && data.message.channelId === selectedChannelId) {
-              // Add the new message to the current messages
-              queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
+            if (data.type === "new_channel_message" && data.message) {
+              console.log("Received a channel message through WebSocket");
+              
+              // If this is for the currently selected channel, update messages
+              if (selectedChannelId && data.message.channelId === selectedChannelId) {
+                console.log("Updating messages for current channel");
+                queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
+              }
+              
+              // Always update channel list to show latest activity
+              console.log("Updating channels list");
+              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
             } else if (data.type === "auth_success") {
               console.log("WebSocket authentication successful");
             } else if (data.type === "welcome") {

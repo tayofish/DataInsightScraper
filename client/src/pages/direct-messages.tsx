@@ -355,7 +355,9 @@ const DirectMessagesPage: FC = () => {
             console.log("WebSocket message received:", data);
             
             // Handle different message types
-            if (data.type === "new_direct_message" && data.message) {
+            if ((data.type === "new_direct_message" || data.type === "direct_message_sent") && data.message) {
+              console.log("Received a direct message through WebSocket:", data.type);
+              
               // If this is a message from or to the currently selected user
               if (
                 selectedUserId && (
@@ -363,10 +365,16 @@ const DirectMessagesPage: FC = () => {
                   (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
                 )
               ) {
+                // Update messages for current conversation immediately
+                console.log("Updating messages for current conversation");
                 queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+                
+                // Optionally add message directly to state for even faster updates
+                // This would require maintaining a local messages state
               }
               
-              // Update conversations list to show latest messages
+              // Always update conversations list to show latest messages
+              console.log("Updating conversations list");
               queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
             } else if (data.type === "auth_success") {
               console.log("WebSocket authentication successful");
