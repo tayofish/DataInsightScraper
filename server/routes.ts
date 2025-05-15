@@ -3136,6 +3136,332 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === COLLABORATION FEATURES API ROUTES ===
   
   // === CHANNELS ===
+  // Add member to channel
+  app.post("/api/channels/:id/members", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      const { userId, role = 'member' } = req.body;
+      
+      if (isNaN(channelId) || !userId) {
+        return res.status(400).json({ message: "Invalid channel ID or user ID" });
+      }
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has permission to add members
+      const requesterMembership = channel.members.find(m => m.userId === req.user!.id);
+      
+      if (!requesterMembership && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to add members to this channel" });
+      }
+      
+      if (requesterMembership && !['owner', 'admin'].includes(requesterMembership.role) && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Only channel owners and admins can add members" });
+      }
+      
+      // Check if user is already a member
+      const isAlreadyMember = channel.members.some(m => m.userId === userId);
+      
+      if (isAlreadyMember) {
+        return res.status(400).json({ message: "User is already a member of this channel" });
+      }
+      
+      // Add user to channel
+      const [member] = await db.insert(channelMembers).values({
+        channelId,
+        userId,
+        role,
+        joinedAt: new Date()
+      }).returning();
+      
+      // Get the user data to return in response
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+      
+      // Create notification for the added user
+      await db.insert(notifications).values({
+        userId,
+        title: "Channel Invitation",
+        message: `You've been added to the ${channel.name} channel`,
+        type: "channel_invitation",
+        isRead: false,
+        createdAt: new Date()
+      });
+      
+      // Broadcast the new member to all connected clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "channel_member_added",
+            channelId,
+            member: { ...member, user: userRecord }
+          }));
+        }
+      });
+      
+      return res.status(201).json({ ...member, user: userRecord });
+    } catch (error) {
+      console.error("Error adding channel member:", error);
+      return res.status(500).json({ message: "Failed to add member to channel" });
+    }
+  });
+  
+  // Remove member from channel
+  app.delete("/api/channels/:channelId/members/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.channelId);
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(channelId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid channel ID or user ID" });
+      }
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has permission to remove members
+      const requesterMembership = channel.members.find(m => m.userId === req.user!.id);
+      
+      // Self-removal is allowed
+      if (userId !== req.user!.id) {
+        if (!requesterMembership && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "You don't have permission to remove members from this channel" });
+        }
+        
+        if (requesterMembership && !['owner', 'admin'].includes(requesterMembership.role) && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "Only channel owners and admins can remove members" });
+        }
+        
+        // Check if target user is an owner (only admins can remove owners)
+        const targetMembership = channel.members.find(m => m.userId === userId);
+        if (targetMembership && targetMembership.role === 'owner' && requesterMembership?.role !== 'owner' && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "Only channel owners can remove other owners" });
+        }
+      }
+      
+      // Find the membership to remove
+      const membershipToRemove = await db.query.channelMembers.findFirst({
+        where: (fields, { and, eq }) => 
+          and(
+            eq(fields.channelId, channelId),
+            eq(fields.userId, userId)
+          )
+      });
+      
+      if (!membershipToRemove) {
+        return res.status(404).json({ message: "User is not a member of this channel" });
+      }
+      
+      // Remove user from channel
+      await db.delete(channelMembers)
+        .where(eq(channelMembers.id, membershipToRemove.id));
+      
+      // Broadcast the member removal to all connected clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "channel_member_removed",
+            channelId,
+            userId
+          }));
+        }
+      });
+      
+      return res.status(200).json({ message: "Member removed from channel successfully" });
+    } catch (error) {
+      console.error("Error removing channel member:", error);
+      return res.status(500).json({ message: "Failed to remove member from channel" });
+    }
+  });
+  
+  // Update channel settings
+  app.patch("/api/channels/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has permission to update channel
+      const membership = channel.members.find(m => m.userId === req.user!.id);
+      
+      if (!membership && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to update this channel" });
+      }
+      
+      if (membership && !['owner', 'admin'].includes(membership.role) && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Only channel owners and admins can update channel settings" });
+      }
+      
+      const { name, description, type } = req.body;
+      
+      // Validate updates
+      if (name === "") {
+        return res.status(400).json({ message: "Channel name cannot be empty" });
+      }
+      
+      // Build update object
+      const updates: any = {};
+      
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (type !== undefined) updates.type = type;
+      
+      // Set update timestamp
+      updates.updatedAt = new Date();
+      
+      // Update channel
+      const [updatedChannel] = await db.update(channels)
+        .set(updates)
+        .where(eq(channels.id, channelId))
+        .returning();
+      
+      // Broadcast the update to all connected clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "channel_updated",
+            channel: updatedChannel
+          }));
+        }
+      });
+      
+      return res.status(200).json(updatedChannel);
+    } catch (error) {
+      console.error("Error updating channel:", error);
+      return res.status(500).json({ message: "Failed to update channel" });
+    }
+  });
+  
+  // Update member role in channel
+  app.patch("/api/channels/:channelId/members/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.channelId);
+      const userId = parseInt(req.params.userId);
+      const { role } = req.body;
+      
+      if (isNaN(channelId) || isNaN(userId) || !role) {
+        return res.status(400).json({ message: "Invalid channel ID, user ID, or role" });
+      }
+      
+      if (!['owner', 'admin', 'member'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role. Must be 'owner', 'admin', or 'member'" });
+      }
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has permission to update roles
+      const requesterMembership = channel.members.find(m => m.userId === req.user!.id);
+      
+      if (!requesterMembership && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to update roles in this channel" });
+      }
+      
+      if (requesterMembership && !['owner'].includes(requesterMembership.role) && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "Only channel owners can update roles" });
+      }
+      
+      // Find the membership to update
+      const membershipToUpdate = await db.query.channelMembers.findFirst({
+        where: (fields, { and, eq }) => 
+          and(
+            eq(fields.channelId, channelId),
+            eq(fields.userId, userId)
+          )
+      });
+      
+      if (!membershipToUpdate) {
+        return res.status(404).json({ message: "User is not a member of this channel" });
+      }
+      
+      // Update member role
+      const [updatedMember] = await db.update(channelMembers)
+        .set({ role })
+        .where(eq(channelMembers.id, membershipToUpdate.id))
+        .returning();
+      
+      // Get the user data to return in response
+      const userRecord = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+      
+      // Broadcast the role update to all connected clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "channel_member_updated",
+            channelId,
+            member: { ...updatedMember, user: userRecord }
+          }));
+        }
+      });
+      
+      return res.status(200).json({ ...updatedMember, user: userRecord });
+    } catch (error) {
+      console.error("Error updating member role:", error);
+      return res.status(500).json({ message: "Failed to update member role" });
+    }
+  });
+  
   // Get all channels
   app.get("/api/channels", async (req, res) => {
     try {
