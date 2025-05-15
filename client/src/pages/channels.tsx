@@ -470,12 +470,10 @@ const ChannelsPage: FC = () => {
           // Rough calculation - can be refined
           const charWidth = 8; // Approximate width of a character
           
-          // Position dropdown right above the input field
+          // Position dropdown directly below the input
           setMentionPosition({
-            // Position just above the input field with a small gap
-            top: -35,
-            // Start near the beginning of the input with slight offset
-            left: 10
+            top: inputRect.height + 8, // Position right below the input with small gap
+            left: Math.min((lastAtPos * charWidth), inputRect.width - 250) // Align with @ position but ensure dropdown stays within input width
           });
         }
         
@@ -1284,7 +1282,7 @@ const ChannelsPage: FC = () => {
                   {/* Mentions dropdown */}
                   {mentionDropdownOpen && (
                     <div 
-                      className="absolute z-10 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto mt-1"
+                      className="absolute z-10 bg-background border border-accent rounded-md shadow-lg w-64 max-h-48 overflow-y-auto"
                       style={{ 
                         top: mentionPosition.top,
                         left: mentionPosition.left
@@ -1317,7 +1315,7 @@ const ChannelsPage: FC = () => {
                           return a.username.localeCompare(b.username);
                         })
                         .slice(0, 5)
-                        .map((user, idx) => {
+                        .map((user, index) => {
                           // Highlight the matching portion of the username
                           const username = user.username;
                           const matchIndex = username.toLowerCase().indexOf(mentionQuery.toLowerCase());
@@ -1343,7 +1341,7 @@ const ChannelsPage: FC = () => {
                             <div
                               key={user.id}
                               className={`p-2 cursor-pointer flex items-center ${
-                                idx === selectedMentionIndex 
+                                index === selectedMentionIndex 
                                   ? 'bg-accent' 
                                   : 'hover:bg-accent/50'
                               }`}
