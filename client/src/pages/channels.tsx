@@ -119,6 +119,7 @@ const ChannelsPage: FC = () => {
   const [newMemberId, setNewMemberId] = useState<number | null>(null);
   const [memberRole, setMemberRole] = useState("member");
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<number | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   
   // Fetch all available channels
   const {
@@ -345,8 +346,6 @@ const ChannelsPage: FC = () => {
   });
   
   // Delete a channel
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  
   const deleteChannelMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch(`/api/channels/${selectedChannelId}`, {

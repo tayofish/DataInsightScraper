@@ -3378,6 +3378,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete channel
+  app.delete("/api/channels/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: true
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has permission to delete channel (must be admin or channel owner/admin)
+      const membership = channel.members.find(m => m.userId === req.user!.id);
+      const isAuthorized = req.user!.isAdmin || 
+                          (membership && ['owner', 'admin'].includes(membership.role));
+      
+      if (!isAuthorized) {
+        return res.status(403).json({ message: "You don't have permission to delete this channel" });
+      }
+      
+      // Delete all messages in the channel first
+      await db.delete(messages).where(eq(messages.channelId, channelId));
+      
+      // Delete all channel members
+      await db.delete(channelMembers).where(eq(channelMembers.channelId, channelId));
+      
+      // Finally delete the channel
+      await db.delete(channels).where(eq(channels.id, channelId));
+      
+      // Broadcast the channel deletion to all connected clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "channel_deleted",
+            channelId
+          }));
+        }
+      });
+      
+      return res.status(200).json({ 
+        success: true, 
+        message: "Channel deleted successfully" 
+      });
+    } catch (error) {
+      console.error("Error deleting channel:", error);
+      return res.status(500).json({ message: "Failed to delete channel" });
+    }
+  });
+  
   // Update member role in channel
   app.patch("/api/channels/:channelId/members/:userId", async (req, res) => {
     try {
