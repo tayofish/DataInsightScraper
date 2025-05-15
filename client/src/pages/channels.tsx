@@ -578,6 +578,47 @@ const ChannelsPage: FC = () => {
     };
   }, [user, selectedChannelId]);
 
+  // Helper function to highlight mentions in messages
+  const renderMessageContent = (content: string) => {
+    // Regular expression to match @username mentions
+    const mentionRegex = /@(\w+)/g;
+    
+    // Split the content by mentions and map them with appropriate styling
+    const parts = content.split(mentionRegex);
+    
+    if (parts.length <= 1) {
+      return content; // No mentions found
+    }
+    
+    // Create an array to hold content parts (text and mentions)
+    const result: React.ReactNode[] = [];
+    
+    // Process parts in pairs (text and mention)
+    for (let i = 0; i < parts.length; i++) {
+      // Add regular text
+      if (parts[i]) {
+        result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+      }
+      
+      // Add mention if available (every second element)
+      if (i + 1 < parts.length) {
+        const mentionName = parts[++i];
+        if (mentionName) {
+          result.push(
+            <span 
+              key={`mention-${i}`} 
+              className="bg-accent px-1 rounded font-medium"
+            >
+              @{mentionName}
+            </span>
+          );
+        }
+      }
+    }
+    
+    return result;
+  };
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
@@ -876,7 +917,7 @@ const ChannelsPage: FC = () => {
                                 </div>
 
                                 {/* Current user is owner or admin or site admin */}
-                                {(channelDetails?.members?.some((m: any) => 
+                                {(channelDetails?.members?.some((m: { userId: number, role: string }) => 
                                   m.userId === user?.id && ['owner', 'admin'].includes(m.role)
                                 ) || user?.isAdmin) && (
                                   <DropdownMenu>
@@ -1166,15 +1207,57 @@ const ChannelsPage: FC = () => {
             </ScrollArea>
 
             {/* Message Input */}
-            <div className="p-4 border-t">
+            <div className="p-4 border-t relative">
               <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <Input
-                  placeholder="Type a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  disabled={sendMessageMutation.isPending}
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  <Input
+                    ref={messageInputRef}
+                    placeholder="Type a message... (use @ to mention users)"
+                    value={message}
+                    onChange={handleInputChange}
+                    disabled={sendMessageMutation.isPending}
+                    className="flex-1"
+                  />
+                  
+                  {/* Mentions dropdown */}
+                  {mentionDropdownOpen && (
+                    <div 
+                      className="absolute z-10 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto"
+                      style={{ 
+                        top: mentionPosition.top,
+                        left: mentionPosition.left
+                      }}
+                    >
+                      {allUsers
+                        .filter(user => 
+                          user.username.toLowerCase().includes(mentionQuery.toLowerCase())
+                        )
+                        .slice(0, 5)
+                        .map(user => (
+                          <div
+                            key={user.id}
+                            className="p-2 hover:bg-accent cursor-pointer flex items-center"
+                            onClick={() => insertMention(user.username)}
+                          >
+                            <Avatar className="h-6 w-6 mr-2">
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>
+                                {user.username.substring(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{user.username}</span>
+                          </div>
+                        ))}
+                      {allUsers.filter(user => 
+                        user.username.toLowerCase().includes(mentionQuery.toLowerCase())
+                      ).length === 0 && (
+                        <div className="p-2 text-muted-foreground">
+                          No users found matching "{mentionQuery}"
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button 
                   type="submit" 
                   disabled={sendMessageMutation.isPending || !message.trim()}
