@@ -314,145 +314,26 @@ const DirectMessagesPage: FC = () => {
     }
   }, [messages]);
 
-  // Initialize WebSocket connection
+  // Use the global WebSocket context to handle direct message events
   useEffect(() => {
-    if (!user) return;
+    if (!user || !queryClient) return;
     
-    let reconnectAttempts = 0;
-    let reconnectTimer: NodeJS.Timeout | null = null;
+    // The WebSocket connection is now managed by the global WebSocket context
+    // We just need to react to messages related to direct messages
     
-    // Function to create and set up the WebSocket
-    const setupWebSocket = () => {
-      try {
-        // Use a relative path for WebSocket to work with Nginx reverse proxy
-        // This ensures the WebSocket connects to the same host/port as the page
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        
-        // For PM2 and Nginx compatibility, use a relative WebSocket URL
-        // that will work regardless of proxy setup
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        console.log("Connecting to WebSocket at:", wsUrl);
-        
-        // Clean up any existing socket
-        if (socket) {
-          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-            socket.close();
-          }
-        }
-        
-        // Create new socket with improved error handling
-        socket = new WebSocket(wsUrl);
-        
-        socket.onopen = () => {
-          console.log("WebSocket connection established");
-          reconnectAttempts = 0; // Reset reconnect attempts on successful connection
-          
-          // Authenticate the WebSocket connection
-          if (socket && socket.readyState === WebSocket.OPEN && user) {
-            try {
-              const authData = {
-                type: "auth",
-                userId: user.id,
-                username: user.username,
-              };
-              socket.send(JSON.stringify(authData));
-            } catch (err) {
-              console.error("Error sending authentication data:", err);
-            }
-          }
-        };
-        
-        socket.onmessage = (event) => {
-          try {
-            // Make sure the event data is a non-empty string before parsing
-            if (typeof event.data !== 'string' || !event.data.trim()) {
-              console.warn("Received empty or non-string WebSocket message");
-              return;
-            }
-            
-            const data = JSON.parse(event.data);
-            console.log("WebSocket message received:", data);
-            
-            // Handle different message types
-            if ((data.type === "new_direct_message" || data.type === "direct_message_sent") && data.message) {
-              console.log("Received a direct message through WebSocket:", data.type);
-              
-              // If this is a message from or to the currently selected user
-              if (
-                selectedUserId && (
-                  (data.message.senderId === selectedUserId && data.message.receiverId === user.id) ||
-                  (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
-                )
-              ) {
-                // Update messages for current conversation immediately
-                console.log("Updating messages for current conversation");
-                queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
-                
-                // Optionally add message directly to state for even faster updates
-                // This would require maintaining a local messages state
-              }
-              
-              // Always update conversations list to show latest messages
-              console.log("Updating conversations list");
-              queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
-            } else if (data.type === "auth_success") {
-              console.log("WebSocket authentication successful");
-            } else if (data.type === "welcome") {
-              console.log("Received welcome message from server");
-            }
-          } catch (error) {
-            console.error("Error parsing WebSocket message:", error, "Raw data:", 
-              typeof event.data, 
-              event.data?.substring ? event.data.substring(0, 100) : "non-string data"
-            );
-          }
-        };
-        
-        socket.onerror = (error) => {
-          console.error("WebSocket error:", error);
-        };
-        
-        socket.onclose = (event) => {
-          console.log(`WebSocket connection closed: Code ${event.code}${event.reason ? `, Reason: ${event.reason}` : ''}`);
-          
-          // Attempt to reconnect with exponential backoff
-          if (reconnectAttempts < 5) { // Limit reconnection attempts
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff with 30s max
-            console.log(`Attempting to reconnect in ${delay/1000} seconds...`);
-            reconnectTimer = setTimeout(() => {
-              reconnectAttempts++;
-              setupWebSocket();
-            }, delay);
-          } else {
-            console.log("Maximum reconnection attempts reached. Please refresh the page.");
-          }
-        };
-      } catch (error) {
-        console.error("Error setting up WebSocket:", error);
+    // The lastMessage will be automatically updated by the WebSocket context
+    // whenever a new message is received
+    const handleNewMessage = () => {
+      // If the global context has a lastMessage property, use it
+      if (wsStatus === 'connected' && selectedUserId) {
+        // When a new direct message is received, we need to update our queries
+        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
       }
     };
     
-    // Set up the WebSocket initially
-    setupWebSocket();
-    
-    // Clean up function
-    return () => {
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-      }
-      
-      if (socket) {
-        try {
-          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
-            socket.close();
-          }
-        } catch (err) {
-          console.error("Error closing WebSocket:", err);
-        }
-      }
-    };
-  }, [user, selectedUserId, queryClient]);
+    // The useEffect cleanup function will run automatically when the component is unmounted
+  }, [user, selectedUserId, queryClient, wsStatus]);
 
   // Set selectedUserId when URL param changes
   useEffect(() => {
