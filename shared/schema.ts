@@ -158,6 +158,12 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.departmentId],
     references: [departments.id],
   }),
+  // Collaboration features relations
+  channelMemberships: many(channelMembers),
+  messages: many(messages),
+  sentDirectMessages: many(directMessages, { relationName: 'sentMessages' }),
+  receivedDirectMessages: many(directMessages, { relationName: 'receivedMessages' }),
+  activities: many(userActivities),
 }));
 
 export const projectsRelations = relations(projects, ({ many }) => ({
@@ -454,3 +460,163 @@ export const smtpConfigFormSchema = z.object({
 });
 
 export type SmtpConfigFormValues = z.infer<typeof smtpConfigFormSchema>;
+
+// === SLACK-LIKE COLLABORATION TABLES ===
+
+// Channels (for team communication)
+export const channels = pgTable("channels", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: channelTypeEnum("type").notNull().default('public'),
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+  isArchived: boolean("is_archived").default(false),
+});
+
+// Channel members (users in channels)
+export const channelMembers = pgTable("channel_members", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").references(() => channels.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  role: text("role").default('member'), // 'owner', 'admin', 'member'
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  lastRead: timestamp("last_read"),
+});
+
+// Messages in channels
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  channelId: integer("channel_id").references(() => channels.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  parentId: integer("parent_id").references((): any => messages.id), // For message threads
+  content: text("content").notNull(),
+  type: messageTypeEnum("type").default('text'),
+  attachments: text("attachments"), // JSON string of attachments
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at"),
+  isEdited: boolean("is_edited").default(false),
+  reactions: text("reactions"), // JSON string of reactions
+  mentions: text("mentions"), // JSON string of user IDs mentioned
+});
+
+// Direct messages between users
+export const directMessages = pgTable("direct_messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").references(() => users.id).notNull(),
+  receiverId: integer("receiver_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  type: messageTypeEnum("type").default('text'),
+  attachments: text("attachments"), // JSON string of attachments
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isRead: boolean("is_read").default(false),
+  isEdited: boolean("is_edited").default(false),
+});
+
+// User activity log
+export const userActivities = pgTable("user_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // 'login', 'logout', 'message', 'create_task', etc.
+  resourceType: text("resource_type"), // 'task', 'project', 'channel', etc.
+  resourceId: integer("resource_id"), 
+  details: text("details"), // JSON string of additional details
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+});
+
+// Define relationships
+export const channelsRelations = relations(channels, ({ many, one }) => ({
+  members: many(channelMembers),
+  messages: many(messages),
+  creator: one(users, { fields: [channels.createdBy], references: [users.id] }),
+}));
+
+export const channelMembersRelations = relations(channelMembers, ({ one }) => ({
+  channel: one(channels, { fields: [channelMembers.channelId], references: [channels.id] }),
+  user: one(users, { fields: [channelMembers.userId], references: [users.id] }),
+}));
+
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  channel: one(channels, { fields: [messages.channelId], references: [channels.id] }),
+  user: one(users, { fields: [messages.userId], references: [users.id] }),
+  parent: one(messages, { fields: [messages.parentId], references: [messages.id] }),
+  replies: many(messages, { relationName: 'replies' }),
+}));
+
+export const directMessagesRelations = relations(directMessages, ({ one }) => ({
+  sender: one(users, { fields: [directMessages.senderId], references: [users.id] }),
+  receiver: one(users, { fields: [directMessages.receiverId], references: [users.id] }),
+}));
+
+export const userActivitiesRelations = relations(userActivities, ({ one }) => ({
+  user: one(users, { fields: [userActivities.userId], references: [users.id] }),
+}));
+
+// Update user relations to include channels, messages, etc.
+// Note: We'll update the existing usersRelations rather than create a new one
+// The original usersRelations is defined elsewhere in the file
+
+// Create schema definitions for our new tables
+export const channelInsertSchema = createInsertSchema(channels, {
+  name: (schema) => schema.min(2, "Channel name must be at least 2 characters"),
+  description: (schema) => schema.optional(),
+});
+// Create schema definitions for channels
+export const channelSelectSchema = createSelectSchema(channels);
+export type Channel = z.infer<typeof channelSelectSchema>;
+export type InsertChannel = z.infer<typeof channelInsertSchema>;
+
+// Create schema definitions for channel members
+export const channelMemberInsertSchema = createInsertSchema(channelMembers);
+export const channelMemberSelectSchema = createSelectSchema(channelMembers);
+export type ChannelMember = z.infer<typeof channelMemberSelectSchema>;
+export type InsertChannelMember = z.infer<typeof channelMemberInsertSchema>;
+
+// Create schema definitions for messages
+export const messageInsertSchema = createInsertSchema(messages, {
+  content: (schema) => schema.min(1, "Message cannot be empty"),
+});
+export const messageSelectSchema = createSelectSchema(messages);
+export type Message = z.infer<typeof messageSelectSchema>;
+export type InsertMessage = z.infer<typeof messageInsertSchema>;
+
+// Create schema definitions for direct messages
+export const directMessageInsertSchema = createInsertSchema(directMessages, {
+  content: (schema) => schema.min(1, "Message cannot be empty"),
+});
+export const directMessageSelectSchema = createSelectSchema(directMessages);
+export type DirectMessage = z.infer<typeof directMessageSelectSchema>;
+export type InsertDirectMessage = z.infer<typeof directMessageInsertSchema>;
+
+// Create schema definitions for user activities
+export const userActivityInsertSchema = createInsertSchema(userActivities);
+export const userActivitySelectSchema = createSelectSchema(userActivities);
+export type UserActivity = z.infer<typeof userActivitySelectSchema>;
+export type InsertUserActivity = z.infer<typeof userActivityInsertSchema>;
+
+// Form schemas for frontend validation
+export const messageFormSchema = z.object({
+  content: z.string().min(1, "Message cannot be empty"),
+  channelId: z.number(),
+  parentId: z.number().optional(),
+  type: z.enum(['text', 'file', 'system']).default('text'),
+  attachments: z.string().optional(),
+});
+export type MessageFormValues = z.infer<typeof messageFormSchema>;
+
+export const directMessageFormSchema = z.object({
+  content: z.string().min(1, "Message cannot be empty"),
+  receiverId: z.number(),
+  type: z.enum(['text', 'file', 'system']).default('text'),
+  attachments: z.string().optional(),
+});
+export type DirectMessageFormValues = z.infer<typeof directMessageFormSchema>;
+
+export const channelFormSchema = z.object({
+  name: z.string().min(2, "Channel name must be at least 2 characters"),
+  description: z.string().optional(),
+  type: z.enum(['public', 'private', 'direct']).default('public'),
+});
+export type ChannelFormValues = z.infer<typeof channelFormSchema>;
