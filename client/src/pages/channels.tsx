@@ -452,11 +452,29 @@ export default function ChannelsPage() {
     if (selectedChannelId) {
       console.log("Sending message to channel:", selectedChannelId, messageText);
       
+      // Extract mentions from the message
+      const mentionedUserIds: number[] = [];
+      const mentionRegex = /@(\w+)/g;
+      let match;
+      
+      while ((match = mentionRegex.exec(messageText)) !== null) {
+        const username = match[1];
+        console.log("Found mention:", username);
+        
+        // Find user by username
+        const mentionedUser = users?.find(user => user.username === username);
+        if (mentionedUser) {
+          console.log("Adding mentioned user:", mentionedUser.id);
+          mentionedUserIds.push(mentionedUser.id);
+        }
+      }
+      
       // Using WebSocket for real-time messaging
       sendMessage({
         type: "channel_message",
         channelId: selectedChannelId,
-        content: messageText
+        content: messageText,
+        mentions: mentionedUserIds
       });
       
       // Add direct API call as fallback
@@ -470,6 +488,7 @@ export default function ChannelsPage() {
           },
           body: JSON.stringify({
             content: messageText,
+            mentions: mentionedUserIds
           }),
         })
         .then(response => response.json())
@@ -485,6 +504,7 @@ export default function ChannelsPage() {
       
       setMessageText("");
       setIsTyping(false);
+      setMentionDropdownOpen(false);
     }
   };
   
