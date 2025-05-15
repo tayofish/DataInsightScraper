@@ -4369,7 +4369,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Handle channel message
         else if (data.type === 'channel_message' && ws.userId) {
-          const { channelId, content, parentId } = data;
+          const { channelId, content, parentId, mentions } = data;
+          console.log('Received channel message:', { 
+            userId: ws.userId, channelId, content, 
+            mentions: mentions || 'none'
+          });
           
           // Verify user has access to this channel
           const channel = await db.query.channels.findFirst({
@@ -4411,6 +4415,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content,
             type: 'text',
             createdAt: new Date(),
+            // Store mentions if provided by client
+            mentions: mentions && Array.isArray(mentions) && mentions.length > 0 
+              ? JSON.stringify(mentions) 
+              : null
           }).returning();
           
           // Get sender information
@@ -4418,21 +4426,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             where: (fields, { eq }) => eq(fields.id, ws.userId)
           });
           
-          // Process mentions
-          const mentionedUsers = extractMentions(content);
-          if (mentionedUsers.length > 0) {
-            const users = await db.query.users.findMany({
-              where: (fields, { inArray }) => 
-                inArray(fields.username, mentionedUsers)
-            });
-            
-            // Update message with mentions
-            if (users.length > 0) {
-              await db.update(messages)
-                .set({ 
-                  mentions: JSON.stringify(users.map(u => u.id))
-                })
-                .where(eq(messages.id, newMessage.id));
+          // Process mentions if not already provided by client
+          if (!mentions || !Array.isArray(mentions) || mentions.length === 0) {
+            console.log('Extracting mentions from text content');
+            const mentionedUsers = extractMentions(content);
+            if (mentionedUsers.length > 0) {
+              const users = await db.query.users.findMany({
+                where: (fields, { inArray }) => 
+                  inArray(fields.username, mentionedUsers)
+              });
+              
+              // Update message with mentions
+              if (users.length > 0) {
+                const userIds = users.map(u => u.id);
+                console.log('Extracted mentions from text:', userIds);
+                await db.update(messages)
+                  .set({ 
+                    mentions: JSON.stringify(userIds)
+                  })
+                  .where(eq(messages.id, newMessage.id));
+              
+              }
               
               // Send notifications to mentioned users
               for (const user of users) {
