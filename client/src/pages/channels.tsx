@@ -1044,7 +1044,10 @@ const ChannelsPage: FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {messages?.map((msg: any) => (
+                  {/* Sort messages chronologically - oldest at the top, newest at the bottom */}
+                  {[...messages || []].sort((a, b) => 
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                  ).map((msg: any) => (
                     <div key={msg.id} className="flex items-start space-x-3">
                       <Avatar>
                         <AvatarImage src={msg.user?.avatar} />
