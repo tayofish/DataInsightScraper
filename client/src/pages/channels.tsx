@@ -29,6 +29,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -114,6 +127,7 @@ const ChannelsPage: FC = () => {
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [membersSheetOpen, setMembersSheetOpen] = useState(false);
   const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
@@ -122,6 +136,12 @@ const ChannelsPage: FC = () => {
   const [memberRole, setMemberRole] = useState("member");
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<number | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  
+  // Mention functionality
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState(0);
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   
   // Fetch all available channels
   const {
