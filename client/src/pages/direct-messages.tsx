@@ -317,13 +317,20 @@ const DirectMessagesPage: FC = () => {
 
     socket.onmessage = (event) => {
       try {
+        // Make sure the event data is a non-empty string before parsing
+        if (typeof event.data !== 'string' || !event.data.trim()) {
+          console.warn("Received empty or non-string WebSocket message");
+          return;
+        }
+        
         const data = JSON.parse(event.data);
         console.log("WebSocket message received:", data);
 
         // Handle different message types
-        if (data.type === "new_direct_message") {
+        if (data.type === "new_direct_message" && data.message) {
           // If this is a message from or to the currently selected user
           if (
+            selectedUserId && 
             (data.message.senderId === selectedUserId && data.message.receiverId === user.id) ||
             (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
           ) {
@@ -336,7 +343,7 @@ const DirectMessagesPage: FC = () => {
           console.log("WebSocket authentication successful");
         }
       } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
+        console.error("Error parsing WebSocket message:", error, "Raw data:", typeof event.data, event.data?.substring?.(0, 100));
       }
     };
 
