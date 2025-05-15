@@ -142,6 +142,8 @@ const ChannelsPage: FC = () => {
   const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const messageInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch all available channels
   const {
@@ -436,6 +438,73 @@ const ChannelsPage: FC = () => {
   // Submit handler for channel edit form
   const onEditSubmit = (values: ChannelFormValues) => {
     updateChannelMutation.mutate(values);
+  };
+
+  // Handle input change and detect mentions
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    
+    // Check for @ mentions
+    const cursorPos = e.target.selectionStart || 0;
+    setCursorPosition(cursorPos);
+    
+    // Find the last @ symbol before cursor
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtPos !== -1 && (lastAtPos === 0 || /\s/.test(value[lastAtPos - 1]))) {
+      // Extract the partial username after @
+      const afterAt = textBeforeCursor.substring(lastAtPos + 1);
+      
+      // If there's no space after the @username part being typed
+      if (!afterAt.includes(' ')) {
+        setMentionQuery(afterAt);
+        setMentionStartIndex(lastAtPos);
+        
+        // Calculate position for mention dropdown
+        if (messageInputRef.current) {
+          const inputRect = messageInputRef.current.getBoundingClientRect();
+          // Rough calculation - can be refined
+          const charWidth = 8; // Approximate width of a character
+          
+          setMentionPosition({
+            top: inputRect.height + 5,
+            left: Math.min((lastAtPos * charWidth), inputRect.width - 200)
+          });
+        }
+        
+        setMentionDropdownOpen(true);
+        return;
+      }
+    }
+    
+    // If we get here, we're not in a mention context
+    setMentionDropdownOpen(false);
+  };
+  
+  // Insert a mention at cursor position
+  const insertMention = (username: string) => {
+    if (mentionStartIndex === -1) return;
+    
+    const beforeMention = message.substring(0, mentionStartIndex);
+    const afterMention = message.substring(cursorPosition);
+    
+    const newMessage = `${beforeMention}@${username} ${afterMention}`;
+    setMessage(newMessage);
+    setMentionDropdownOpen(false);
+    
+    // Focus back on input
+    if (messageInputRef.current) {
+      messageInputRef.current.focus();
+      // Set cursor position after the inserted mention
+      const newCursorPos = mentionStartIndex + username.length + 2; // +2 for @ and space
+      setTimeout(() => {
+        if (messageInputRef.current) {
+          messageInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      }, 0);
+    }
   };
 
   // Handle message submission
