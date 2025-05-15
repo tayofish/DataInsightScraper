@@ -59,7 +59,7 @@ const channelFormSchema = z.object({
 
 type ChannelFormValues = z.infer<typeof channelFormSchema>;
 
-// Mocked WebSocket connection (will be implemented later)
+// WebSocket connection for real-time messaging
 let socket: WebSocket | null = null;
 
 const ChannelsPage: FC = () => {
@@ -87,10 +87,7 @@ const ChannelsPage: FC = () => {
     error: messagesError,
   } = useQuery<any[]>({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
-    enabled: !!selectedChannelId && !!user,
-    onSuccess: (data) => {
-      console.log("Channel messages:", data);
-    }
+    enabled: !!selectedChannelId && !!user
   });
 
   // Create a new channel
