@@ -470,10 +470,10 @@ const ChannelsPage: FC = () => {
           // Rough calculation - can be refined
           const charWidth = 8; // Approximate width of a character
           
-          // Position dropdown right above the input field
+          // Position dropdown within the input area
           setMentionPosition({
-            // Position just above the input field with a small gap
-            top: -35,
+            // Position below the input instead of above
+            top: 5,
             // Start near the beginning of the input with slight offset
             left: 10
           });
@@ -1284,10 +1284,10 @@ const ChannelsPage: FC = () => {
                   {/* Mentions dropdown */}
                   {mentionDropdownOpen && (
                     <div 
-                      className="absolute z-10 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto mt-1"
+                      className="absolute z-50 bg-background border rounded-md shadow-lg w-64 max-h-48 overflow-y-auto mt-1"
                       style={{ 
-                        top: mentionPosition.top,
-                        left: mentionPosition.left
+                        bottom: "45px", /* Position above the input field */
+                        left: "10px"    /* Offset from the left edge */
                       }}
                     >
                       {allUsers
@@ -1343,8 +1343,8 @@ const ChannelsPage: FC = () => {
                             <div
                               key={user.id}
                               className={`p-2 cursor-pointer flex items-center ${
-                                idx === selectedMentionIndex 
-                                  ? 'bg-accent' 
+                                selectedMentionIndex === idx 
+                                  ? 'bg-accent font-semibold' 
                                   : 'hover:bg-accent/50'
                               }`}
                               onClick={() => insertMention(user.username)}
