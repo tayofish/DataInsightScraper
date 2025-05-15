@@ -1,0 +1,237 @@
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { useAuth } from './use-auth';
+import { queryClient } from '@/lib/queryClient';
+
+// WebSocket connection status
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+
+// WebSocket context type
+interface WebSocketContextType {
+  status: ConnectionStatus;
+  sendMessage: (message: any) => void;
+  lastMessage: any;
+}
+
+// Create context with default values
+const WebSocketContext = createContext<WebSocketContextType>({
+  status: 'disconnected',
+  sendMessage: () => {},
+  lastMessage: null,
+});
+
+// Maximum reconnection attempts
+const MAX_RECONNECT_ATTEMPTS = 10;
+
+export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [lastMessage, setLastMessage] = useState<any>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup function to handle socket closing
+  const cleanupSocket = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+
+    if (socketRef.current && (
+      socketRef.current.readyState === WebSocket.OPEN || 
+      socketRef.current.readyState === WebSocket.CONNECTING
+    )) {
+      socketRef.current.close();
+    }
+  }, []);
+
+  // Setup WebSocket connection
+  const setupSocket = useCallback(() => {
+    if (!user) {
+      setStatus('disconnected');
+      return;
+    }
+
+    try {
+      cleanupSocket();
+      setStatus('connecting');
+
+      // Create WebSocket connection
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      console.log('[WebSocket] Connecting to:', wsUrl);
+      
+      socketRef.current = new WebSocket(wsUrl);
+
+      // Connection established
+      socketRef.current.onopen = () => {
+        console.log('[WebSocket] Connection established');
+        setStatus('connected');
+        reconnectAttemptsRef.current = 0; // Reset reconnect counter
+
+        // Authenticate user
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && user) {
+          try {
+            const authData = {
+              type: 'auth',
+              userId: user.id,
+              username: user.username,
+            };
+            socketRef.current.send(JSON.stringify(authData));
+          } catch (err) {
+            console.error('[WebSocket] Authentication error:', err);
+          }
+        }
+      };
+
+      // Message received
+      socketRef.current.onmessage = (event) => {
+        try {
+          // Validate message format
+          if (typeof event.data !== 'string' || !event.data.trim()) {
+            console.warn('[WebSocket] Received empty or invalid message');
+            return;
+          }
+
+          const data = JSON.parse(event.data);
+          console.log('[WebSocket] Message received:', data);
+          setLastMessage(data);
+
+          // Handle different message types
+          if (data.type === 'auth_success') {
+            console.log('[WebSocket] Authentication successful');
+          } else if (data.type === 'welcome') {
+            console.log('[WebSocket] Received welcome message');
+          } else if ((data.type === 'new_direct_message' || data.type === 'direct_message_sent') && data.message) {
+            console.log('[WebSocket] Received direct message:', data.type);
+            
+            // Update direct messages queries
+            if (data.message.senderId && data.message.receiverId) {
+              const otherUserId = data.message.senderId === user.id 
+                ? data.message.receiverId 
+                : data.message.senderId;
+                
+              console.log('[WebSocket] Updating messages for conversation with:', otherUserId);
+              queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${otherUserId}`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+            }
+          } else if (data.type === 'new_channel_message' && data.message) {
+            console.log('[WebSocket] Received channel message');
+            
+            // Update channel messages queries
+            if (data.message.channelId) {
+              console.log('[WebSocket] Updating messages for channel:', data.message.channelId);
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+            }
+          }
+        } catch (error) {
+          console.error('[WebSocket] Error parsing message:', error);
+        }
+      };
+
+      // Connection error
+      socketRef.current.onerror = (error) => {
+        console.error('[WebSocket] Connection error:', error);
+        setStatus('error');
+      };
+
+      // Connection closed
+      socketRef.current.onclose = (event) => {
+        console.log(`[WebSocket] Connection closed: Code ${event.code}${event.reason ? `, Reason: ${event.reason}` : ''}`);
+        setStatus('disconnected');
+
+        // Attempt to reconnect with exponential backoff
+        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`[WebSocket] Attempting to reconnect in ${delay/1000} seconds...`);
+          
+          reconnectTimerRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current += 1;
+            setupSocket();
+          }, delay);
+        } else {
+          console.error('[WebSocket] Maximum reconnection attempts reached');
+        }
+      };
+    } catch (error) {
+      console.error('[WebSocket] Setup error:', error);
+      setStatus('error');
+    }
+  }, [user, cleanupSocket]);
+
+  // Send a message through WebSocket
+  const sendMessage = useCallback((message: any) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      try {
+        socketRef.current.send(JSON.stringify(message));
+      } catch (error) {
+        console.error('[WebSocket] Error sending message:', error);
+      }
+    } else {
+      console.warn('[WebSocket] Cannot send message, socket not connected');
+      
+      // Try to reconnect if socket is closed unexpectedly
+      if (!socketRef.current || socketRef.current.readyState === WebSocket.CLOSED) {
+        setupSocket();
+      }
+    }
+  }, [setupSocket]);
+
+  // Initialize WebSocket when user logs in
+  useEffect(() => {
+    if (user) {
+      setupSocket();
+    } else {
+      cleanupSocket();
+      setStatus('disconnected');
+    }
+
+    // Cleanup on unmount
+    return () => {
+      cleanupSocket();
+    };
+  }, [user, setupSocket, cleanupSocket]);
+
+  // Handle page visibility changes to reconnect when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+          console.log('[WebSocket] Reconnecting after page became visible');
+          setupSocket();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, setupSocket]);
+
+  // Context value
+  const contextValue: WebSocketContextType = {
+    status,
+    sendMessage,
+    lastMessage,
+  };
+
+  return (
+    <WebSocketContext.Provider value={contextValue}>
+      {children}
+    </WebSocketContext.Provider>
+  );
+};
+
+// Hook for consuming WebSocket context
+export const useWebSocket = () => {
+  const context = useContext(WebSocketContext);
+  
+  if (context === undefined) {
+    throw new Error('useWebSocket must be used within a WebSocketProvider');
+  }
+  
+  return context;
+};

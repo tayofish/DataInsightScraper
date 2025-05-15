@@ -23,6 +23,7 @@ import DirectMessagesPage from "@/pages/direct-messages";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 import { AuthProvider } from "@/hooks/use-auth";
+import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 
@@ -160,10 +161,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Router />
-          <Toaster />
-        </TooltipProvider>
+        <WebSocketProvider>
+          <TooltipProvider>
+            <Router />
+            <Toaster />
+          </TooltipProvider>
+        </WebSocketProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
