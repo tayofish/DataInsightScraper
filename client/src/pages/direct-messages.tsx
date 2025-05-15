@@ -40,6 +40,60 @@ const DirectMessagesPage: FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
   
+  // Helper function to highlight mentions in messages
+  const renderMessageContent = (content: string) => {
+    if (!content) return "";
+    
+    // Regular expression to match @username mentions (including those with dots)
+    const mentionRegex = /@([\w\.]+)/g;
+    
+    // Create a temporary div to hold the content
+    const fragments: React.ReactNode[] = [];
+    let lastIndex = 0;
+    
+    // Use matchAll to get all matches with their positions
+    const matches = [...content.matchAll(mentionRegex)];
+    
+    if (matches.length === 0) {
+      return content; // No mentions found
+    }
+    
+    // Process each match
+    for (const match of matches) {
+      // Add text before the mention
+      if (match.index && match.index > lastIndex) {
+        fragments.push(
+          <span key={`text-${lastIndex}`}>
+            {content.substring(lastIndex, match.index)}
+          </span>
+        );
+      }
+      
+      // Add the mention with highlighting
+      const mentionName = match[1]; // The username without the @
+      fragments.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className="bg-accent px-1.5 rounded font-medium"
+        >
+          @{mentionName}
+        </span>
+      );
+      
+      // Update lastIndex to after this mention
+      lastIndex = (match.index || 0) + match[0].length;
+    }
+    
+    // Add any remaining text after the last mention
+    if (lastIndex < content.length) {
+      fragments.push(
+        <span key={`text-end`}>{content.substring(lastIndex)}</span>
+      );
+    }
+    
+    return fragments.length > 0 ? fragments : content;
+  };
+  
   // Fetch all conversations
   const {
     data: conversations = [],
@@ -450,7 +504,7 @@ const DirectMessagesPage: FC = () => {
                             </span>
                           </div>
                           <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                            {msg.content}
+                            {renderMessageContent(msg.content)}
                           </div>
                         </div>
                       </div>
