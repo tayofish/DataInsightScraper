@@ -280,10 +280,31 @@ const DirectMessagesPage: FC = () => {
     e.preventDefault();
     if (!message.trim() || !selectedUserId) return;
 
-    sendMessageMutation.mutate({
-      content: message,
-      receiverId: selectedUserId,
-    });
+    // Use WebSocket for real-time messaging
+    if (wsStatus === 'connected') {
+      try {
+        sendMessage({
+          type: "direct_message",
+          receiverId: selectedUserId,
+          content: message
+        });
+        
+        setMessage("");
+      } catch (error) {
+        console.error("Error sending message via WebSocket:", error);
+        // Fallback to API if WebSocket fails
+        sendMessageMutation.mutate({
+          content: message,
+          receiverId: selectedUserId,
+        });
+      }
+    } else {
+      // Use the API if WebSocket is not connected
+      sendMessageMutation.mutate({
+        content: message,
+        receiverId: selectedUserId,
+      });
+    }
   };
 
   // Scroll to bottom of messages when new messages arrive
