@@ -3412,14 +3412,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset,
         orderBy: [desc(messages.createdAt)],
         with: {
-          user: true,
-          replies: {
-            limit: 3, // Get the latest 3 replies per thread
-            orderBy: [desc(messages.createdAt)],
-            with: {
-              user: true
-            }
-          }
+          user: true
         }
       });
       
