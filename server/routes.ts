@@ -3226,20 +3226,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const channelData = channelInsertSchema.parse({
-        ...req.body,
-        createdBy: req.user!.id
-      });
+      const { name, description, type } = req.body;
+      
+      if (!name || !type) {
+        return res.status(400).json({ message: "Name and type are required" });
+      }
       
       // Create channel in transaction to also add creator as a member
       const newChannel = await db.transaction(async (tx) => {
-        const [channel] = await tx.insert(channels).values(channelData).returning();
+        const [channel] = await tx.insert(channels).values({
+          name,
+          description: description || "",
+          type: type as "public" | "private",
+          creatorId: req.user!.id,
+          createdAt: new Date()
+        }).returning();
         
         // Add creator as a member with 'owner' role
         await tx.insert(channelMembers).values({
           channelId: channel.id,
           userId: req.user!.id,
-          role: 'owner'
+          role: 'owner',
+          joinedAt: new Date()
         });
         
         return channel;
