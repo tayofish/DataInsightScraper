@@ -641,43 +641,57 @@ const ChannelsPage: FC = () => {
 
   // Helper function to highlight mentions in messages
   const renderMessageContent = (content: string) => {
-    // Regular expression to match @username mentions
-    const mentionRegex = /@(\w+)/g;
+    if (!content) return "";
     
-    // Split the content by mentions and map them with appropriate styling
-    const parts = content.split(mentionRegex);
+    // Regular expression to match @username mentions (including those with dots)
+    const mentionRegex = /@([\w\.]+)/g;
     
-    if (parts.length <= 1) {
+    // Create a temporary div to hold the content
+    const fragments: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match;
+    
+    // Use matchAll to get all matches with their positions
+    const matches = [...content.matchAll(mentionRegex)];
+    
+    if (matches.length === 0) {
       return content; // No mentions found
     }
     
-    // Create an array to hold content parts (text and mentions)
-    const result: React.ReactNode[] = [];
-    
-    // Process parts in pairs (text and mention)
-    for (let i = 0; i < parts.length; i++) {
-      // Add regular text
-      if (parts[i]) {
-        result.push(<span key={`text-${i}`}>{parts[i]}</span>);
+    // Process each match
+    for (const match of matches) {
+      // Add text before the mention
+      if (match.index && match.index > lastIndex) {
+        fragments.push(
+          <span key={`text-${lastIndex}`}>
+            {content.substring(lastIndex, match.index)}
+          </span>
+        );
       }
       
-      // Add mention if available (every second element)
-      if (i + 1 < parts.length) {
-        const mentionName = parts[++i];
-        if (mentionName) {
-          result.push(
-            <span 
-              key={`mention-${i}`} 
-              className="bg-accent px-1 rounded font-medium"
-            >
-              @{mentionName}
-            </span>
-          );
-        }
-      }
+      // Add the mention with highlighting
+      const mentionName = match[1]; // The username without the @
+      fragments.push(
+        <span 
+          key={`mention-${match.index}`} 
+          className="bg-accent px-1.5 rounded font-medium"
+        >
+          @{mentionName}
+        </span>
+      );
+      
+      // Update lastIndex to after this mention
+      lastIndex = (match.index || 0) + match[0].length;
     }
     
-    return result;
+    // Add any remaining text after the last mention
+    if (lastIndex < content.length) {
+      fragments.push(
+        <span key={`text-end`}>{content.substring(lastIndex)}</span>
+      );
+    }
+    
+    return fragments.length > 0 ? fragments : content;
   };
 
   if (!user) {
