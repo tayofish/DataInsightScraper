@@ -3238,7 +3238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name,
           description: description || "",
           type: type as "public" | "private",
-          creatorId: req.user!.id,
+          createdBy: req.user!.id,
           createdAt: new Date()
         }).returning();
         
@@ -3765,8 +3765,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: receiverId,
         title: "New direct message",
         message: `${req.user!.name} sent you a message: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
-        link: `/messages/${req.user!.id}`,
-        read: false
+        type: "direct_message",
+        referenceId: newMessage.id,
+        referenceType: "direct_message"
       });
       
       // Get complete message with sender and receiver data
