@@ -3347,8 +3347,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "channel_invitation",
         title: "Channel invitation",
         message: `You have been added to the channel: ${channel.name}`,
-        link: `/channels/${channelId}`,
-        read: false
+        referenceId: channelId,
+        referenceType: "channel",
+        isRead: false
       });
       
       return res.status(201).json(newMember);
@@ -3871,10 +3872,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     clientTracking: true
   });
   
-  // Store active connections with user IDs
-  const connections = new Map();
+  // Define custom WebSocket type with user properties
+  interface ExtendedWebSocket extends WebSocket {
+    userId?: number;
+    username?: string;
+  }
   
-  wss.on('connection', (ws, req) => {
+  // Store active connections with user IDs
+  const connections = new Map<number, ExtendedWebSocket>();
+  
+  wss.on('connection', (ws: ExtendedWebSocket, req) => {
     console.log('WebSocket connection established');
     
     // Handle authentication

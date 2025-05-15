@@ -42,10 +42,10 @@ const DirectMessagesPage: FC = () => {
   
   // Fetch all conversations
   const {
-    data: conversations,
+    data: conversations = [],
     isLoading: isLoadingConversations,
     error: conversationsError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/direct-messages/conversations"],
     enabled: !!user,
   });

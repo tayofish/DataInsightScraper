@@ -72,20 +72,20 @@ const ChannelsPage: FC = () => {
   
   // Fetch all available channels
   const {
-    data: channels,
+    data: channels = [],
     isLoading: isLoadingChannels,
     error: channelsError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/channels"],
     enabled: !!user,
   });
 
   // Fetch messages for the selected channel
   const {
-    data: messages,
+    data: messages = [],
     isLoading: isLoadingMessages,
     error: messagesError,
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: ["/api/channels", selectedChannelId, "messages"],
     enabled: !!selectedChannelId && !!user,
   });
