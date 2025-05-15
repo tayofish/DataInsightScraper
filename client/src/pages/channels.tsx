@@ -569,6 +569,11 @@ const ChannelsPage: FC = () => {
       content: message,
       channelId: selectedChannelId,
     });
+    
+    // Reset message and mention state
+    setMessage("");
+    setMentionDropdownOpen(false);
+    setSelectedMentionIndex(0);
   };
 
   // Scroll to bottom of messages when new messages arrive
@@ -1334,7 +1339,14 @@ const ChannelsPage: FC = () => {
                           return (
                             <div
                               key={user.id}
-                              className="p-2 hover:bg-accent cursor-pointer flex items-center"
+                              className={`p-2 cursor-pointer flex items-center ${
+                                Array.from(allUsers
+                                  .filter(u => u.username.toLowerCase().includes(mentionQuery.toLowerCase()))
+                                  .slice(0, 5))
+                                  .indexOf(user) === selectedMentionIndex 
+                                  ? 'bg-accent' 
+                                  : 'hover:bg-accent/50'
+                              }`}
                               onClick={() => insertMention(user.username)}
                             >
                               <Avatar className="h-6 w-6 mr-2">
