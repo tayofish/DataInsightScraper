@@ -1,0 +1,28 @@
+{
+  "apps": [
+    {
+      "name": "promellon",
+      "script": "server/index.ts",
+      "interpreter": "node",
+      "interpreter_args": "--require tsx/cjs",
+      "watch": ["server", "shared"],
+      "ignore_watch": ["node_modules", "uploads", ".git"],
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "5000"
+      },
+      "max_memory_restart": "1G",
+      "restart_delay": 5000,
+      "min_uptime": "60s",
+      "max_restarts": 10,
+      "exec_mode": "fork",
+      "merge_logs": true,
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z",
+      "out_file": "/var/log/promellon/app.log",
+      "error_file": "/var/log/promellon/error.log",
+      "kill_timeout": 3000,
+      "listen_timeout": 30000,
+      "instances": 1
+    }
+  ]
+}
