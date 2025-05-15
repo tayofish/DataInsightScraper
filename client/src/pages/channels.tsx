@@ -828,7 +828,7 @@ const ChannelsPage: FC = () => {
                                   {allUsers
                                     .filter(u => 
                                       // Filter out users who are already members
-                                      !channelDetails?.members?.some(m => m.userId === u.id)
+                                      !channelDetails?.members?.some((m: { userId: number }) => m.userId === u.id)
                                     )
                                     .map(u => (
                                       <SelectItem key={u.id} value={u.id.toString()}>
@@ -930,7 +930,7 @@ const ChannelsPage: FC = () => {
                                       <DropdownMenuLabel>Member Actions</DropdownMenuLabel>
                                       
                                       {/* Role selection - only owners can change roles */}
-                                      {(channelDetails?.members?.some((m: any) => 
+                                      {(channelDetails?.members?.some((m: { userId: number, role: string }) => 
                                         m.userId === user?.id && m.role === 'owner'
                                       ) || user?.isAdmin) && (
                                         <>
@@ -1197,7 +1197,7 @@ const ChannelsPage: FC = () => {
                             <Badge variant="outline">System</Badge>
                           )}
                         </div>
-                        <p className="text-sm mt-1">{msg.content}</p>
+                        <p className="text-sm mt-1">{renderMessageContent(msg.content)}</p>
                       </div>
                     </div>
                   ))}
