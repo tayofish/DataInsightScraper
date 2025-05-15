@@ -86,8 +86,11 @@ const ChannelsPage: FC = () => {
     isLoading: isLoadingMessages,
     error: messagesError,
   } = useQuery<any[]>({
-    queryKey: ["/api/channels", selectedChannelId, "messages"],
+    queryKey: [`/api/channels/${selectedChannelId}/messages`],
     enabled: !!selectedChannelId && !!user,
+    onSuccess: (data) => {
+      console.log("Channel messages:", data);
+    }
   });
 
   // Create a new channel
@@ -139,7 +142,7 @@ const ChannelsPage: FC = () => {
     },
     onSuccess: () => {
       setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/channels", selectedChannelId, "messages"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
     },
     onError: (error) => {
       toast({
@@ -438,12 +441,12 @@ const ChannelsPage: FC = () => {
                       <Avatar>
                         <AvatarImage src={msg.user?.avatar} />
                         <AvatarFallback>
-                          {msg.user?.name ? msg.user.name.substring(0, 2).toUpperCase() : "??"}
+                          {msg.user?.username ? msg.user.username.substring(0, 2).toUpperCase() : "??"}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <span className="font-semibold">{msg.user?.name || msg.user?.username || "Unknown User"}</span>
+                          <span className="font-semibold">{msg.user?.username || "Unknown User"}</span>
                           <span className="text-xs text-muted-foreground">
                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
