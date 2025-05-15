@@ -3403,10 +3403,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const offset = parseInt(req.query.offset as string) || 0;
       
       const channelMessages = await db.query.messages.findMany({
-        where: (fields, { eq, isNull }) => ({
-          channelId: eq(fields.channelId, channelId),
-          parentId: isNull(fields.parentId) // Only get top-level messages, not replies
-        }),
+        where: (fields, { eq, isNull }) => 
+          and(
+            eq(fields.channelId, channelId),
+            isNull(fields.parentId) // Only get top-level messages, not replies
+          ),
         limit,
         offset,
         orderBy: [desc(messages.createdAt)],
