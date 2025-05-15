@@ -4508,174 +4508,283 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Broadcast message to all users in the channel
-          const broadcastMessage = {
-            type: 'new_channel_message',
-            message: {
-              ...newMessage,
-              user: sender
-            }
-          };
-          
-          // Send to all connected users who are channel members
-          for (const [userId, connection] of connections.entries()) {
-            if (connection.readyState === WebSocket.OPEN) {
-              // For public channels, send to everyone
-              // For private channels, check if user is a member
-              if (channel.type === 'public' || 
-                  channel.members.some(m => m.userId === parseInt(userId))) {
-                connection.send(JSON.stringify(broadcastMessage));
-              }
-            }
-          }
-          
-          // Log the activity
-          await db.insert(userActivities).values({
-            userId: ws.userId,
-            action: 'send_message',
-            resourceType: 'channel',
-            resourceId: channelId,
-            details: JSON.stringify({ 
-              channelName: channel.name,
-              messageId: newMessage.id
-            })
-          });
-        }
-        
-        // Handle direct message
-        else if (data.type === 'direct_message' && ws.userId) {
-          const { receiverId, content } = data;
-          
-          // Verify receiver exists
-          const receiver = await db.query.users.findFirst({
-            where: (fields, { eq }) => eq(fields.id, receiverId)
-          });
-          
-          if (!receiver) {
-            ws.send(JSON.stringify({ 
-              type: 'error', 
-              message: 'Receiver not found' 
-            }));
-            return;
-          }
-          
-          // Get sender information
-          const sender = await db.query.users.findFirst({
-            where: (fields, { eq }) => eq(fields.id, ws.userId)
-          });
-          
-          if (!sender) {
-            ws.send(JSON.stringify({ 
-              type: 'error', 
-              message: 'Sender not found' 
-            }));
-            return;
-          }
-          
-          // Create message in database
-          const [newMessage] = await db.insert(directMessages).values({
-            senderId: ws.userId,
-            receiverId,
-            content,
-            type: 'text',
-            createdAt: new Date(),
-            isRead: false
-          }).returning();
-          
-          // Send notification to receiver
-          await db.insert(notifications).values({
-            userId: receiverId,
-            title: "New direct message",
-            message: `${sender.name} sent you a message: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-            type: "direct_message",
-            referenceId: newMessage.id,
-            referenceType: "direct_message",
-            isRead: false
-          });
-          
-          // Send message to receiver if they're connected
-          const receiverConnection = connections.get(receiverId);
-          if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
-            receiverConnection.send(JSON.stringify({
-              type: 'new_direct_message',
+          try {
+            console.log("Broadcasting new message to channel members");
+            
+            const broadcastMessage = {
+              type: 'new_channel_message',
               message: {
                 ...newMessage,
-                sender,
-                receiver
+                user: sender || { id: ws.userId, name: "Unknown User" } // Fallback if sender info unavailable
               }
-            }));
-          }
-          
-          // Send confirmation to sender
-          ws.send(JSON.stringify({
-            type: 'direct_message_sent',
-            message: {
-              ...newMessage,
-              sender,
-              receiver
-            }
-          }));
-          
-          // Log the activity
-          await db.insert(userActivities).values({
-            userId: ws.userId,
-            action: 'send_direct_message',
-            resourceType: 'user',
-            resourceId: receiverId,
-            details: JSON.stringify({ 
-              receiverName: receiver.name,
-              messageId: newMessage.id
-            })
-          });
-        }
-        
-        // Handle typing indicator
-        else if (data.type === 'typing' && ws.userId) {
-          const { receiverId, channelId, isTyping } = data;
-          
-          // Create typing notification
-          const typingData = {
-            type: 'typing_indicator',
-            userId: ws.userId,
-            username: ws.username,
-            isTyping
-          };
-          
-          // For direct messages
-          if (receiverId) {
-            const receiverConnection = connections.get(receiverId);
-            if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
-              receiverConnection.send(JSON.stringify(typingData));
-            }
-          }
-          
-          // For channel messages
-          else if (channelId) {
-            // Get channel to check who can receive the typing indicator
-            const channel = await db.query.channels.findFirst({
-              where: (fields, { eq }) => eq(fields.id, channelId),
-              with: {
-                members: true
-              }
-            });
+            };
             
-            if (channel) {
-              // Broadcast typing indicator to appropriate users
-              for (const [userId, connection] of connections.entries()) {
+            // Send to all connected users who are channel members
+            let broadcastCount = 0;
+            for (const [userId, connection] of connections.entries()) {
+              try {
                 if (connection.readyState === WebSocket.OPEN) {
                   // For public channels, send to everyone
                   // For private channels, check if user is a member
                   if (channel.type === 'public' || 
                       channel.members.some(m => m.userId === parseInt(userId))) {
-                    
-                    // Include channel ID for channel typing indicators
-                    connection.send(JSON.stringify({
-                      ...typingData,
-                      channelId
-                    }));
+                    connection.send(JSON.stringify(broadcastMessage));
+                    broadcastCount++;
                   }
                 }
+              } catch (connectionError) {
+                console.error(`Error sending to user ${userId}:`, connectionError);
+                // Continue trying other connections
               }
             }
+            console.log(`Message broadcast to ${broadcastCount} connections`);
+            
+            // Log the activity
+            try {
+              await db.insert(userActivities).values({
+                userId: ws.userId,
+                action: 'send_message',
+                resourceType: 'channel',
+                resourceId: channelId,
+                details: JSON.stringify({ 
+                  channelName: channel.name,
+                  messageId: newMessage.id
+                })
+              });
+            } catch (activityError) {
+              console.error("Error logging user activity:", activityError);
+              // Continue if activity logging fails
+            }
+          } catch (broadcastError) {
+            console.error("Error broadcasting message:", broadcastError);
+            // Notify the sender that there was an issue with broadcasting
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Message was saved but there was an issue delivering it to some users'
+            }));
+          }
+        }
+        
+        // Handle direct message
+        else if (data.type === 'direct_message' && ws.userId) {
+          const { receiverId, content, mentions } = data;
+          
+          try {
+            console.log("Processing direct message to user:", receiverId);
+            
+            // Verify receiver exists
+            let receiver;
+            try {
+              receiver = await db.query.users.findFirst({
+                where: (fields, { eq }) => eq(fields.id, receiverId)
+              });
+              
+              if (!receiver) {
+                console.warn("Direct message recipient not found. ID:", receiverId);
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  message: 'Recipient not found' 
+                }));
+                return;
+              }
+            } catch (userError) {
+              console.error("Database error fetching recipient:", userError);
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'Error verifying recipient' 
+              }));
+              return;
+            }
+          
+            // Get sender information
+            let sender;
+            try {
+              sender = await db.query.users.findFirst({
+                where: (fields, { eq }) => eq(fields.id, ws.userId)
+              });
+              
+              if (!sender) {
+                console.warn("Sender not found for direct message. User ID:", ws.userId);
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  message: 'Sender not found' 
+                }));
+                return;
+              }
+            } catch (userError) {
+              console.error("Error fetching sender information:", userError);
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'Error retrieving your user information' 
+              }));
+              return;
+            }
+            
+            // Create message in database
+            let newMessage;
+            try {
+              [newMessage] = await db.insert(directMessages).values({
+                senderId: ws.userId,
+                receiverId,
+                content,
+                type: 'text',
+                createdAt: new Date(),
+                isRead: false,
+                mentions: mentions || null
+              }).returning();
+              
+              console.log("Direct message created successfully:", newMessage.id);
+            } catch (dbError) {
+              console.error("Error creating direct message:", dbError);
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'Failed to save message' 
+              }));
+              return;
+            }
+            
+            // Send notification to receiver
+            try {
+              await db.insert(notifications).values({
+                userId: receiverId,
+                title: "New direct message",
+                message: `${sender.name} sent you a message: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                type: "direct_message",
+                referenceId: newMessage.id,
+                referenceType: "direct_message",
+                isRead: false
+              });
+            } catch (notificationError) {
+              console.error("Error creating notification for direct message:", notificationError);
+              // Continue even if notification fails
+            }
+            
+            // Send message to receiver if they're connected
+            try {
+              const receiverConnection = connections.get(receiverId);
+              if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
+                receiverConnection.send(JSON.stringify({
+                  type: 'new_direct_message',
+                  message: {
+                    ...newMessage,
+                    sender,
+                    receiver
+                  }
+                }));
+              }
+            } catch (sendError) {
+              console.error("Error sending message to recipient:", sendError);
+              // Continue even if real-time delivery fails
+            }
+            
+            // Send confirmation to sender
+            try {
+              ws.send(JSON.stringify({
+                type: 'direct_message_sent',
+                message: {
+                  ...newMessage,
+                  sender,
+                  receiver
+                }
+              }));
+            } catch (confirmError) {
+              console.error("Error sending confirmation to sender:", confirmError);
+              // Continue even if confirmation fails
+            }
+            
+            // Log the activity
+            try {
+              await db.insert(userActivities).values({
+                userId: ws.userId,
+                action: 'send_direct_message',
+                resourceType: 'user',
+                resourceId: receiverId,
+                details: JSON.stringify({ 
+                  receiverName: receiver.name,
+                  messageId: newMessage.id
+                })
+              });
+            } catch (activityError) {
+              console.error("Error logging direct message activity:", activityError);
+              // Continue even if activity logging fails
+            }
+          } catch (error) {
+            console.error("Unexpected error in direct message handler:", error);
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              message: 'An unexpected error occurred while processing your message' 
+            }));
+          }
+        }
+        
+        // Handle typing indicator
+        else if (data.type === 'typing' && ws.userId) {
+          try {
+            const { receiverId, channelId, isTyping } = data;
+            
+            // Create typing notification
+            const typingData = {
+              type: 'typing_indicator',
+              userId: ws.userId,
+              username: ws.username,
+              isTyping
+            };
+          
+            // For direct messages
+            if (receiverId) {
+              try {
+                const receiverConnection = connections.get(receiverId);
+                if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
+                  receiverConnection.send(JSON.stringify(typingData));
+                }
+              } catch (sendError) {
+                console.error("Error sending typing indicator to user:", sendError);
+                // Continue even if sending fails
+              }
+            }
+            
+            // For channel messages
+            else if (channelId) {
+              try {
+                // Get channel to check who can receive the typing indicator
+                const channel = await db.query.channels.findFirst({
+                  where: (fields, { eq }) => eq(fields.id, channelId),
+                  with: {
+                    members: true
+                  }
+                });
+                
+                if (channel) {
+                  // Broadcast typing indicator to appropriate users
+                  for (const [userId, connection] of connections.entries()) {
+                    if (connection.readyState === WebSocket.OPEN) {
+                      try {
+                        // For public channels, send to everyone
+                        // For private channels, check if user is a member
+                        if (channel.type === 'public' || 
+                            channel.members.some(m => m.userId === parseInt(userId))) {
+                          
+                          // Include channel ID for channel typing indicators
+                          connection.send(JSON.stringify({
+                            ...typingData,
+                            channelId
+                          }));
+                        }
+                      } catch (broadcastError) {
+                        console.error("Error broadcasting typing to user:", userId, broadcastError);
+                        // Continue with other users
+                      }
+                    }
+                  }
+                }
+              } catch (channelError) {
+                console.error("Error fetching channel for typing indicator:", channelError);
+                // Do not send if channel could not be verified
+              }
+            }
+          } catch (error) {
+            console.error("Error processing typing indicator:", error);
+            // No need to notify user about typing errors
           }
         }
       } catch (error) {
