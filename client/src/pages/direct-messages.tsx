@@ -87,8 +87,8 @@ const DirectMessagesPage: FC = () => {
     },
     onSuccess: () => {
       setMessage("");
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-messages", selectedUserId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/direct-messages/conversations"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
     },
     onError: (error) => {
       toast({
@@ -156,11 +156,11 @@ const DirectMessagesPage: FC = () => {
             (data.message.senderId === selectedUserId && data.message.receiverId === user.id) ||
             (data.message.senderId === user.id && data.message.receiverId === selectedUserId)
           ) {
-            queryClient.invalidateQueries({ queryKey: ["/api/direct-messages", selectedUserId] });
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
           }
           
           // Update conversations list to show latest messages
-          queryClient.invalidateQueries({ queryKey: ["/api/direct-messages/conversations"] });
+          queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
         } else if (data.type === "auth_success") {
           console.log("WebSocket authentication successful");
         }

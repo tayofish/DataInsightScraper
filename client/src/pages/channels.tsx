@@ -212,7 +212,7 @@ const ChannelsPage: FC = () => {
         // Handle different message types
         if (data.type === "new_channel_message" && data.message.channelId === selectedChannelId) {
           // Add the new message to the current messages
-          queryClient.invalidateQueries({ queryKey: ["/api/channels", selectedChannelId, "messages"] });
+          queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
         } else if (data.type === "auth_success") {
           console.log("WebSocket authentication successful");
         }
