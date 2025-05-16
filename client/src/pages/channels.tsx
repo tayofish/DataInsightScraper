@@ -509,7 +509,7 @@ export default function ChannelsPage() {
   // Handle message form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (messageText.trim() === '') return;
+    if (messageText.trim() === '' && !selectedFile) return;
     
     if (selectedChannelId) {
       console.log("Sending message to channel:", selectedChannelId, messageText);
@@ -1192,7 +1192,6 @@ export default function ChannelsPage() {
                     className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
                     rows={1}
                     onFocus={() => setShowFormatToolbar(true)}
-                    onBlur={() => setTimeout(() => setShowFormatToolbar(false), 200)}
                   />
                   <Button 
                     type="button" 

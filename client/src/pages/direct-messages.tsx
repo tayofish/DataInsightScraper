@@ -838,7 +838,6 @@ const DirectMessagesPage: FC = () => {
                       className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
                       rows={1}
                       onFocus={() => setShowFormatToolbar(true)}
-                      onBlur={() => setTimeout(() => setShowFormatToolbar(false), 200)}
                     />
                     <Button 
                       type="button" 
