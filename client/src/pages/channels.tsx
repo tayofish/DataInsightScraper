@@ -187,6 +187,14 @@ export default function ChannelsPage() {
             setChannels(data);
             if (!selectedChannelId) {
               setSelectedChannelId(data[0].id);
+              // Also set the selected channel object
+              setSelectedChannel(data[0]);
+            } else {
+              // Update selected channel object based on ID
+              const channel = data.find((c: any) => c.id === selectedChannelId);
+              if (channel) {
+                setSelectedChannel(channel);
+              }
             }
           }
         })
@@ -198,11 +206,23 @@ export default function ChannelsPage() {
   const channelsQuery = useQuery({
     queryKey: ["/api/channels"],
     enabled: !!user, // Fetch channels if user is authenticated, regardless of WebSocket state
-    onSuccess: (data) => {
-      console.log("Channel data received from query:", data);
-      if (Array.isArray(data)) {
-        console.log("Setting channels from query:", data.length);
-        setChannels(data);
+    
+    // Note: Don't use onSuccess in the latest TanStack Query
+  });
+
+  // Query for channel members when a channel is selected
+  const channelMembersQuery = useQuery({
+    queryKey: [`/api/channels/${selectedChannelId}/members`],
+    enabled: !!selectedChannelId
+  });
+  
+  // Fix channel data handling for debugging
+  useEffect(() => {
+    if (channelsQuery.data) {
+      console.log("Channel data received from query:", channelsQuery.data);
+      if (Array.isArray(channelsQuery.data)) {
+        console.log("Setting channels from query:", channelsQuery.data.length);
+        setChannels(channelsQuery.data);
         if (data.length > 0 && !selectedChannelId) {
           console.log("Setting selected channel ID from query:", data[0].id);
           setSelectedChannelId(data[0].id);
