@@ -1154,22 +1154,61 @@ export default function ChannelsPage() {
                 </div>
               )}
               
-              <div className="flex items-start gap-2">
-                <Textarea 
-                  ref={inputRef}
-                  placeholder={`Message ${channelQuery.data?.name || 'the channel'}...`}
-                  value={messageText}
-                  onChange={handleMessageChange}
-                  onKeyDown={handleMessageKeyDown}
-                  className="min-h-9 resize-none custom-scrollbar py-2"
-                  rows={1}
+              {/* Formatting Toolbar */}
+              {showFormatToolbar && (
+                <FormattingToolbar 
+                  onFormatClick={handleFormatClick}
+                  onFileUploadClick={handleFileUploadClick}
+                  onImageUploadClick={handleImageUploadClick}
                 />
-                <Button type="submit" size="icon" disabled={messageText.trim() === ''}>
+              )}
+              
+              {/* File Upload Preview */}
+              {selectedFile && (
+                <FileUploadPreview 
+                  file={selectedFile}
+                  progress={uploadProgress}
+                  onCancel={cancelFileUpload}
+                />
+              )}
+              
+              {/* Hidden File Input */}
+              <input 
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              
+              <div className="flex items-start gap-2">
+                <div className="relative flex-1">
+                  <Textarea 
+                    ref={inputRef}
+                    placeholder={`Message ${channelQuery.data?.name || 'the channel'}...`}
+                    value={messageText}
+                    onChange={handleMessageChange}
+                    onKeyDown={handleMessageKeyDown}
+                    className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
+                    rows={1}
+                    onFocus={() => setShowFormatToolbar(true)}
+                    onBlur={() => setTimeout(() => setShowFormatToolbar(false), 200)}
+                  />
+                  <Button 
+                    type="button" 
+                    size="icon" 
+                    variant="ghost" 
+                    className="absolute right-2 top-1.5 h-6 w-6 opacity-70 hover:opacity-100"
+                    onClick={() => setShowFormatToolbar(prev => !prev)}
+                  >
+                    <Bold className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <Button type="submit" size="icon" disabled={messageText.trim() === '' && !selectedFile}>
                   <ChevronRight className="h-5 w-5" />
                 </Button>
               </div>
               <div className="mt-1.5 text-xs text-muted-foreground">
-                Type @ to mention someone • Press Enter to send • Shift+Enter for new line
+                Type @ to mention someone • Press Enter to send • Shift+Enter for new line • Use toolbar for formatting
               </div>
             </form>
           </div>

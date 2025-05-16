@@ -1,7 +1,22 @@
-import { FC, useState, useEffect, useRef, useMemo } from "react";
+import { FC, useState, useEffect, useRef, useMemo, KeyboardEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
-import { Search, MoreVertical, User, Phone, Plus } from "lucide-react";
+import { 
+  Search, 
+  MoreVertical, 
+  User, 
+  Phone, 
+  Plus, 
+  Bold, 
+  Italic, 
+  Underline, 
+  Code, 
+  Link2, 
+  Paperclip,
+  FileUp,
+  Image as ImageIcon,
+  ChevronRight
+} from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +26,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { FormattingToolbar } from "@/components/formatting-toolbar";
+import { FileUploadPreview } from "@/components/file-upload-preview";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +66,12 @@ const DirectMessagesPage: FC = () => {
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionStartIndex, setMentionStartIndex] = useState(-1);
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  
+  // Formatting and file upload state
+  const [showFormatToolbar, setShowFormatToolbar] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
   
   // Helper function to highlight mentions in messages
