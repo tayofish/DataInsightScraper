@@ -986,12 +986,6 @@ const DirectMessagesPage: FC = () => {
                     </div>
                   )}
                 </div>
-                <Button 
-                  type="submit" 
-                  disabled={sendMessageMutation.isPending || !message.trim()}
-                >
-                  {sendMessageMutation.isPending ? "Sending..." : "Send"}
-                </Button>
               </form>
             </div>
           </>
