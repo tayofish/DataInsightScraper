@@ -3578,9 +3578,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Determine file type (image or other file)
-      const isImage = req.file.mimetype.startsWith('image/');
-      const messageType = isImage ? 'image' : 'file';
+      // For now, use 'file' type for all file uploads regardless of whether they're images
+      // This avoids enum type issues until the schema is fully updated
+      const messageType = 'file';
       
       // Create relative URL path for the file
       const fileUrl = `/uploads/${req.file.filename}`;
@@ -3590,7 +3590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         channelId: channelIdNum,
         userId: userId,
         content: content || '',
-        type: messageType,
+        type: messageType, // Using 'file' type for all uploads
         fileUrl,
         fileName: req.file.originalname,
         mentions: mentions.length > 0 ? JSON.stringify(mentions) : null,

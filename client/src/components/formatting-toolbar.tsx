@@ -22,6 +22,22 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
   onFileUploadClick,
   onImageUploadClick
 }) => {
+  // Prevent buttons from submitting forms they're in
+  const handleButtonClick = (e: React.MouseEvent, format: string) => {
+    e.preventDefault(); // Prevent form submission
+    onFormatClick(format);
+  };
+  
+  const handleFileClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    onFileUploadClick();
+  };
+  
+  const handleImageClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent form submission
+    onImageUploadClick();
+  };
+  
   return (
     <div className="flex items-center gap-1 py-1 px-1 bg-muted/50 rounded-md mb-2">
       <TooltipProvider>
@@ -31,7 +47,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={() => onFormatClick("bold")}
+              onClick={(e) => handleButtonClick(e, "bold")}
+              type="button" // Explicitly set type to button to prevent form submission
             >
               <Bold className="h-4 w-4" />
             </Button>
@@ -47,7 +64,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={() => onFormatClick("italic")}
+              onClick={(e) => handleButtonClick(e, "italic")}
+              type="button"
             >
               <Italic className="h-4 w-4" />
             </Button>
@@ -63,7 +81,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={() => onFormatClick("underline")}
+              onClick={(e) => handleButtonClick(e, "underline")}
+              type="button"
             >
               <Underline className="h-4 w-4" />
             </Button>
@@ -79,7 +98,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={() => onFormatClick("code")}
+              onClick={(e) => handleButtonClick(e, "code")}
+              type="button"
             >
               <Code className="h-4 w-4" />
             </Button>
@@ -95,7 +115,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={() => onFormatClick("link")}
+              onClick={(e) => handleButtonClick(e, "link")}
+              type="button"
             >
               <Link2 className="h-4 w-4" />
             </Button>
@@ -113,7 +134,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={onFileUploadClick}
+              onClick={handleFileClick}
+              type="button"
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -129,7 +151,8 @@ export const FormattingToolbar: React.FC<FormattingToolbarProps> = ({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={onImageUploadClick}
+              onClick={handleImageClick}
+              type="button"
             >
               <ImageIcon className="h-4 w-4" />
             </Button>
