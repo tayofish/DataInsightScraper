@@ -75,6 +75,24 @@ const DirectMessagesPage: FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
   
+  // Flag to control markdown visibility in text input
+  const [textFormattingEnabled, setTextFormattingEnabled] = useState(true);
+  
+  // This will modify the displayed text in the text area (hiding/showing markdown symbols)
+  const displayText = useMemo(() => {
+    if (textFormattingEnabled) {
+      return message;
+    } else {
+      // Hide markdown symbols for a cleaner view
+      return message
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+        .replace(/\*(.*?)\*/g, '$1')     // Italic
+        .replace(/__(.*?)__/g, '$1')     // Underline
+        .replace(/`(.*?)`/g, '$1')       // Code
+        .replace(/\[(.*?)\]\((.*?)\)/g, '$1'); // Links
+    }
+  }, [message, textFormattingEnabled]);
+  
   // Format toolbar action handlers
   const handleFormatClick = (format: string) => {
     if (!messageInputRef.current) return;
@@ -826,12 +844,25 @@ const DirectMessagesPage: FC = () => {
                   onChange={handleFileChange}
                 />
                 
+                <div className="flex items-center justify-between px-1 mb-1">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => setTextFormattingEnabled(!textFormattingEnabled)}
+                    >
+                      {textFormattingEnabled ? "Hide Markdown" : "Show Markdown"}
+                    </Button>
+                  </div>
+                </div>
+                
                 <div className="flex items-center space-x-2">
                   <div className="relative flex-1">
                     <Textarea
                       ref={messageInputRef}
                       placeholder="Type a message... (use @ to mention users)"
-                      value={message}
+                      value={textFormattingEnabled ? message : displayText}
                       onChange={handleInputChange}
                       onKeyDown={handleMessageKeyDown}
                       disabled={sendMessageMutation.isPending}
