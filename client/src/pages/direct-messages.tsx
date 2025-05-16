@@ -29,6 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { FileUploadPreview } from "@/components/file-upload-preview";
+import { FormatMessage } from "@/components/format-message";
 import {
   Dialog,
   DialogContent,
@@ -694,7 +695,7 @@ const DirectMessagesPage: FC = () => {
                             </span>
                           </div>
                           <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                            {renderMessageContent(msg.content)}
+                            <FormatMessage content={msg.content} />
                           </div>
                         </div>
                       </div>
