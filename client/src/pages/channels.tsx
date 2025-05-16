@@ -903,7 +903,9 @@ export default function ChannelsPage() {
     // Submit with Enter (but allow Shift+Enter for new line)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      // Create a synthetic submit event
+      const submitEvent = new Event('submit', { bubbles: true, cancelable: true }) as unknown as React.FormEvent;
+      handleSubmit(submitEvent);
     }
   };
   
