@@ -4766,14 +4766,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             message: 'Successfully authenticated' 
           }));
           
-          // Log user activity
-          await db.insert(userActivities).values({
-            userId,
-            action: 'websocket_connect',
-            details: JSON.stringify({ 
-              timestamp: new Date().toISOString()
-            })
-          });
+          // Log user activity - wrapped in try/catch to handle rate limiting
+          try {
+            await db.insert(userActivities).values({
+              userId,
+              action: 'websocket_connect',
+              details: JSON.stringify({ 
+                timestamp: new Date().toISOString()
+              })
+            });
+          } catch (error) {
+            console.warn('Unable to log user activity due to database rate limiting - continuing without logging');
+            // Don't fail the connection if we can't log the activity
+          }
         }
         
         // Handle channel message
@@ -4784,18 +4789,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mentions: mentions || 'none'
           });
           
-          // Verify user has access to this channel
-          const channel = await db.query.channels.findFirst({
-            where: (fields, { eq }) => eq(fields.id, channelId),
-            with: {
-              members: true
+          try {
+            // Verify user has access to this channel
+            const channel = await db.query.channels.findFirst({
+              where: (fields, { eq }) => eq(fields.id, channelId),
+              with: {
+                members: true
+              }
+            });
+            
+            if (!channel) {
+              ws.send(JSON.stringify({ 
+                type: 'error', 
+                message: 'Channel not found' 
+              }));
+              return;
             }
-          });
-          
-          if (!channel) {
+          } catch (error) {
+            console.error('Error accessing channel data:', error);
             ws.send(JSON.stringify({ 
               type: 'error', 
-              message: 'Channel not found' 
+              message: 'Database connection issue, please try again shortly' 
             }));
             return;
           }
