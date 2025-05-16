@@ -750,6 +750,24 @@ export default function ChannelsPage() {
     }
   };
   
+  // Flag to control markdown visibility in text input
+  const [textFormattingEnabled, setTextFormattingEnabled] = useState(true);
+  
+  // This will modify the displayed text in the text area (hiding/showing markdown symbols)
+  const displayText = useMemo(() => {
+    if (textFormattingEnabled) {
+      return messageText;
+    } else {
+      // Hide markdown symbols for a cleaner view
+      return messageText
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+        .replace(/\*(.*?)\*/g, '$1')     // Italic
+        .replace(/__(.*?)__/g, '$1')     // Underline
+        .replace(/`(.*?)`/g, '$1')       // Code
+        .replace(/\[(.*?)\]\((.*?)\)/g, '$1'); // Links
+    }
+  }, [messageText, textFormattingEnabled]);
+  
   const handleFormatClick = (format: string) => {
     if (!inputRef.current) return;
     
@@ -758,6 +776,13 @@ export default function ChannelsPage() {
     const selEnd = input.selectionEnd || 0;
     const selectedText = messageText.substring(selStart, selEnd);
     
+    // If no text is selected, do nothing
+    if (selStart === selEnd) {
+      input.focus();
+      return;
+    }
+    
+    // Simple approach: apply formatting to selected text with visible markdown
     let formattedText = '';
     let newCursorPosition = 0;
     
@@ -786,6 +811,7 @@ export default function ChannelsPage() {
         return;
     }
     
+    // Apply the formatting
     const newText = 
       messageText.substring(0, selStart) + 
       formattedText + 
@@ -793,10 +819,12 @@ export default function ChannelsPage() {
     
     setMessageText(newText);
     
-    // Force a re-render first
+    // Focus the input field again and position cursor appropriately
     setTimeout(() => {
       input.focus();
       input.setSelectionRange(
+        // If text was selected, put cursor at end of formatted text
+        // Otherwise, position for user to add content
         selectedText ? selStart + formattedText.length : newCursorPosition,
         selectedText ? selStart + formattedText.length : newCursorPosition + (selectedText ? 0 : 3)
       );
@@ -1311,31 +1339,46 @@ export default function ChannelsPage() {
                 onChange={handleFileChange}
               />
               
-              <div className="flex items-start gap-2">
-                <div className="relative flex-1">
-                  <Textarea 
-                    ref={inputRef}
-                    placeholder={`Message ${channelQuery.data?.name || 'the channel'}...`}
-                    value={messageText}
-                    onChange={handleMessageChange}
-                    onKeyDown={handleMessageKeyDown}
-                    className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
-                    rows={1}
-                    onFocus={() => setShowFormatToolbar(true)}
-                  />
-                  <Button 
-                    type="button" 
-                    size="icon" 
-                    variant="ghost" 
-                    className="absolute right-2 top-1.5 h-6 w-6 opacity-70 hover:opacity-100"
-                    onClick={() => setShowFormatToolbar(prev => !prev)}
-                  >
-                    <Bold className="h-3.5 w-3.5" />
+              <div className="flex flex-col gap-1 w-full">
+                <div className="flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-xs"
+                      onClick={() => setTextFormattingEnabled(!textFormattingEnabled)}
+                    >
+                      {textFormattingEnabled ? "Hide Markdown" : "Show Markdown"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-2">
+                  <div className="relative flex-1">
+                    <Textarea 
+                      ref={inputRef}
+                      placeholder={`Message ${channelQuery.data?.name || 'the channel'}...`}
+                      value={textFormattingEnabled ? messageText : displayText}
+                      onChange={handleMessageChange}
+                      onKeyDown={handleMessageKeyDown}
+                      className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
+                      rows={1}
+                      onFocus={() => setShowFormatToolbar(true)}
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="absolute right-2 top-1.5 h-6 w-6 opacity-70 hover:opacity-100"
+                      onClick={() => setShowFormatToolbar(prev => !prev)}
+                    >
+                      <Bold className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Button type="submit" size="icon" disabled={messageText.trim() === '' && !selectedFile}>
+                    <ChevronRight className="h-5 w-5" />
                   </Button>
                 </div>
-                <Button type="submit" size="icon" disabled={messageText.trim() === '' && !selectedFile}>
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
               </div>
               <div className="mt-1.5 text-xs text-muted-foreground">
                 Type @ to mention someone • Press Enter to send • Shift+Enter for new line • Use toolbar for formatting
