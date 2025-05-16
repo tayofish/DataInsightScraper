@@ -715,14 +715,14 @@ export default function ChannelsPage() {
   
   const handleFileUploadClick = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = "";
+      fileInputRef.current.accept = "*/*"; // Accept any file type
       fileInputRef.current.click();
     }
   };
   
   const handleImageUploadClick = () => {
     if (fileInputRef.current) {
-      fileInputRef.current.accept = "image/*";
+      fileInputRef.current.accept = "image/*"; // Only accept images
       fileInputRef.current.click();
     }
   };
@@ -730,10 +730,11 @@ export default function ChannelsPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Set the selected file for preview
       setSelectedFile(file);
       setUploadProgress(0);
       
-      // Simulate upload progress for now
+      // Start upload progress animation (this is just visual feedback)
       const interval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 100) {
@@ -1108,9 +1109,48 @@ export default function ChannelsPage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-sm">
-                        <FormatMessage content={message.content} />
-                      </div>
+                      {/* Display message content based on type */}
+                      {message.type === 'image' && message.fileUrl && (
+                        <div className="mt-1">
+                          <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
+                            <img 
+                              src={message.fileUrl} 
+                              alt={message.fileName || "Attached image"} 
+                              className="max-w-xs max-h-48 rounded-md object-cover" 
+                            />
+                          </a>
+                          {message.content && (
+                            <div className="mt-1 text-sm">
+                              <FormatMessage content={message.content} />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {message.type === 'file' && message.fileUrl && (
+                        <div className="mt-1">
+                          <a 
+                            href={message.fileUrl} 
+                            className="flex items-center gap-2 p-2 bg-muted/50 rounded-md hover:bg-muted w-fit"
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                            <span className="text-sm font-medium">{message.fileName || "Attached file"}</span>
+                          </a>
+                          {message.content && (
+                            <div className="mt-1 text-sm">
+                              <FormatMessage content={message.content} />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {(!message.type || message.type === 'text') && (
+                        <div className="text-sm">
+                          <FormatMessage content={message.content} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
