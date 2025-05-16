@@ -4319,6 +4319,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // File upload for direct messages
+  app.post("/api/direct-messages/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const receiverId = parseInt(req.body.receiverId);
+      if (isNaN(receiverId)) {
+        return res.status(400).json({ message: "Invalid receiver ID" });
+      }
+      
+      // Verify receiver exists
+      const receiver = await db.query.users.findFirst({
+        where: (fields, { eq }) => eq(fields.id, receiverId)
+      });
+      
+      if (!receiver) {
+        return res.status(404).json({ message: "Receiver not found" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Create the message with file attachment
+      const messageData = {
+        content: req.body.content || "",
+        senderId: req.user!.id,
+        receiverId,
+        type: "file" as const,
+        fileUrl: `/uploads/${req.file.filename}`,
+        fileName: req.file.originalname
+      };
+      
+      const [newMessage] = await db.insert(directMessages).values(messageData).returning();
+      
+      // Add user data to the message for the response
+      const fullMessage = {
+        ...newMessage,
+        sender: req.user
+      };
+      
+      // Create notification for the receiver
+      await db.insert(notifications).values({
+        userId: receiverId,
+        title: "New direct message",
+        message: `${req.user!.name || req.user!.username} sent you a file: ${req.file.originalname}`,
+        type: "direct_message",
+        referenceId: newMessage.id,
+        referenceType: "direct_message"
+      });
+      
+      // Send real-time notification via WebSocket if the recipient is online
+      for (const [clientId, client] of clients.entries()) {
+        if (client.userId === receiverId && client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "direct_message_sent",
+            message: fullMessage
+          }));
+        }
+      }
+      
+      return res.status(200).json(fullMessage);
+    } catch (error) {
+      console.error("Error uploading file to direct message:", error);
+      return res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
   // Send direct message to another user
   app.post("/api/direct-messages/:userId", async (req, res) => {
     try {

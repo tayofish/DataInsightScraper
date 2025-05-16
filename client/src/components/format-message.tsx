@@ -38,7 +38,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({ content }) => {
     formattedHTML = formattedHTML.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
       // Replace underscores with spaces for display
       const displayName = username.replace(/_/g, ' ');
-      return `<span class="text-primary font-semibold">@${displayName}</span>`;
+      return `<span class="bg-accent text-accent-foreground px-1.5 rounded font-medium">@${displayName}</span>`;
     });
     
     return formattedHTML;
