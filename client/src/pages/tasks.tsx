@@ -52,7 +52,7 @@ export default function Tasks() {
 
       {/* Task List */}
       <div className="px-4 sm:px-6 md:px-8 pb-6">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-md max-h-[calc(100vh-250px)] overflow-y-auto">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-md max-h-[calc(100vh-180px)] overflow-y-auto">
           <TaskList filters={filters} />
         </div>
       </div>
