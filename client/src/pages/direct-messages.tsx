@@ -480,11 +480,15 @@ const DirectMessagesPage: FC = () => {
         id: `temp-${Date.now()}`,
         senderId: user?.id,
         receiverId: selectedUserId,
-        content: message.trim() || `[File: ${selectedFile.name}]`,
+        content: message.trim() || "", // Either trimmed message or empty, but not file info in content
         createdAt: new Date().toISOString(),
         sender: user,
         isOptimistic: true,
-        attachments: selectedFile.name // Just for UI display
+        type: "file",
+        attachments: {
+          fileName: selectedFile.name,
+          originalName: selectedFile.name
+        } // For proper UI display
       };
       
       // Immediately update the UI with the optimistic message
@@ -881,8 +885,8 @@ const DirectMessagesPage: FC = () => {
                           <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                             <FormatMessage 
                               content={msg.content} 
-                              fileUrl={msg.fileUrl} 
-                              fileName={msg.fileName}
+                              fileUrl={msg.attachments ? `/uploads/${msg.attachments.fileName}` : msg.fileUrl} 
+                              fileName={msg.attachments ? msg.attachments.originalName : msg.fileName}
                               type={msg.type}
                             />
                           </div>
