@@ -1484,7 +1484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to extract @mentions from text
   function extractMentions(text: string): string[] {
     if (!text) return [];
-    const mentionPattern = /@([a-zA-Z0-9_]+)/g;
+    const mentionPattern = /@([a-zA-Z0-9_\.]+)/g;
     const matches = text.match(mentionPattern) || [];
     return matches.map(mention => mention.substring(1)); // Remove the @ symbol
   }
