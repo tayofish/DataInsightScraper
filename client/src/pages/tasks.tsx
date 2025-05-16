@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import TaskFilters, { TaskFilterValues } from '@/components/task-filters';
 import TaskList from '@/components/task-list';
 import TaskForm from '@/components/task-form';
+import { useLocation } from 'wouter';
 
-export default function Tasks() {
-  const [isTaskFormOpen, setIsTaskFormOpen] = React.useState(false);
+interface TasksProps {
+  showNewTaskForm?: boolean;
+}
+
+export default function Tasks({ showNewTaskForm = false }: TasksProps) {
+  const [isTaskFormOpen, setIsTaskFormOpen] = React.useState(showNewTaskForm);
+  const [location] = useLocation();
+  
+  // Get URL query params
+  const searchParams = new URLSearchParams(window.location.search);
+  const projectIdParam = searchParams.get('projectId');
+  
   const [filters, setFilters] = React.useState<TaskFilterValues>({
     assigneeId: -2,
-    projectId: -2,
+    projectId: projectIdParam ? parseInt(projectIdParam, 10) : -2,
     categoryId: -2,
     department: 'all',
     status: 'all',
@@ -17,6 +28,13 @@ export default function Tasks() {
     search: '',
     sortBy: 'dueDate',
   });
+  
+  // Open task form if showNewTaskForm prop is true
+  useEffect(() => {
+    if (showNewTaskForm) {
+      setIsTaskFormOpen(true);
+    }
+  }, [showNewTaskForm]);
 
   const handleFilterChange = (newFilters: TaskFilterValues) => {
     setFilters(newFilters);

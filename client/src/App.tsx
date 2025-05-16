@@ -71,6 +71,12 @@ function Router() {
         </AppLayout>
       )} />
       
+      <ProtectedRoute path="/tasks/new" component={() => (
+        <AppLayout>
+          <Tasks showNewTaskForm={true} />
+        </AppLayout>
+      )} />
+      
       <ProtectedRoute path="/projects" component={() => (
         <AppLayout>
           <Projects />
