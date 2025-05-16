@@ -149,6 +149,11 @@ export default function ChannelsPage() {
     },
   });
   
+  // State for channel member management
+  const [showMembersDialog, setShowMembersDialog] = useState(false);
+  const [availableUsers, setAvailableUsers] = useState<any[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  
   const { toast } = useToast();
   
   // Mention functionality
@@ -1167,7 +1172,11 @@ export default function ChannelsPage() {
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setShowMembersDialog(true)}
+              >
                 <Users className="h-5 w-5" />
               </Button>
             </div>
@@ -1605,6 +1614,294 @@ export default function ChannelsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Channel Settings Sheet */}
+      <Sheet open={settingsSheetOpen} onOpenChange={setSettingsSheetOpen}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>Channel Settings</SheetTitle>
+            <SheetDescription>
+              Manage channel settings and permissions
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-4">
+            <Tabs defaultValue="details" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="permissions">Permissions</TabsTrigger>
+              </TabsList>
+              <TabsContent value="details" className="mt-4">
+                <Form {...settingsForm}>
+                  <form onSubmit={settingsForm.handleSubmit(onChannelSettingsSubmit)} className="space-y-4">
+                    <FormField
+                      control={settingsForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Channel Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter channel name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={settingsForm.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="What is this channel about?"
+                              className="resize-none"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={settingsForm.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Channel Type</FormLabel>
+                          <Select
+                            disabled={!isChannelAdmin}
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select channel type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="public">
+                                <div className="flex items-center">
+                                  <MessageSquare className="w-4 h-4 mr-2" />
+                                  <span>Public</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="private">
+                                <div className="flex items-center">
+                                  <Shield className="w-4 h-4 mr-2" />
+                                  <span>Private</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>
+                            {field.value === "private" 
+                              ? "Only invited members can access this channel" 
+                              : "Anyone in the workspace can access this channel"
+                            }
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-between pt-4">
+                      <Button 
+                        type="button" 
+                        variant="destructive"
+                        disabled={!isChannelAdmin}
+                        onClick={() => {
+                          setSettingsSheetOpen(false);
+                          setConfirmDeleteOpen(true);
+                        }}
+                      >
+                        Delete Channel
+                      </Button>
+                      <Button type="submit" disabled={settingsForm.formState.isSubmitting || !settingsForm.formState.isDirty}>
+                        {settingsForm.formState.isSubmitting ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </TabsContent>
+              <TabsContent value="permissions" className="mt-4">
+                <div className="space-y-4">
+                  <div className="flex justify-between mb-4">
+                    <h3 className="text-sm font-medium">Channel Members</h3>
+                    {isChannelAdmin && channelQuery.data?.type === 'private' && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSettingsSheetOpen(false);
+                          setShowMembersDialog(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Manage Members
+                      </Button>
+                    )}
+                  </div>
+
+                  {channelMembersQuery.isLoading ? (
+                    <div className="space-y-2">
+                      {[...Array(3)].map((_, i) => (
+                        <Skeleton key={i} className="h-8 w-full" />
+                      ))}
+                    </div>
+                  ) : channelMembersQuery.data?.length ? (
+                    <div className="space-y-2">
+                      {channelMembersQuery.data.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between py-2">
+                          <div className="flex items-center">
+                            <Avatar className="h-8 w-8 mr-2">
+                              <AvatarImage src={member.user?.avatar || ''} />
+                              <AvatarFallback>{member.user?.name?.charAt(0) || member.user?.username?.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="text-sm font-medium">{member.user?.name || member.user?.username}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {member.role === 'owner' ? 'Owner' : member.role === 'admin' ? 'Admin' : 'Member'}
+                              </p>
+                            </div>
+                          </div>
+                          {isChannelAdmin && member.userId !== user?.id && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeMemberFromChannel(member.userId)}
+                              disabled={removeMemberMutation.isPending}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No members found
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Channel Members Management Dialog */}
+      <Dialog open={showMembersDialog} onOpenChange={setShowMembersDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manage Channel Members</DialogTitle>
+            <DialogDescription>
+              Add or remove members from this channel.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <Label htmlFor="add-members">Add Members</Label>
+              <div className="flex items-center space-x-2 mt-1.5">
+                <Select
+                  onValueChange={(value) => {
+                    const userId = parseInt(value);
+                    if (!selectedUserIds.includes(userId)) {
+                      setSelectedUserIds([...selectedUserIds, userId]);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select users to add" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableUsers
+                      .filter(u => !channelMembersQuery.data?.some(m => m.userId === u.id))
+                      .map(user => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.name || user.username}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  disabled={!selectedUserIds.length || addMemberMutation.isPending}
+                  onClick={addMembersToChannel}
+                >
+                  Add
+                </Button>
+              </div>
+            </div>
+            
+            {selectedUserIds.length > 0 && (
+              <div className="border rounded-md p-3 mb-4">
+                <div className="text-sm font-medium mb-2">Selected users:</div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUserIds.map(id => {
+                    const user = availableUsers.find(u => u.id === id);
+                    return (
+                      <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                        {user?.name || user?.username}
+                        <X 
+                          className="h-3 w-3 cursor-pointer" 
+                          onClick={() => setSelectedUserIds(selectedUserIds.filter(uid => uid !== id))}
+                        />
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <h3 className="text-sm font-medium mb-2">Current Members</h3>
+              {channelMembersQuery.isLoading ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
+                </div>
+              ) : channelMembersQuery.data?.length ? (
+                <div className="space-y-2">
+                  {channelMembersQuery.data.map((member) => (
+                    <div key={member.id} className="flex items-center justify-between py-2">
+                      <div className="flex items-center">
+                        <Avatar className="h-8 w-8 mr-2">
+                          <AvatarImage src={member.user?.avatar || ''} />
+                          <AvatarFallback>{member.user?.name?.charAt(0) || member.user?.username?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium">{member.user?.name || member.user?.username}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {member.role === 'owner' ? 'Owner' : member.role === 'admin' ? 'Admin' : 'Member'}
+                          </p>
+                        </div>
+                      </div>
+                      {isChannelAdmin && member.userId !== user?.id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMemberFromChannel(member.userId)}
+                          disabled={removeMemberMutation.isPending}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No members found
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMembersDialog(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
