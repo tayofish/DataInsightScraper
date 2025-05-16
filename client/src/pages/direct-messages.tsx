@@ -73,6 +73,7 @@ const DirectMessagesPage: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Helper function to highlight mentions in messages
   const renderMessageContent = (content: string) => {
@@ -757,6 +758,14 @@ const DirectMessagesPage: FC = () => {
                       <Bold className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  
+                  <Button 
+                    type="submit" 
+                    size="icon" 
+                    disabled={sendMessageMutation.isPending || (message.trim() === '' && !selectedFile)}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
                   
                   {/* Mentions dropdown */}
                   {mentionDropdownOpen && (
