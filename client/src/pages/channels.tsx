@@ -38,6 +38,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FormattingToolbar } from "@/components/formatting-toolbar";
+import { FileUploadPreview } from "@/components/file-upload-preview";
 import {
   Command,
   CommandEmpty,
@@ -638,6 +640,119 @@ export default function ChannelsPage() {
     } else if (newText.trim() === '') {
       setIsTyping(false);
     }
+    
+    // Check for mentions
+    const lastAtIndex = e.target.value.lastIndexOf('@');
+    if (lastAtIndex !== -1) {
+      const textAfterAt = e.target.value.slice(lastAtIndex + 1);
+      const match = textAfterAt.match(/^([a-zA-Z0-9_]*)(?:\s|$)/);
+      
+      if (match && e.target.selectionStart <= lastAtIndex + match[0].length + 1) {
+        setMentionQuery(match[1]);
+        setMentionDropdownOpen(true);
+        setSelectedMentionIndex(0);
+      } else {
+        setMentionDropdownOpen(false);
+      }
+    } else {
+      setMentionDropdownOpen(false);
+    }
+  };
+  
+  const handleFormatClick = (format: string) => {
+    if (!inputRef.current) return;
+    
+    const input = inputRef.current;
+    const selStart = input.selectionStart || 0;
+    const selEnd = input.selectionEnd || 0;
+    const selectedText = messageText.substring(selStart, selEnd);
+    
+    let formattedText = '';
+    let newCursorPosition = 0;
+    
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        newCursorPosition = selStart + 2;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        newCursorPosition = selStart + 1;
+        break;
+      case 'underline':
+        formattedText = `__${selectedText}__`;
+        newCursorPosition = selStart + 2;
+        break;
+      case 'code':
+        formattedText = `\`${selectedText}\``;
+        newCursorPosition = selStart + 1;
+        break;
+      case 'link':
+        formattedText = `[${selectedText}](url)`;
+        newCursorPosition = selEnd + 3;
+        break;
+      default:
+        return;
+    }
+    
+    const newText = 
+      messageText.substring(0, selStart) + 
+      formattedText + 
+      messageText.substring(selEnd);
+    
+    setMessageText(newText);
+    
+    // Force a re-render first
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(
+        selectedText ? selStart + formattedText.length : newCursorPosition,
+        selectedText ? selStart + formattedText.length : newCursorPosition + (selectedText ? 0 : 3)
+      );
+    }, 0);
+  };
+  
+  const handleFileUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "";
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleImageUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "image/*";
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadProgress(0);
+      
+      // Simulate upload progress for now
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 200);
+    }
+    
+    // Reset the input so the same file can be selected again if needed
+    if (e.target.value) {
+      e.target.value = '';
+    }
+  };
+  
+  const cancelFileUpload = () => {
+    setSelectedFile(null);
+    setUploadProgress(0);
   };
   
   // Handle keyboard events for message input
