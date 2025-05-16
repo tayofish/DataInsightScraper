@@ -4558,8 +4558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     username?: string;
   }
   
-  // Store active connections with user IDs
-  const connections = new Map<number, ExtendedWebSocket>();
+  // Store active connections with user IDs - we'll use this consistently throughout the codebase
+  const clients = new Map<number, ExtendedWebSocket>();
   
   wss.on('connection', (ws: ExtendedWebSocket, req) => {
     console.log('WebSocket connection established');
@@ -4583,7 +4583,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Store connection with user ID
-          connections.set(userId, ws);
+          clients.set(userId, ws);
           ws.userId = userId;
           ws.username = username;
           
@@ -5046,8 +5046,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('WebSocket connection closed');
       
       if (ws.userId) {
-        // Remove from connections map
-        connections.delete(ws.userId);
+        // Remove from clients map
+        clients.delete(ws.userId);
         
         // Log user activity
         try {
