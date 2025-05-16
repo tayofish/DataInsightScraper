@@ -330,16 +330,22 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     const value = e.target.value;
     setComment(value);
     
-    // Check for @ mentions
-    const lastAtPos = value.lastIndexOf('@');
-    if (lastAtPos !== -1 && (lastAtPos === 0 || value[lastAtPos - 1] === ' ')) {
-      const query = value.substring(lastAtPos + 1).split(' ')[0];
-      setMentionQuery(query);
+    // Check for @ mentions, but only if cursor is right after @ or within the mention query
+    if (commentInputRef.current) {
+      const cursorPos = commentInputRef.current.selectionStart;
+      const textBeforeCursor = value.substring(0, cursorPos);
+      const lastAtPos = textBeforeCursor.lastIndexOf('@');
       
-      // Calculate position for the mention popover
-      if (commentInputRef.current) {
-        const cursorPos = commentInputRef.current.selectionStart;
-        const textBeforeCursor = value.substring(0, cursorPos);
+      // Only show mentions if @ is followed by characters without space
+      // and cursor is still within the potential mention (not after a space)
+      if (lastAtPos !== -1 && 
+          (lastAtPos === 0 || textBeforeCursor[lastAtPos - 1] === ' ') &&
+          !textBeforeCursor.substring(lastAtPos).includes(' ')) {
+        
+        const query = textBeforeCursor.substring(lastAtPos + 1);
+        setMentionQuery(query);
+        
+        // Calculate position for the mention popover
         const lines = textBeforeCursor.split('\n');
         const currentLineIndex = lines.length - 1;
         const currentLineChars = lines[currentLineIndex].length;
@@ -352,9 +358,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
           top: (currentLineIndex * lineHeight) + 24,
           left: Math.min(currentLineChars * charWidth, 300),
         });
+        
+        setShowMentions(true);
+      } else {
+        setShowMentions(false);
       }
-      
-      setShowMentions(true);
     } else {
       setShowMentions(false);
     }
