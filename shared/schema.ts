@@ -511,6 +511,8 @@ export const directMessages = pgTable("direct_messages", {
   content: text("content").notNull(),
   type: messageTypeEnum("type").default('text'),
   attachments: text("attachments"), // JSON string of attachments
+  fileUrl: text("file_url"), // URL to the uploaded file
+  fileName: text("file_name"), // Original name of the uploaded file
   createdAt: timestamp("created_at").defaultNow().notNull(),
   isRead: boolean("is_read").default(false),
   isEdited: boolean("is_edited").default(false),
