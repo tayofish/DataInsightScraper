@@ -426,11 +426,19 @@ export default function ChannelsPage() {
     if (messageText.includes('@') && users) {
       const lastAtPos = messageText.lastIndexOf('@', cursorPosition);
       
-      if (lastAtPos !== -1 && cursorPosition > lastAtPos) {
+      if (lastAtPos !== -1 && cursorPosition >= lastAtPos) {
         const query = messageText.substring(lastAtPos + 1, cursorPosition).toLowerCase();
         setMentionQuery(query);
         
-        if (query.trim() !== '') {
+        // Show all users when just @ is typed, otherwise filter
+        if (query.trim() === '' && cursorPosition === lastAtPos + 1) {
+          // Just show all users when only @ is typed
+          setFilteredUsers(users);
+          setMentionDropdownOpen(users.length > 0);
+          setSelectedMentionIndex(0);
+          return;
+        } else if (query.trim() !== '') {
+          // Filter users based on query
           const filtered = users.filter((user: any) => 
             user.username.toLowerCase().includes(query) || 
             (user.name && user.name.toLowerCase().includes(query))
