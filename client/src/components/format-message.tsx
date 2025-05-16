@@ -20,19 +20,19 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({ content }) => {
     // 2. Apply text formatting
     
     // Bold: **text**
-    formattedHTML = formattedHTML.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    formattedHTML = formattedHTML.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     
     // Italic: *text*
-    formattedHTML = formattedHTML.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    formattedHTML = formattedHTML.replace(/\*(.+?)\*/g, '<em>$1</em>');
     
     // Underline: __text__
-    formattedHTML = formattedHTML.replace(/__([^_]+)__/g, '<u>$1</u>');
+    formattedHTML = formattedHTML.replace(/__(.+?)__/g, '<u>$1</u>');
     
     // Code: `text`
-    formattedHTML = formattedHTML.replace(/`([^`]+)`/g, '<code class="bg-muted/70 px-1 rounded text-sm">$1</code>');
+    formattedHTML = formattedHTML.replace(/`(.+?)`/g, '<code class="bg-muted/70 px-1 rounded text-sm">$1</code>');
     
     // Link: [text](url)
-    formattedHTML = formattedHTML.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary underline" target="_blank" rel="noopener noreferrer">$1</a>');
+    formattedHTML = formattedHTML.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-primary underline" target="_blank" rel="noopener noreferrer">$1</a>');
     
     // 3. Handle mentions last
     formattedHTML = formattedHTML.replace(/@([a-zA-Z0-9_]+)/g, (match, username) => {
