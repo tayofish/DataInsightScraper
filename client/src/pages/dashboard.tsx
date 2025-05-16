@@ -27,13 +27,13 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="py-6">
+    <div className="py-6 h-full overflow-y-auto">
       {/* Page Header */}
       <div className="px-4 sm:px-6 md:px-8 mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Dashboard</h1>
-            <p className="mt-2 text-sm text-gray-600">Overview of your tasks and projects</p>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Overview of your tasks and projects</p>
           </div>
           <div className="mt-4 sm:mt-0">
             <Button
