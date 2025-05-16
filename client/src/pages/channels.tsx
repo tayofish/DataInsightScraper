@@ -450,12 +450,12 @@ export default function ChannelsPage() {
     };
   }, [isTyping, selectedChannelId, sendMessage]);
   
-  // Scroll to bottom of messages when new messages arrive
+  // Scroll to bottom of messages when new messages arrive or when a channel is selected
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      messagesEndRef.current.scrollIntoView({ behavior: "auto" });
     }
-  }, [messages]);
+  }, [messages, selectedChannelId, messagesQuery.data]);
   
   // Handle @ mentions
   useEffect(() => {
