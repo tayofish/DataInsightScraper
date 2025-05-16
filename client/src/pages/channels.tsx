@@ -198,6 +198,27 @@ export default function ChannelsPage() {
     enabled: !!selectedChannelId && !!user
   });
   
+  // Effect to remove optimistic messages when they're confirmed by the server
+  useEffect(() => {
+    if (Array.isArray(messagesQuery.data) && messagesQuery.data.length > 0 && messages.length > 0) {
+      // Find optimistic messages that are now in server data and should be removed
+      const messagesToRemove = messages.filter(optimisticMsg => 
+        optimisticMsg.isOptimistic && 
+        messagesQuery.data.some(serverMsg => 
+          serverMsg.content === optimisticMsg.content && 
+          serverMsg.userId === optimisticMsg.userId
+        )
+      );
+      
+      if (messagesToRemove.length > 0) {
+        console.log("Removing confirmed optimistic messages:", messagesToRemove.length);
+        setMessages(prev => prev.filter(msg => 
+          !messagesToRemove.some(toRemove => toRemove.id === msg.id)
+        ));
+      }
+    }
+  }, [messagesQuery.data, messages]);
+  
   // Combine server messages with optimistic ones
   const combinedMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
@@ -210,6 +231,8 @@ export default function ChannelsPage() {
           serverMsg.userId === msg.userId
         );
     });
+    
+    console.log(`Combined messages: ${serverMessages.length} server + ${pendingMessages.length} pending`);
     
     return [...serverMessages, ...pendingMessages];
   }, [messagesQuery.data, messages]);
@@ -488,9 +511,10 @@ export default function ChannelsPage() {
         }
       }
       
-      // Create an optimistic update object
+      // Create an optimistic update object with timestamp as ID for tracking
+      const tempId = `temp-${Date.now()}`;
       const optimisticMessage = {
-        id: `temp-${Date.now()}`, // Temporary ID that will be replaced when the real message arrives
+        id: tempId, // Temporary ID that will be replaced when the real message arrives
         channelId: selectedChannelId,
         userId: user.id,
         content: messageText,
@@ -504,18 +528,32 @@ export default function ChannelsPage() {
       // Optimistically update the UI immediately
       setMessages(prevMessages => [...prevMessages, optimisticMessage]);
       
-      // Using WebSocket for real-time messaging
-      const success = sendMessage({
+      // Auto-cleanup for stuck messages after timeout (10 seconds)
+      setTimeout(() => {
+        console.log(`Message timeout check for: ${tempId}`);
+        setMessages(prev => {
+          const stillExists = prev.some(msg => msg.id === tempId);
+          if (stillExists) {
+            console.log(`Message still pending after timeout, cleaning up: ${tempId}`);
+            // Force refresh messages from server to make sure we're in sync
+            messagesQuery.refetch();
+            // Remove the stuck message
+            return prev.filter(msg => msg.id !== tempId);
+          }
+          return prev;
+        });
+      }, 10000); // 10-second timeout for message delivery
+      
+      // Send via WebSocket for real-time messaging
+      sendMessage({
         type: "channel_message", 
         channelId: selectedChannelId,
         content: messageText,
         mentions: mentionedUserIds
       });
       
-      console.log("Message send result:", success ? "Success" : "Failed");
-      
-      // Add direct API call as fallback
-      if (wsStatus !== 'connected' || !success) {
+      // Add direct API call as fallback for WebSocket issues
+      if (wsStatus !== 'connected') {
         console.log("WebSocket not connected or send failed, using API fallback");
         
         fetch(`/api/channels/${selectedChannelId}/messages`, {
@@ -900,7 +938,10 @@ export default function ChannelsPage() {
               <div className="space-y-4">
                 {/* Display all messages using our combined messages array */}
                 {combinedMessages.map((message) => (
-                  <div key={message.id} className="flex items-start gap-3 group">
+                  <div 
+                    key={message.id} 
+                    className={`flex items-start gap-3 group ${message.isOptimistic ? 'opacity-60' : ''}`}
+                  >
                     <Avatar>
                       <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                     </Avatar>
@@ -910,6 +951,11 @@ export default function ChannelsPage() {
                         <span className="text-xs text-muted-foreground">
                           {new Date(message.createdAt).toLocaleDateString()} {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
+                        {message.isOptimistic && (
+                          <span className="text-xs text-muted-foreground italic flex items-center">
+                            <span className="animate-pulse mr-1">•</span> sending...
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm">
                         {formatMessageWithMentions(message.content)}
@@ -917,29 +963,7 @@ export default function ChannelsPage() {
                     </div>
                   </div>
                 ))}
-                {/* Add optimistic messages */}
-                {/* Display optimistic/pending messages that are still being sent */}
-                {messages
-                  .filter(msg => msg.isOptimistic === true)
-                  .map((message) => (
-                    <div key={message.id} className="flex items-start gap-3 group opacity-70">
-                      <Avatar>
-                        <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{message.user?.name || message.user?.username}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(message.createdAt).toLocaleDateString()} {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          <span className="text-xs text-muted-foreground italic">(sending...)</span>
-                        </div>
-                        <div className="text-sm">
-                          {formatMessageWithMentions(message.content)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                {/* Messages are now handled in the combinedMessages logic above */}
                 <div ref={messagesEndRef} />
               </div>
             )}
