@@ -471,7 +471,7 @@ export default function ChannelsPage() {
   }, [messageText, cursorPosition, users]);
   
   // Handle message form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim() === '') return;
     
@@ -512,7 +512,7 @@ export default function ChannelsPage() {
       setMessages(prevMessages => [...prevMessages, optimisticMessage]);
       
       // Using WebSocket for real-time messaging
-      const success = await sendMessage({
+      const success = sendMessage({
         type: "channel_message", 
         channelId: selectedChannelId,
         content: messageText,

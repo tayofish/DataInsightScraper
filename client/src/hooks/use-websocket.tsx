@@ -204,7 +204,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [user, cleanupSocket]);
 
   // Send a message through WebSocket with fallback to API
-  const sendMessage = useCallback(async (message: any) => {
+  const sendMessage = useCallback((message: any) => {
     // Try to send over WebSocket first
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
@@ -230,7 +230,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       if (message.type === 'channel_message') {
         // Channel message fallback
-        const response = await fetch(`/api/channels/${message.channelId}/messages`, {
+        fetch(`/api/channels/${message.channelId}/messages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -238,37 +238,49 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             parentId: message.parentId || null,
             mentions: message.mentions || null
           })
+        })
+        .then(response => {
+          if (response.ok) {
+            console.log('[WebSocket] Channel message sent using API fallback');
+            // Force refresh query data
+            queryClient.invalidateQueries({ queryKey: [`/api/channels/${message.channelId}/messages`] });
+            return true;
+          } else {
+            console.error('[WebSocket] API fallback failed for channel message');
+            return false;
+          }
+        })
+        .catch(error => {
+          console.error('[WebSocket] Channel message API error:', error);
+          return false;
         });
-        
-        if (response.ok) {
-          console.log('[WebSocket] Channel message sent using API fallback');
-          // Force refresh query data
-          queryClient.invalidateQueries({ queryKey: [`/api/channels/${message.channelId}/messages`] });
-          return true;
-        } else {
-          console.error('[WebSocket] API fallback failed for channel message');
-        }
       } 
       else if (message.type === 'direct_message') {
         // Direct message fallback
-        const response = await fetch(`/api/direct-messages/${message.receiverId}`, {
+        fetch(`/api/direct-messages/${message.receiverId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             content: message.content,
             mentions: message.mentions || null
           })
+        })
+        .then(response => {
+          if (response.ok) {
+            console.log('[WebSocket] Direct message sent using API fallback');
+            // Force refresh query data
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${message.receiverId}`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+            return true;
+          } else {
+            console.error('[WebSocket] API fallback failed for direct message');
+            return false;
+          }
+        })
+        .catch(error => {
+          console.error('[WebSocket] Direct message API error:', error);
+          return false;
         });
-        
-        if (response.ok) {
-          console.log('[WebSocket] Direct message sent using API fallback');
-          // Force refresh query data
-          queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${message.receiverId}`] });
-          queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
-          return true;
-        } else {
-          console.error('[WebSocket] API fallback failed for direct message');
-        }
       }
     } catch (apiError) {
       console.error('[WebSocket] API fallback error:', apiError);
