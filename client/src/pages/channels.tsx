@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useLocation, Link } from "wouter";
+import { useParams, useLocation, Link as WouterLink } from "wouter";
 import { 
   Shield, 
   ChevronRight, 
@@ -18,7 +18,15 @@ import {
   User,
   AtSign,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Bold,
+  Italic,
+  Underline,
+  Code,
+  Link2,
+  Paperclip,
+  FileUp,
+  Image as ImageIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,6 +155,10 @@ export default function ChannelsPage() {
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
   const [messageText, setMessageText] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [showFormatToolbar, setShowFormatToolbar] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // Get all users
   const { data: users } = useQuery({
@@ -745,9 +757,9 @@ export default function ChannelsPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <h1 className="text-2xl font-bold">Please sign in to access channels</h1>
-        <Link href="/auth">
+        <WouterLink href="/auth">
           <Button className="mt-4">Sign In</Button>
-        </Link>
+        </WouterLink>
       </div>
     );
   }
