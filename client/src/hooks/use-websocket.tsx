@@ -137,22 +137,28 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             if (data.message.channelId) {
               console.log('[WebSocket] Updating messages for channel:', data.message.channelId);
               
-              // Both invalidate the queries and emit an event for instant UI updates
-              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
-              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
-              
-              // This will force a refetch and immediate UI update
+              // First update the cache directly for immediate UI updates
               queryClient.setQueryData(
                 [`/api/channels/${data.message.channelId}/messages`], 
                 (oldData: any[] = []) => {
-                  // Make sure data.message isn't already in the array (deduplicate)
-                  const exists = oldData.some(msg => msg.id === data.message.id);
-                  if (!exists) {
-                    return [...oldData, data.message];
-                  }
-                  return oldData;
+                  if (!oldData || !Array.isArray(oldData)) return [data.message];
+                  
+                  // Remove any optimistic messages that match this message
+                  const filteredData = oldData.filter(msg => 
+                    !(msg.isOptimistic && 
+                      msg.content === data.message.content && 
+                      msg.userId === data.message.userId)
+                  );
+                  
+                  // Add the new message if it doesn't already exist
+                  const exists = filteredData.some(msg => msg.id === data.message.id);
+                  return exists ? filteredData : [...filteredData, data.message];
                 }
               );
+              
+              // Then invalidate the queries to ensure consistency
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
             }
           } else if (data.type === 'error') {
             console.error('[WebSocket] Error from server:', data.message);

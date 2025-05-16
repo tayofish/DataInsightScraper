@@ -199,7 +199,22 @@ export default function ChannelsPage() {
     onSuccess: (data) => {
       console.log("Messages data received:", data);
       if (Array.isArray(data)) {
-        setMessages(data);
+        // When we get real messages from the server, we need to remove any optimistic
+        // messages that are no longer needed
+        setMessages(prevMessages => {
+          // Filter out any optimistic messages that have now been confirmed by the server
+          // An optimistic message is confirmed when the content matches a real message
+          const optimisticMsgs = prevMessages.filter(msg => 
+            msg.isOptimistic && 
+            !data.some(serverMsg => 
+              serverMsg.content === msg.content && 
+              serverMsg.userId === msg.userId
+            )
+          );
+          
+          // Combine real messages with any remaining optimistic messages
+          return [...data, ...optimisticMsgs];
+        });
       } else {
         console.error("Messages data is not an array:", data);
       }
@@ -908,8 +923,9 @@ export default function ChannelsPage() {
                   </div>
                 ))}
                 {/* Add optimistic messages */}
+                {/* Display optimistic/pending messages that are still being sent */}
                 {messages
-                  .filter(msg => msg.isOptimistic)
+                  .filter(msg => msg.isOptimistic === true)
                   .map((message) => (
                     <div key={message.id} className="flex items-start gap-3 group opacity-70">
                       <Avatar>
