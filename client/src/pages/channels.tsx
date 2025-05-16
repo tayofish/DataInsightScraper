@@ -234,7 +234,12 @@ export default function ChannelsPage() {
     
     console.log(`Combined messages: ${serverMessages.length} server + ${pendingMessages.length} pending`);
     
-    return [...serverMessages, ...pendingMessages];
+    // Combine and sort messages by creation time to ensure newest messages are at the bottom
+    return [...serverMessages, ...pendingMessages].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateA - dateB; // ascending order (oldest first, newest last)
+    });
   }, [messagesQuery.data, messages]);
   
   // Get channel details
