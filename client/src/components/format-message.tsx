@@ -243,7 +243,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
           {createdAt && type !== 'system' && (
             <div className="text-xs text-muted-foreground mt-1">
               {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              {content.includes('(edited)') && <span className="ml-1">(edited)</span>}
+              {(content.includes('(edited)') || content.includes('edited:true')) && <span className="ml-1">(edited)</span>}
             </div>
           )}
         </div>

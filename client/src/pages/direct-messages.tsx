@@ -988,6 +988,11 @@ const DirectMessagesPage: FC = () => {
                                 fileUrl={msg.fileUrl} 
                                 fileName={msg.fileName}
                                 type={msg.type}
+                                messageId={msg.id}
+                                userId={msg.senderId}
+                                currentUserId={user?.id}
+                                createdAt={msg.createdAt}
+                                onEditMessage={handleEditMessage}
                               />
                             )}
                           </div>
