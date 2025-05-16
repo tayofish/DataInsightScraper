@@ -3525,6 +3525,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Handle file uploads for channel messages
+  app.post("/api/channels/upload", upload.single('file'), async (req, res) => {
+    try {
+      // Verify authentication
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const userId = req.user.id;
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file was uploaded" });
+      }
+      
+      const { channelId, content } = req.body;
+      
+      if (!channelId) {
+        return res.status(400).json({ error: "Channel ID is required" });
+      }
+      
+      const channelIdNum = parseInt(channelId);
+      
+      // Check if channel exists
+      const channel = await db.query.channels.findFirst({
+        where: (fields, { eq }) => eq(fields.id, channelIdNum)
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ error: "Channel not found" });
+      }
+      
+      // Check if user is a member of the channel
+      const membership = await db.query.channelMembers.findFirst({
+        where: (fields, { and, eq }) => and(
+          eq(fields.channelId, channelIdNum),
+          eq(fields.userId, userId)
+        )
+      });
+      
+      if (!membership) {
+        return res.status(403).json({ error: "You are not a member of this channel" });
+      }
+      
+      // Parse mentions if they exist
+      let mentions = [];
+      if (req.body.mentions) {
+        try {
+          mentions = JSON.parse(req.body.mentions);
+        } catch (e) {
+          console.error("Failed to parse mentions:", e);
+        }
+      }
+      
+      // Determine file type (image or other file)
+      const isImage = req.file.mimetype.startsWith('image/');
+      const messageType = isImage ? 'image' : 'file';
+      
+      // Create relative URL path for the file
+      const fileUrl = `/uploads/${req.file.filename}`;
+      
+      // Insert message with file attachment
+      const [message] = await db.insert(messages).values({
+        channelId: channelIdNum,
+        userId: userId,
+        content: content || '',
+        type: messageType,
+        fileUrl,
+        fileName: req.file.originalname,
+        mentions: mentions.length > 0 ? JSON.stringify(mentions) : null,
+        createdAt: new Date()
+      }).returning();
+      
+      // Get full message data with user
+      const fullMessage = await db.query.messages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, message.id),
+        with: {
+          user: true
+        }
+      });
+      
+      // Broadcast to all channel members via WebSocket
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: 'new_message',
+            message: fullMessage
+          }));
+        }
+      });
+      
+      // Update last read for this user
+      await db.update(channelMembers)
+        .set({ lastRead: new Date() })
+        .where(
+          and(
+            eq(channelMembers.channelId, channelIdNum),
+            eq(channelMembers.userId, userId)
+          )
+        );
+      
+      // Create notifications for mentions
+      if (mentions.length > 0) {
+        // Don't notify the sender
+        const uniqueMentions = mentions.filter(id => id !== userId);
+        
+        for (const mentionedUserId of uniqueMentions) {
+          await storage.createNotification({
+            userId: mentionedUserId,
+            title: "You were mentioned in a channel",
+            content: `You were mentioned by ${req.user.name || req.user.username} in a message`,
+            type: "mention",
+            link: `/channels/${channelIdNum}`,
+            isRead: false,
+            createdAt: new Date()
+          });
+        }
+      }
+      
+      return res.json(fullMessage);
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      return res.status(500).json({ error: "Failed to process file upload" });
+    }
+  });
+
   // Get all channels
   app.get("/api/channels", async (req, res) => {
     try {
