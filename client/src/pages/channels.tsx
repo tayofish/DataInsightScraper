@@ -403,6 +403,60 @@ export default function ChannelsPage() {
     },
   });
   
+  // Handle channel settings form submission
+  const handleChannelSettingsSubmit = async (data: any) => {
+    if (!selectedChannelId) return;
+    
+    try {
+      // Update channel details
+      const response = await fetch(`/api/channels/${selectedChannelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          type: data.type || 'public'
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update channel settings');
+      }
+      
+      // Success notification
+      toast({
+        title: "Channel updated",
+        description: "Channel settings have been updated successfully",
+      });
+      
+      // Close settings panel and refresh channel list
+      setSettingsSheetOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+      
+      // If channel name was changed, update local state
+      if (selectedChannel && data.name !== selectedChannel.name) {
+        setSelectedChannel({
+          ...selectedChannel,
+          name: data.name,
+          description: data.description,
+          type: data.type || 'public'
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to update channel",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // Check if current user is admin of the channel
+  const isChannelAdmin = useMemo(() => {
+    if (!selectedChannel || !user) return false;
+    return selectedChannel.createdBy === user.id || user.role === 'admin';
+  }, [selectedChannel, user]);
+
   // Delete a channel
   const deleteChannelMutation = useMutation({
     mutationFn: async () => {
@@ -1725,7 +1779,7 @@ export default function ChannelsPage() {
               </TabsList>
               <TabsContent value="details" className="mt-4">
                 <Form {...settingsForm}>
-                  <form onSubmit={settingsForm.handleSubmit(onChannelSettingsSubmit)} className="space-y-4">
+                  <form onSubmit={settingsForm.handleSubmit(handleChannelSettingsSubmit)} className="space-y-4">
                     <FormField
                       control={settingsForm.control}
                       name="name"
