@@ -37,66 +37,124 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Message editing with local storage backup for reliability during database issues
+  // Enhanced message editing with offline-first approach for resilience to database rate limiting
   const handleSaveEdit = async () => {
     if (messageId && onEditMessage && editedContent.trim() !== '') {
       setIsSaving(true);
       setEditError(null);
       
-      // Save to local storage immediately to prevent data loss
+      // Store edit in session storage for immediate retrieval even if page reloads
+      const cacheKey = `message_${messageId}_content`;
       try {
-        const pendingEdits = JSON.parse(localStorage.getItem('pendingEdits') || '[]');
-        pendingEdits.push({
-          id: messageId,
-          content: editedContent,
-          timestamp: new Date().toISOString()
-        });
-        localStorage.setItem('pendingEdits', JSON.stringify(pendingEdits));
+        // Use sessionStorage for current session persistence
+        sessionStorage.setItem(cacheKey, editedContent);
+        
+        // Also track this edit in localStorage for long-term persistence and background sync
+        const pendingEdits = JSON.parse(localStorage.getItem('pendingMessageEdits') || '[]');
+        const editIndex = pendingEdits.findIndex((edit: any) => edit.id === messageId);
+        
+        if (editIndex >= 0) {
+          pendingEdits[editIndex] = {
+            id: messageId,
+            content: editedContent,
+            timestamp: new Date().toISOString(),
+            attempts: pendingEdits[editIndex].attempts + 1
+          };
+        } else {
+          pendingEdits.push({
+            id: messageId,
+            content: editedContent,
+            timestamp: new Date().toISOString(),
+            attempts: 0
+          });
+        }
+        
+        localStorage.setItem('pendingMessageEdits', JSON.stringify(pendingEdits));
       } catch (err) {
-        console.warn("Failed to save edit to local storage", err);
+        console.warn("Failed to save edit to storage", err);
       }
       
-      // First optimistically update the UI to improve perceived performance
+      // Update the UI immediately for better perceived performance
       setIsEditing(false);
       setShowToolbar(false);
       
-      // Then try server update with retry
-      const MAX_RETRIES = 3;
-      let retryCount = 0;
-      let success = false;
-      
-      while (retryCount < MAX_RETRIES && !success) {
-        try {
-          // Wait between retries with increasing delay
-          if (retryCount > 0) {
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
-          
-          await onEditMessage(messageId, editedContent);
-          success = true;
-          
-          // Remove from local storage on success
+      // Set up background sync strategy with exponential backoff
+      const scheduleBackgroundSync = (delay = 2000) => {
+        setTimeout(async () => {
           try {
-            const pendingEdits = JSON.parse(localStorage.getItem('pendingEdits') || '[]');
-            const filtered = pendingEdits.filter((edit: any) => edit.id !== messageId);
-            localStorage.setItem('pendingEdits', JSON.stringify(filtered));
-          } catch (err) {
-            console.warn("Failed to update local storage", err);
+            // Check if edit is still pending
+            const pendingEdits = JSON.parse(localStorage.getItem('pendingMessageEdits') || '[]');
+            const pendingEdit = pendingEdits.find((edit: any) => edit.id === messageId);
+            
+            if (!pendingEdit) {
+              console.log(`Edit for message ${messageId} no longer pending, sync canceled`);
+              return; // Already synced by another process
+            }
+            
+            // Attempt to save via API
+            console.log(`Attempting background sync for message ${messageId}`);
+            await onEditMessage(messageId, pendingEdit.content);
+            
+            // Success! Remove from pending edits
+            const updatedEdits = pendingEdits.filter((edit: any) => edit.id !== messageId);
+            localStorage.setItem('pendingMessageEdits', JSON.stringify(updatedEdits));
+            sessionStorage.removeItem(cacheKey);
+            console.log(`Background sync successful for message ${messageId}`);
+          } catch (error: any) {
+            console.error(`Background sync failed for message ${messageId}:`, error);
+            
+            // Update attempt count and reschedule with exponential backoff
+            try {
+              const pendingEdits = JSON.parse(localStorage.getItem('pendingMessageEdits') || '[]');
+              const editIndex = pendingEdits.findIndex((edit: any) => edit.id === messageId);
+              
+              if (editIndex >= 0) {
+                const attempts = pendingEdits[editIndex].attempts + 1;
+                pendingEdits[editIndex].attempts = attempts;
+                localStorage.setItem('pendingMessageEdits', JSON.stringify(pendingEdits));
+                
+                // Calculate next retry delay with exponential backoff (max 2 minutes)
+                const nextDelay = Math.min(delay * 2, 120000);
+                
+                if (attempts < 10) { // Max 10 attempts
+                  console.log(`Rescheduling sync for message ${messageId} in ${nextDelay}ms (attempt ${attempts})`);
+                  scheduleBackgroundSync(nextDelay);
+                } else {
+                  console.warn(`Max retry attempts reached for message ${messageId}`);
+                }
+              }
+            } catch (storageErr) {
+              console.error("Failed to update pending edits:", storageErr);
+            }
           }
-        } catch (error: any) {
-          console.error(`Error saving edited message (attempt ${retryCount + 1}):`, error);
-          retryCount++;
-          
-          // Only show error on last attempt
-          if (retryCount >= MAX_RETRIES) {
-            setEditError(
-              error?.message?.includes('rate limit') 
-                ? 'Database is busy. Changes are saved locally and will sync when connection is restored.'
-                : 'Server connection issue. Changes are saved locally and will sync later.'
-            );
-          }
+        }, delay);
+      };
+      
+      // Try saving right away
+      try {
+        await onEditMessage(messageId, editedContent);
+        
+        // Edit succeeded, remove from pending
+        try {
+          const pendingEdits = JSON.parse(localStorage.getItem('pendingMessageEdits') || '[]');
+          const updatedEdits = pendingEdits.filter((edit: any) => edit.id !== messageId);
+          localStorage.setItem('pendingMessageEdits', JSON.stringify(updatedEdits));
+          sessionStorage.removeItem(cacheKey);
+        } catch (err) {
+          console.warn("Failed to update storage after successful edit", err);
         }
+      } catch (error: any) {
+        console.error("Initial edit save failed, scheduling background sync:", error);
+        
+        // Show friendly message to user but continue with background sync
+        setEditError(
+          error?.message?.includes('rate limit') || error?.message?.includes('Control plane')
+            ? 'Database is experiencing high traffic. Your changes are saved locally and will be synced automatically.'
+            : 'Network issue detected. Your changes are saved and will sync when connection improves.'
+        );
+        
+        // Schedule background sync to try again
+        scheduleBackgroundSync();
       }
       
       setIsSaving(false);
