@@ -973,8 +973,8 @@ export default function ChannelsPage() {
                   value={messageText}
                   onChange={handleMessageChange}
                   onKeyDown={handleMessageKeyDown}
-                  className="min-h-12 resize-none custom-scrollbar"
-                  rows={3}
+                  className="min-h-9 resize-none custom-scrollbar py-2"
+                  rows={1}
                 />
                 <Button type="submit" size="icon" disabled={messageText.trim() === ''}>
                   <ChevronRight className="h-5 w-5" />
