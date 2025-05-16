@@ -4373,14 +4373,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send real-time notification via WebSocket if the recipient is online
-      for (const [clientId, client] of clients.entries()) {
+      wss.clients.forEach((client: ExtendedWebSocket) => {
         if (client.userId === receiverId && client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "direct_message_sent",
             message: fullMessage
           }));
         }
-      }
+      });
       
       return res.status(200).json(fullMessage);
     } catch (error) {

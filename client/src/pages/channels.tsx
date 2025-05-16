@@ -1247,30 +1247,14 @@ export default function ChannelsPage() {
                         </div>
                       )}
                       
-                      {message.type === 'file' && message.fileUrl && (
-                        <div className="mt-1">
-                          <a 
-                            href={message.fileUrl} 
-                            className="flex items-center gap-2 p-2 bg-muted/50 rounded-md hover:bg-muted w-fit"
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                            <span className="text-sm font-medium">{message.fileName || "Attached file"}</span>
-                          </a>
-                          {message.content && (
-                            <div className="mt-1 text-sm">
-                              <FormatMessage content={message.content} />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
-                      {(!message.type || message.type === 'text') && (
-                        <div className="text-sm">
-                          <FormatMessage content={message.content} />
-                        </div>
-                      )}
+                      <div className="text-sm">
+                        <FormatMessage 
+                          content={message.content} 
+                          fileUrl={message.fileUrl} 
+                          fileName={message.fileName}
+                          type={message.type} 
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
