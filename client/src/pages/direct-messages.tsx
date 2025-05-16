@@ -56,6 +56,7 @@ const DirectMessagesPage: FC = () => {
   const [message, setMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(userId ? parseInt(userId) : null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageInputRef = useRef<HTMLTextAreaElement>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
   
   // Local state for optimistic messages
@@ -315,7 +316,7 @@ const DirectMessagesPage: FC = () => {
   };
 
   // Handle input change and detect mentions
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setMessage(value);
     
@@ -347,7 +348,7 @@ const DirectMessagesPage: FC = () => {
   };
   
   // Handle keyboard navigation in the mentions dropdown
-  const handleMessageKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleMessageKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (!mentionDropdownOpen) return;
     
     // Get filtered users based on current query
