@@ -4354,13 +4354,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: req.file.originalname
       };
       
+      console.log("Direct message file upload - messageData:", JSON.stringify(messageData));
+      
       const [newMessage] = await db.insert(directMessages).values(messageData).returning();
+      console.log("Direct message file upload - DB inserted message:", JSON.stringify(newMessage));
       
       // Add user data to the message for the response
       const fullMessage = {
         ...newMessage,
         sender: req.user
       };
+      
+      console.log("Direct message file upload - fullMessage:", JSON.stringify(fullMessage));
       
       // Create notification for the receiver
       await db.insert(notifications).values({

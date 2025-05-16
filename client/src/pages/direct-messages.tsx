@@ -888,35 +888,36 @@ const DirectMessagesPage: FC = () => {
                                 {msg.content && msg.content.trim() !== "" && (
                                   <div className="mb-2">{msg.content}</div>
                                 )}
-                                {msg.fileUrl && (
-                                  <div>
-                                    {msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
-                                      <div>
-                                        <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
-                                          <img 
-                                            src={msg.fileUrl} 
-                                            alt={msg.fileName || "Attached image"} 
-                                            className="max-w-full max-h-[300px] rounded-md border border-border" 
-                                          />
-                                        </a>
-                                        {msg.fileName && <div className="text-xs text-muted-foreground mt-1">{msg.fileName}</div>}
-                                      </div>
-                                    ) : (
-                                      <a 
-                                        href={msg.fileUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-2 p-2 border border-border rounded-md hover:bg-accent/10 transition-colors"
-                                      >
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                          <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                        <span className="text-sm font-medium">{msg.fileName || "Download attachment"}</span>
+                                {console.log("Rendering file message:", msg)}
+                                <div>
+                                  {msg.fileUrl && msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
+                                    <div>
+                                      <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        <img 
+                                          src={msg.fileUrl} 
+                                          alt={msg.fileName || "Attached image"} 
+                                          className="max-w-full max-h-[300px] rounded-md border border-border" 
+                                        />
                                       </a>
-                                    )}
-                                  </div>
-                                )}
+                                      {msg.fileName && <div className="text-xs text-muted-foreground mt-1">{msg.fileName}</div>}
+                                    </div>
+                                  ) : msg.fileUrl ? (
+                                    <a 
+                                      href={msg.fileUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-2 p-2 border border-border rounded-md hover:bg-accent/10 transition-colors"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                      </svg>
+                                      <span className="text-sm font-medium">{msg.fileName || "Download attachment"}</span>
+                                    </a>
+                                  ) : (
+                                    <div className="text-sm text-muted-foreground italic">Loading file...</div>
+                                  )}
+                                </div>
                               </div>
                             ) : (
                               <FormatMessage 
