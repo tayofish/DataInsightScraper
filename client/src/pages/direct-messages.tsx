@@ -221,7 +221,7 @@ const DirectMessagesPage: FC = () => {
       fragments.push(
         <span 
           key={`mention-${match.index}`} 
-          className="bg-accent px-1.5 rounded font-medium"
+          className="bg-accent text-accent-foreground px-1.5 rounded font-medium"
         >
           @{mentionName}
         </span>
@@ -462,8 +462,71 @@ const DirectMessagesPage: FC = () => {
   // Handle message submission
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !selectedUserId) return;
+    if ((!message.trim() && !selectedFile) || !selectedUserId) return;
 
+    // Check if we have a file to upload
+    if (selectedFile) {
+      // Create a FormData object to send file
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('receiverId', selectedUserId.toString());
+      
+      if (message.trim()) {
+        formData.append('content', message.trim());
+      }
+      
+      // Create an optimistic message for immediate UI feedback
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        senderId: user?.id,
+        receiverId: selectedUserId,
+        content: message.trim() || `[File: ${selectedFile.name}]`,
+        createdAt: new Date().toISOString(),
+        sender: user,
+        isOptimistic: true,
+        attachments: selectedFile.name // Just for UI display
+      };
+      
+      // Immediately update the UI with the optimistic message
+      setLocalMessages(prev => [...prev, optimisticMessage]);
+      
+      // Upload the file via REST API
+      fetch(`/api/direct-messages/upload`, {
+        method: 'POST',
+        body: formData,
+      })
+      .then(response => {
+        if (!response.ok) throw new Error('File upload failed');
+        return response.json();
+      })
+      .then(data => {
+        // File uploaded successfully
+        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+        
+        // Clear the file selection and message
+        setSelectedFile(null);
+        setUploadProgress(0);
+        setMessage("");
+      })
+      .catch(error => {
+        console.error("Error uploading file:", error);
+        toast({
+          title: "File upload failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        
+        // Remove the optimistic message on error
+        setLocalMessages(prev => 
+          prev.filter(msg => msg.id !== optimisticMessage.id)
+        );
+      });
+      
+      return;
+    }
+    
+    // Text-only message handling
     // Create an optimistic message for immediate UI feedback
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
@@ -505,7 +568,6 @@ const DirectMessagesPage: FC = () => {
     }
     
     // Clear the input field immediately for better UX
-  // Also invalidate the query to refresh the messages
     setMessage("");
     
     // Set up a timeout to clear the message if it gets stuck
