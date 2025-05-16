@@ -56,7 +56,6 @@ const DirectMessagesPage: FC = () => {
   const [message, setMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(userId ? parseInt(userId) : null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messageInputRef = useRef<HTMLInputElement>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
   
   // Local state for optimistic messages
@@ -74,7 +73,98 @@ const DirectMessagesPage: FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [cursorPosition, setCursorPosition] = useState(0);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Format toolbar action handlers
+  const handleFormatClick = (format: string) => {
+    if (!messageInputRef.current) return;
+    
+    const input = messageInputRef.current;
+    const selStart = input.selectionStart || 0;
+    const selEnd = input.selectionEnd || 0;
+    const selectedText = message.substring(selStart, selEnd);
+    
+    let formattedText = '';
+    let newCursorPosition = 0;
+    
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        newCursorPosition = selStart + 2;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        newCursorPosition = selStart + 1;
+        break;
+      case 'underline':
+        formattedText = `__${selectedText}__`;
+        newCursorPosition = selStart + 2;
+        break;
+      case 'code':
+        formattedText = `\`${selectedText}\``;
+        newCursorPosition = selStart + 1;
+        break;
+      case 'link':
+        formattedText = `[${selectedText}](url)`;
+        newCursorPosition = selEnd + 3;
+        break;
+      default:
+        return;
+    }
+    
+    const newText = 
+      message.substring(0, selStart) + 
+      formattedText + 
+      message.substring(selEnd);
+    
+    setMessage(newText);
+    
+    // Force a re-render first
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(
+        selectedText ? selStart + formattedText.length : newCursorPosition,
+        selectedText ? selStart + formattedText.length : newCursorPosition + (selectedText ? 0 : 3)
+      );
+    }, 0);
+  };
+  
+  const handleFileUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "";
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleImageUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = "image/*";
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setUploadProgress(0);
+      
+      // Simulate upload progress for now
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 10;
+        });
+      }, 300);
+    }
+  };
+  
+  const cancelFileUpload = () => {
+    setSelectedFile(null);
+    setUploadProgress(0);
+  };
   
   // Helper function to highlight mentions in messages
   const renderMessageContent = (content: string) => {
