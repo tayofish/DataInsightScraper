@@ -501,15 +501,21 @@ export default function ChannelsPage() {
       
       // Extract mentions from the message
       const mentionedUserIds: number[] = [];
-      const mentionRegex = /@(\w+)/g;
+      // Updated regex to support mentions with underscores for full names
+      const mentionRegex = /@([a-zA-Z0-9_\.]+)/g;
       let match;
       
       while ((match = mentionRegex.exec(messageText)) !== null) {
-        const username = match[1];
-        console.log("Found mention:", username);
+        const mention = match[1];
+        console.log("Found mention:", mention);
         
-        // Find user by username
-        const mentionedUser = users?.find(user => user.username === username);
+        // Try to match by full name (with spaces converted to underscores)
+        // or by username as fallback
+        const mentionedUser = users?.find(user => 
+          (user.name && user.name.replace(/\s+/g, '_') === mention) || 
+          user.username === mention
+        );
+        
         if (mentionedUser) {
           console.log("Adding mentioned user:", mentionedUser.id);
           mentionedUserIds.push(mentionedUser.id);
@@ -1008,10 +1014,13 @@ export default function ChannelsPage() {
                         onClick={() => insertMention(user)}
                       >
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">{user.username[0]?.toUpperCase() || '?'}</AvatarFallback>
+                          <AvatarFallback className="text-xs">
+                            {user.name ? user.name[0]?.toUpperCase() : user.username[0]?.toUpperCase() || '?'}
+                          </AvatarFallback>
                         </Avatar>
-                        <span className="font-medium">{user.username}</span>
-                        {user.name && <span className="text-xs text-muted-foreground">({user.name})</span>}
+                        <span className="font-medium">{user.name || user.username}</span>
+                        {user.name && user.username !== user.name && 
+                          <span className="text-xs text-muted-foreground">({user.username})</span>}
                       </div>
                     ))}
                   </div>

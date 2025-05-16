@@ -765,10 +765,12 @@ const DirectMessagesPage: FC = () => {
                               <Avatar className="h-6 w-6 mr-2">
                                 <AvatarImage src={user.avatar} />
                                 <AvatarFallback>
-                                  {user.username.substring(0, 2).toUpperCase()}
+                                  {user.name ? user.name.substring(0, 2).toUpperCase() : user.username.substring(0, 2).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <span>{usernameDisplay}</span>
+                              <span className="font-medium">{user.name || user.username}</span>
+                              {user.name && user.username !== user.name && 
+                               <span className="text-xs text-muted-foreground ml-1">({user.username})</span>}
                             </div>
                           );
                         })}
