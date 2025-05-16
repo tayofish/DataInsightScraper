@@ -882,9 +882,9 @@ const DirectMessagesPage: FC = () => {
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
-                          <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                          <div className={`mt-1 p-3 rounded-lg ${isCurrentUser && msg.type !== "file" ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                             {msg.type === "file" ? (
-                              <div>
+                              <div className={isCurrentUser ? 'text-foreground' : ''}>
                                 {msg.content && msg.content.trim() !== "" && (
                                   <div className="mb-2">{msg.content}</div>
                                 )}
