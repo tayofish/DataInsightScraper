@@ -539,6 +539,15 @@ export default function ChannelsPage() {
       
       // Create an optimistic update object with timestamp as ID for tracking
       const tempId = `temp-${Date.now()}`;
+      
+      // Determine message type based on file type (if any)
+      const messageType = selectedFile 
+        ? (selectedFile.type.startsWith('image/') ? 'image' : 'file')
+        : 'text';
+      
+      // Create temporary file URL for preview (for files only)
+      const tempFileUrl = selectedFile ? URL.createObjectURL(selectedFile) : null;
+      
       const optimisticMessage = {
         id: tempId, // Temporary ID that will be replaced when the real message arrives
         channelId: selectedChannelId,
@@ -547,7 +556,9 @@ export default function ChannelsPage() {
         createdAt: new Date().toISOString(),
         mentions: mentionedUserIds.length > 0 ? JSON.stringify(mentionedUserIds) : null,
         user: user, // Add the current user object
-        type: 'text',
+        type: messageType,
+        fileUrl: tempFileUrl,
+        fileName: selectedFile?.name,
         isOptimistic: true // Flag to identify this as an optimistic update
       };
       
@@ -568,59 +579,138 @@ export default function ChannelsPage() {
           }
           return prev;
         });
+        
+        // Cleanup object URL if one was created
+        if (tempFileUrl) {
+          URL.revokeObjectURL(tempFileUrl);
+        }
       }, 10000); // 10-second timeout for message delivery
       
-      // Send via WebSocket for real-time messaging
-      sendMessage({
-        type: "channel_message", 
-        channelId: selectedChannelId,
-        content: messageText,
-        mentions: mentionedUserIds
-      });
-      
-      // Add direct API call as fallback for WebSocket issues
-      if (wsStatus !== 'connected') {
-        console.log("WebSocket not connected or send failed, using API fallback");
+      // If there's a file to upload, use FormData and a direct fetch call
+      if (selectedFile) {
+        console.log("Uploading file:", selectedFile.name);
         
-        fetch(`/api/channels/${selectedChannelId}/messages`, {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('channelId', selectedChannelId.toString());
+        formData.append('content', messageText);
+        
+        if (mentionedUserIds.length > 0) {
+          formData.append('mentions', JSON.stringify(mentionedUserIds));
+        }
+        
+        // Send file using fetch
+        fetch('/api/channels/upload', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            content: messageText,
-            mentions: mentionedUserIds
-          }),
+          body: formData,
+          credentials: 'include'
         })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.status}`);
+          }
+          return response.json();
+        })
         .then(data => {
-          console.log("Message sent via API:", data);
+          console.log("File uploaded successfully:", data);
           
-          // Replace the optimistic message with the real one
+          // Remove the optimistic message
           setMessages(prevMessages => 
-            prevMessages.map(msg => 
-              (msg.id === optimisticMessage.id) ? data : msg
-            )
+            prevMessages.filter(msg => msg.id !== tempId)
           );
           
-          // Also refresh messages to ensure consistency
+          // Clean up the object URL if one was created
+          if (tempFileUrl) {
+            URL.revokeObjectURL(tempFileUrl);
+          }
+          
+          // Reset file state
+          setSelectedFile(null);
+          setUploadProgress(0);
+          
+          // Refresh messages to get the server-created message with file
           messagesQuery.refetch();
         })
         .catch(error => {
-          console.error("Error sending message via API:", error);
+          console.error("Error uploading file:", error);
           
-          // If there's an error, remove the optimistic message
+          // Remove the optimistic message
           setMessages(prevMessages => 
-            prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+            prevMessages.filter(msg => msg.id !== tempId)
           );
           
-          // Show an error toast
+          // Clean up the object URL if one was created
+          if (tempFileUrl) {
+            URL.revokeObjectURL(tempFileUrl);
+          }
+          
+          // Reset file state
+          setSelectedFile(null);
+          setUploadProgress(0);
+          
+          // Show error message
           toast({
-            title: "Error sending message",
-            description: "Your message couldn't be sent. Please try again.",
+            title: "Error uploading file",
+            description: error.message || "Your file couldn't be uploaded. Please try again.",
             variant: "destructive"
           });
         });
+      } 
+      // For text-only messages, use WebSocket (with API fallback)
+      else {
+        // Send via WebSocket for real-time messaging
+        sendMessage({
+          type: "channel_message", 
+          channelId: selectedChannelId,
+          content: messageText,
+          mentions: mentionedUserIds
+        });
+        
+        // Add direct API call as fallback for WebSocket issues
+        if (wsStatus !== 'connected') {
+          console.log("WebSocket not connected or send failed, using API fallback");
+          
+          fetch(`/api/channels/${selectedChannelId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: messageText,
+              mentions: mentionedUserIds
+            }),
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log("Message sent via API:", data);
+            
+            // Replace the optimistic message with the real one
+            setMessages(prevMessages => 
+              prevMessages.map(msg => 
+                (msg.id === optimisticMessage.id) ? data : msg
+              )
+            );
+            
+            // Also refresh messages to ensure consistency
+            messagesQuery.refetch();
+          })
+          .catch(error => {
+            console.error("Error sending message via API:", error);
+            
+            // If there's an error, remove the optimistic message
+            setMessages(prevMessages => 
+              prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+            );
+            
+            // Show an error toast
+            toast({
+              title: "Error sending message",
+              description: "Your message couldn't be sent. Please try again.",
+              variant: "destructive"
+            });
+          });
+        }
       }
       
       setMessageText("");
