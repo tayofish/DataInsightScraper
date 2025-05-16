@@ -22,7 +22,15 @@ BEGIN
 
     -- Check if the 'message_type' enum type exists
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_type') THEN
-        CREATE TYPE message_type AS ENUM ('text', 'file', 'system');
+        CREATE TYPE message_type AS ENUM ('text', 'file', 'system', 'image');
+    ELSE
+        -- ALTER TYPE to add 'image' if it doesn't already exist
+        BEGIN
+            ALTER TYPE message_type ADD VALUE 'image' IF NOT EXISTS;
+        EXCEPTION
+            WHEN duplicate_object THEN
+                NULL; -- Type value already exists, do nothing
+        END;
     END IF;
 END$$;
 
@@ -30,10 +38,25 @@ END$$;
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'messages') THEN
+        -- Add mentions column if it doesn't exist
         IF NOT EXISTS (SELECT FROM information_schema.columns 
                       WHERE table_name = 'messages' AND column_name = 'mentions') THEN
             ALTER TABLE "messages" ADD COLUMN "mentions" TEXT;
             RAISE NOTICE 'Added mentions column to messages table';
+        END IF;
+        
+        -- Add file_url column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'messages' AND column_name = 'file_url') THEN
+            ALTER TABLE "messages" ADD COLUMN "file_url" TEXT;
+            RAISE NOTICE 'Added file_url column to messages table';
+        END IF;
+        
+        -- Add file_name column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'messages' AND column_name = 'file_name') THEN
+            ALTER TABLE "messages" ADD COLUMN "file_name" TEXT;
+            RAISE NOTICE 'Added file_name column to messages table';
         END IF;
     ELSE
         -- Create messages table if it doesn't exist
@@ -45,6 +68,8 @@ BEGIN
             "content" TEXT NOT NULL,
             "type" message_type DEFAULT 'text',
             "attachments" TEXT,
+            "file_url" TEXT,
+            "file_name" TEXT,
             "created_at" TIMESTAMP NOT NULL DEFAULT now(),
             "updated_at" TIMESTAMP,
             "is_edited" BOOLEAN DEFAULT false,
@@ -59,11 +84,25 @@ END$$;
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'direct_messages') THEN
-        -- Add any missing columns to direct_messages table
+        -- Add mentions column if it doesn't exist
         IF NOT EXISTS (SELECT FROM information_schema.columns 
                       WHERE table_name = 'direct_messages' AND column_name = 'mentions') THEN
             ALTER TABLE "direct_messages" ADD COLUMN "mentions" TEXT;
             RAISE NOTICE 'Added mentions column to direct_messages table';
+        END IF;
+        
+        -- Add file_url column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'direct_messages' AND column_name = 'file_url') THEN
+            ALTER TABLE "direct_messages" ADD COLUMN "file_url" TEXT;
+            RAISE NOTICE 'Added file_url column to direct_messages table';
+        END IF;
+        
+        -- Add file_name column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'direct_messages' AND column_name = 'file_name') THEN
+            ALTER TABLE "direct_messages" ADD COLUMN "file_name" TEXT;
+            RAISE NOTICE 'Added file_name column to direct_messages table';
         END IF;
     ELSE
         -- Create direct_messages table if it doesn't exist
@@ -74,6 +113,8 @@ BEGIN
             "content" TEXT NOT NULL,
             "type" message_type DEFAULT 'text',
             "attachments" TEXT,
+            "file_url" TEXT,
+            "file_name" TEXT,
             "created_at" TIMESTAMP NOT NULL DEFAULT now(),
             "is_read" BOOLEAN DEFAULT false,
             "is_edited" BOOLEAN DEFAULT false,
