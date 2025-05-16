@@ -614,8 +614,8 @@ const DirectMessagesPage: FC = () => {
               </div>
             </div>
 
-            {/* Messages Area */}
-            <ScrollArea className="flex-1 p-4">
+            {/* Messages Area - with fixed height to prevent overflow issues */}
+            <ScrollArea className="flex-1 p-4 max-h-[calc(100vh-230px)]">
               {isLoadingMessages ? (
                 <div className="space-y-4">
                   {Array(5).fill(0).map((_, i) => (

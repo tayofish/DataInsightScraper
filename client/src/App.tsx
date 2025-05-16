@@ -46,7 +46,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <NotificationDropdown />
           </div>
         </header>
-        <main className="flex-1 relative overflow-y-auto focus:outline-none custom-scrollbar">
+        <main className="flex-1 relative overflow-hidden focus:outline-none">
           {children}
         </main>
       </div>

@@ -906,8 +906,8 @@ export default function ChannelsPage() {
             </div>
           </header>
           
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+          {/* Messages - with fixed height to prevent overflow issues */}
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar max-h-[calc(100vh-230px)]">
             {messagesQuery.isLoading ? (
               <div className="space-y-4">
                 {[...Array(5)].map((_, i) => (
