@@ -362,11 +362,18 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   // Insert a mention into the comment
   const insertMention = (username: string) => {
+    // Find user with this username to get their name
+    const user = users.find(u => u.username === username);
+    const displayName = user?.name || username;
+    
+    // Use display name with username to ensure proper identification
     const lastAtPos = comment.lastIndexOf('@');
     if (lastAtPos !== -1) {
       const before = comment.substring(0, lastAtPos);
       const after = comment.substring(lastAtPos).split(' ');
-      after[0] = `@${username}`;
+      // Replace spaces with underscores for storage
+      const formattedName = user?.name ? user.name.replace(/ /g, '_') : username;
+      after[0] = `@${formattedName}`;
       setComment(before + after.join(' '));
     }
     setShowMentions(false);
@@ -742,21 +749,26 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                                 .filter((user: User) => 
                                   mentionQuery === '' || 
                                   user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-                                  user.name?.toLowerCase().includes(mentionQuery.toLowerCase())
+                                  (user.name && user.name.toLowerCase().includes(mentionQuery.toLowerCase()))
                                 )
                                 .map((user: User) => (
                                   <div 
                                     key={user.id}
-                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded cursor-pointer"
+                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer"
                                     onClick={() => insertMention(user.username)}
                                   >
                                     <Avatar className="h-6 w-6">
                                       <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
-                                      <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+                                      <AvatarFallback>
+                                        {user.name 
+                                          ? `${user.name.split(' ')[0][0]}${user.name.split(' ')[1]?.[0] || ''}`
+                                          : user.username.substring(0, 2)
+                                        }
+                                      </AvatarFallback>
                                     </Avatar>
                                     <div>
                                       <p className="text-sm font-medium">{user.name || user.username}</p>
-                                      <p className="text-xs text-gray-500">@{user.username}</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</p>
                                     </div>
                                   </div>
                                 ))
