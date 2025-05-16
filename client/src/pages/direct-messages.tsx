@@ -365,54 +365,67 @@ const DirectMessagesPage: FC = () => {
     setMentionDropdownOpen(false);
   };
   
-  // Handle keyboard navigation in the mentions dropdown
+  // Handle keyboard navigation in the mentions dropdown and message submission
   const handleMessageKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (!mentionDropdownOpen) return;
-    
-    // Get filtered users based on current query
-    const filteredUsers = allUsers.filter(user => {
-      const query = mentionQuery.toLowerCase();
-      const username = user.username.toLowerCase();
+    // First handle mentions dropdown if it's open
+    if (mentionDropdownOpen) {
+      // Get filtered users based on current query
+      const filteredUsers = allUsers.filter(user => {
+        const query = mentionQuery.toLowerCase();
+        const username = user.username.toLowerCase();
+        
+        if (username.startsWith(query)) return true;
+        if (username.includes('_' + query) || username.includes('.' + query)) return true;
+        return username.includes(query);
+      }).sort((a, b) => {
+        const queryLower = mentionQuery.toLowerCase();
+        const aStartsWith = a.username.toLowerCase().startsWith(queryLower);
+        const bStartsWith = b.username.toLowerCase().startsWith(queryLower);
+        
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        return a.username.localeCompare(b.username);
+      }).slice(0, 5);
       
-      if (username.startsWith(query)) return true;
-      if (username.includes('_' + query) || username.includes('.' + query)) return true;
-      return username.includes(query);
-    }).sort((a, b) => {
-      const queryLower = mentionQuery.toLowerCase();
-      const aStartsWith = a.username.toLowerCase().startsWith(queryLower);
-      const bStartsWith = b.username.toLowerCase().startsWith(queryLower);
+      const maxIndex = filteredUsers.length - 1;
       
-      if (aStartsWith && !bStartsWith) return -1;
-      if (!aStartsWith && bStartsWith) return 1;
-      return a.username.localeCompare(b.username);
-    }).slice(0, 5);
-    
-    const maxIndex = filteredUsers.length - 1;
-    
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedMentionIndex(prevIndex => 
-          prevIndex < maxIndex ? prevIndex + 1 : prevIndex
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedMentionIndex(prevIndex => 
-          prevIndex > 0 ? prevIndex - 1 : 0
-        );
-        break;
-      case 'Tab':
-      case 'Enter':
-        if (filteredUsers.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
           e.preventDefault();
-          insertMention(filteredUsers[selectedMentionIndex].username, filteredUsers[selectedMentionIndex]);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setMentionDropdownOpen(false);
-        break;
+          setSelectedMentionIndex(prevIndex => 
+            prevIndex < maxIndex ? prevIndex + 1 : prevIndex
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedMentionIndex(prevIndex => 
+            prevIndex > 0 ? prevIndex - 1 : 0
+          );
+          break;
+        case 'Tab':
+        case 'Enter':
+          if (filteredUsers.length > 0) {
+            e.preventDefault();
+            insertMention(filteredUsers[selectedMentionIndex].username, filteredUsers[selectedMentionIndex]);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setMentionDropdownOpen(false);
+          break;
+      }
+      return;
+    }
+    
+    // If mentions dropdown is not open, handle Enter for message submission
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // Create a synthetic submit event to ensure form submission works consistently
+      const form = e.currentTarget.closest('form');
+      if (form) {
+        const submitEvent = new Event('submit', { bubbles: true, cancelable: true }) as unknown as React.FormEvent;
+        handleSendMessage(submitEvent);
+      }
     }
   };
   
