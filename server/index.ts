@@ -92,7 +92,37 @@ process.on('unhandledRejection', (reason, promise) => {
 
 (async () => {
   try {
-    const server = await registerRoutes(app);
+    // Add retry mechanism for database rate limits during server initialization
+    const maxRetries = 3;
+    let retries = 0;
+    let server;
+    
+    while (retries < maxRetries) {
+      try {
+        server = await registerRoutes(app);
+        break; // Success, exit the retry loop
+      } catch (error: any) {
+        retries++;
+        
+        // Check if it's a rate limiting error
+        const isRateLimit = error?.message?.includes('rate limit') || 
+                          error?.code === 'XX000' || 
+                          (error?.severity === 'ERROR' && error?.code === 'XX000');
+        
+        if (!isRateLimit || retries >= maxRetries) {
+          // Not a rate limit error or max retries reached, rethrow
+          throw error;
+        }
+        
+        const delay = 1000 * Math.pow(2, retries - 1); // Exponential backoff
+        console.log(`Server initialization: Database rate limit encountered, retry ${retries}/${maxRetries} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    if (!server) {
+      throw new Error("Failed to initialize server after multiple retries");
+    }
 
     // Add specific handler for JSON parsing errors
     app.use((err: any, req: Request, res: Response, next: NextFunction) => {

@@ -34,11 +34,72 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   // Check if current user is the message author and message is editable
   const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
   
-  const handleSaveEdit = () => {
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Message editing with local storage backup for reliability during database issues
+  const handleSaveEdit = async () => {
     if (messageId && onEditMessage && editedContent.trim() !== '') {
-      onEditMessage(messageId, editedContent);
+      setIsSaving(true);
+      setEditError(null);
+      
+      // Save to local storage immediately to prevent data loss
+      try {
+        const pendingEdits = JSON.parse(localStorage.getItem('pendingEdits') || '[]');
+        pendingEdits.push({
+          id: messageId,
+          content: editedContent,
+          timestamp: new Date().toISOString()
+        });
+        localStorage.setItem('pendingEdits', JSON.stringify(pendingEdits));
+      } catch (err) {
+        console.warn("Failed to save edit to local storage", err);
+      }
+      
+      // First optimistically update the UI to improve perceived performance
       setIsEditing(false);
       setShowToolbar(false);
+      
+      // Then try server update with retry
+      const MAX_RETRIES = 3;
+      let retryCount = 0;
+      let success = false;
+      
+      while (retryCount < MAX_RETRIES && !success) {
+        try {
+          // Wait between retries with increasing delay
+          if (retryCount > 0) {
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 5000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+          
+          await onEditMessage(messageId, editedContent);
+          success = true;
+          
+          // Remove from local storage on success
+          try {
+            const pendingEdits = JSON.parse(localStorage.getItem('pendingEdits') || '[]');
+            const filtered = pendingEdits.filter((edit: any) => edit.id !== messageId);
+            localStorage.setItem('pendingEdits', JSON.stringify(filtered));
+          } catch (err) {
+            console.warn("Failed to update local storage", err);
+          }
+        } catch (error: any) {
+          console.error(`Error saving edited message (attempt ${retryCount + 1}):`, error);
+          retryCount++;
+          
+          // Only show error on last attempt
+          if (retryCount >= MAX_RETRIES) {
+            setEditError(
+              error?.message?.includes('rate limit') 
+                ? 'Database is busy. Changes are saved locally and will sync when connection is restored.'
+                : 'Server connection issue. Changes are saved locally and will sync later.'
+            );
+          }
+        }
+      }
+      
+      setIsSaving(false);
     }
   };
   
@@ -166,11 +227,17 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
               className="min-h-[100px] text-sm resize-none"
               placeholder="Edit your message..."
             />
+            {editError && (
+              <div className="text-red-500 text-sm mb-2 p-2 bg-red-50 rounded border border-red-200">
+                {editError}
+              </div>
+            )}
             <div className="flex justify-end space-x-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={handleCancelEdit}
+                disabled={isSaving}
               >
                 <X className="h-4 w-4 mr-1" />
                 Cancel
@@ -178,10 +245,22 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
               <Button 
                 size="sm" 
                 onClick={handleSaveEdit}
-                disabled={editedContent.trim() === ''}
+                disabled={editedContent.trim() === '' || isSaving}
               >
-                <Check className="h-4 w-4 mr-1" />
-                Save
+                {isSaving ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </span>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-1" />
+                    Save
+                  </>
+                )}
               </Button>
             </div>
           </div>

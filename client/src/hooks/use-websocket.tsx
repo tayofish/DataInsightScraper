@@ -95,6 +95,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
           const data = JSON.parse(event.data);
           console.log('[WebSocket] Message received:', data);
+          
+          // Check for database connection errors and handle them gracefully
+          if (data.type === 'error' && data.errorType === 'database_rate_limit') {
+            console.warn('[WebSocket] Database rate limit error:', data.message);
+            // We don't update the UI with rate limit errors to avoid frustrating the user
+            return;
+          }
+          
           setLastMessage(data);
 
           // Handle different message types

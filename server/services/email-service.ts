@@ -10,10 +10,38 @@ let smtpSettings: any = null;
 /**
  * Initialize the email service with the active SMTP configuration
  */
+// Helper function for retry with exponential backoff
+async function retryOperation(operation: () => Promise<any>, maxRetries = 3, initialDelay = 1000) {
+  let retries = 0;
+  while (retries < maxRetries) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      retries++;
+      
+      // Check if it's a rate limiting error
+      const isRateLimit = error?.message?.includes('rate limit') || 
+                         error?.code === 'XX000' || 
+                         (error?.severity === 'ERROR' && error?.code === 'XX000');
+      
+      if (!isRateLimit || retries >= maxRetries) {
+        throw error; // Not a rate limit error or max retries reached
+      }
+      
+      const delay = initialDelay * Math.pow(2, retries - 1);
+      console.log(`Rate limit encountered, retry attempt ${retries}/${maxRetries} after ${delay}ms delay`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error(`Failed after ${maxRetries} retry attempts`);
+}
+
 export async function initializeEmailService() {
   try {
-    // Get the active SMTP configuration
-    const configs = await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
+    // Get the active SMTP configuration with retry for rate limits
+    const configs = await retryOperation(async () => {
+      return await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
+    });
     
     if (configs.length === 0) {
       console.log('No active SMTP configuration found. Email notifications are disabled.');
