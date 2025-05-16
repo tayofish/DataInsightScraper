@@ -54,8 +54,8 @@ const DirectMessagesPage: FC = () => {
   const renderMessageContent = (content: string) => {
     if (!content) return "";
     
-    // Regular expression to match @username mentions (including those with dots)
-    const mentionRegex = /@([\w\.]+)/g;
+    // Updated regex to support mentions with underscores for full names
+    const mentionRegex = /@([a-zA-Z0-9_\.]+)/g;
     
     // Create a temporary div to hold the content
     const fragments: React.ReactNode[] = [];
@@ -79,8 +79,10 @@ const DirectMessagesPage: FC = () => {
         );
       }
       
+      // Get the mention name and convert underscores back to spaces
+      const mentionName = match[1].replace(/_/g, ' '); // Convert underscores back to spaces
+      
       // Add the mention with highlighting
-      const mentionName = match[1]; // The username without the @
       fragments.push(
         <span 
           key={`mention-${match.index}`} 
@@ -269,7 +271,7 @@ const DirectMessagesPage: FC = () => {
       case 'Enter':
         if (filteredUsers.length > 0) {
           e.preventDefault();
-          insertMention(filteredUsers[selectedMentionIndex].username);
+          insertMention(filteredUsers[selectedMentionIndex].username, filteredUsers[selectedMentionIndex]);
         }
         break;
       case 'Escape':
@@ -758,7 +760,7 @@ const DirectMessagesPage: FC = () => {
                                   ? 'bg-accent font-semibold' 
                                   : 'hover:bg-accent/50'
                               }`}
-                              onClick={() => insertMention(user.username)}
+                              onClick={() => insertMention(user.username, user)}
                             >
                               <Avatar className="h-6 w-6 mr-2">
                                 <AvatarImage src={user.avatar} />
