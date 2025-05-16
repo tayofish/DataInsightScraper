@@ -112,8 +112,23 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 : data.message.senderId;
                 
               console.log('[WebSocket] Updating messages for conversation with:', otherUserId);
+              
+              // Both invalidate the queries and directly update the cache for immediate UI updates
               queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${otherUserId}`] });
               queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+              
+              // Update the direct message conversation immediately
+              queryClient.setQueryData(
+                [`/api/direct-messages/${otherUserId}`],
+                (oldData: any[] = []) => {
+                  // Check if message already exists in the cache
+                  const exists = oldData.some(msg => msg.id === data.message.id);
+                  if (!exists) {
+                    return [...oldData, data.message];
+                  }
+                  return oldData;
+                }
+              );
             }
           } else if (data.type === 'new_channel_message' && data.message) {
             console.log('[WebSocket] Received channel message');
@@ -121,8 +136,23 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             // Update channel messages queries
             if (data.message.channelId) {
               console.log('[WebSocket] Updating messages for channel:', data.message.channelId);
+              
+              // Both invalidate the queries and emit an event for instant UI updates
               queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
               queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+              
+              // This will force a refetch and immediate UI update
+              queryClient.setQueryData(
+                [`/api/channels/${data.message.channelId}/messages`], 
+                (oldData: any[] = []) => {
+                  // Make sure data.message isn't already in the array (deduplicate)
+                  const exists = oldData.some(msg => msg.id === data.message.id);
+                  if (!exists) {
+                    return [...oldData, data.message];
+                  }
+                  return oldData;
+                }
+              );
             }
           } else if (data.type === 'error') {
             console.error('[WebSocket] Error from server:', data.message);

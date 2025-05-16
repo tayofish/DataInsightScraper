@@ -469,6 +469,22 @@ export default function ChannelsPage() {
         }
       }
       
+      // Create an optimistic update object
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`, // Temporary ID that will be replaced when the real message arrives
+        channelId: selectedChannelId,
+        userId: user.id,
+        content: messageText,
+        createdAt: new Date().toISOString(),
+        mentions: mentionedUserIds.length > 0 ? JSON.stringify(mentionedUserIds) : null,
+        user: user, // Add the current user object
+        type: 'text',
+        isOptimistic: true // Flag to identify this as an optimistic update
+      };
+      
+      // Optimistically update the UI immediately
+      setMessages(prevMessages => [...prevMessages, optimisticMessage]);
+      
       // Using WebSocket for real-time messaging
       sendMessage({
         type: "channel_message", 
@@ -494,11 +510,31 @@ export default function ChannelsPage() {
         .then(response => response.json())
         .then(data => {
           console.log("Message sent via API:", data);
-          // Manually refresh messages
+          
+          // Replace the optimistic message with the real one
+          setMessages(prevMessages => 
+            prevMessages.map(msg => 
+              (msg.id === optimisticMessage.id) ? data : msg
+            )
+          );
+          
+          // Also refresh messages to ensure consistency
           messagesQuery.refetch();
         })
         .catch(error => {
           console.error("Error sending message via API:", error);
+          
+          // If there's an error, remove the optimistic message
+          setMessages(prevMessages => 
+            prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+          );
+          
+          // Show an error toast
+          toast({
+            title: "Error sending message",
+            description: "Your message couldn't be sent. Please try again.",
+            variant: "destructive"
+          });
         });
       }
       

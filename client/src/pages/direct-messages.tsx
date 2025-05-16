@@ -280,6 +280,20 @@ const DirectMessagesPage: FC = () => {
     e.preventDefault();
     if (!message.trim() || !selectedUserId) return;
 
+    // Create an optimistic message for immediate UI feedback
+    const optimisticMessage = {
+      id: `temp-${Date.now()}`,
+      senderId: user.id,
+      receiverId: selectedUserId,
+      content: message,
+      createdAt: new Date().toISOString(),
+      sender: user,
+      isOptimistic: true
+    };
+    
+    // Immediately update the UI with the optimistic message
+    setMessages(prev => [...prev, optimisticMessage]);
+    
     // Use WebSocket for real-time messaging
     if (wsStatus === 'connected') {
       try {
@@ -305,6 +319,9 @@ const DirectMessagesPage: FC = () => {
         receiverId: selectedUserId,
       });
     }
+    
+    // Clear the input field immediately for better UX
+    setMessage("");
   };
 
   // Scroll to bottom of messages when new messages arrive
