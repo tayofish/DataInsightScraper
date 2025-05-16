@@ -280,13 +280,17 @@ const DirectMessagesPage: FC = () => {
   };
   
   // Insert a mention at cursor position
-  const insertMention = (username: string) => {
+  const insertMention = (username: string, user?: any) => {
     if (mentionStartIndex === -1) return;
+    
+    // Use full name if available, otherwise use username
+    // Replace spaces with underscores for mentions with full names
+    const mentionName = user?.name ? user.name.replace(/\s+/g, '_') : username;
     
     const beforeMention = message.substring(0, mentionStartIndex);
     const afterMention = message.substring(cursorPosition);
     
-    const newMessage = `${beforeMention}@${username} ${afterMention}`;
+    const newMessage = `${beforeMention}@${mentionName} ${afterMention}`;
     setMessage(newMessage);
     
     // Close the dropdown and reset mention state
@@ -299,7 +303,7 @@ const DirectMessagesPage: FC = () => {
         messageInputRef.current.focus();
         
         // Position cursor right after the inserted mention and space
-        const newCursorPos = mentionStartIndex + username.length + 2; // @ + username + space
+        const newCursorPos = mentionStartIndex + mentionName.length + 2; // @ + name + space
         messageInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
       }
     }, 0);

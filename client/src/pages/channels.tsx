@@ -658,10 +658,14 @@ export default function ChannelsPage() {
   const insertMention = (user: any) => {
     if (!user) return;
     
+    // Use full name if available, otherwise fall back to username
+    // Replace spaces with underscores for mentions with full names
+    const mentionName = user.name ? user.name.replace(/\s+/g, '_') : user.username;
+    
     const lastAtPos = messageText.lastIndexOf('@', cursorPosition);
     const beforeMention = messageText.substring(0, lastAtPos);
     const afterMention = messageText.substring(cursorPosition);
-    const newText = `${beforeMention}@${user.username} ${afterMention}`;
+    const newText = `${beforeMention}@${mentionName} ${afterMention}`;
     
     setMessageText(newText);
     
@@ -669,7 +673,7 @@ export default function ChannelsPage() {
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
-        const newCursorPos = lastAtPos + user.username.length + 2; // +2 for @ and space
+        const newCursorPos = lastAtPos + mentionName.length + 2; // +2 for @ and space
         inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
         setCursorPosition(newCursorPos);
       }
@@ -683,7 +687,8 @@ export default function ChannelsPage() {
   const formatMessageWithMentions = (content: string) => {
     if (!content) return "";
     
-    const regex = /@(\w+)/g;
+    // Updated regex to support mentions with underscores for full names
+    const regex = /@([a-zA-Z0-9_]+)/g;
     const fragments: React.ReactNode[] = [];
     let lastIndex = 0;
     let match;
@@ -699,13 +704,20 @@ export default function ChannelsPage() {
         );
       }
       
+      // Get the mention text
+      const mentionText = match[0];
+      // Convert underscores back to spaces for display to show proper full names
+      const displayText = mentionText.replace(/@([a-zA-Z0-9_]+)/, (_, name) => 
+        `@${name.replace(/_/g, ' ')}`
+      );
+      
       // Add the mention with highlighting
       fragments.push(
         <span 
           key={`mention-${matchIndex}`} 
           className="bg-primary/20 text-primary font-medium rounded px-1 py-0.5"
         >
-          {match[0]}
+          {displayText}
         </span>
       );
       
