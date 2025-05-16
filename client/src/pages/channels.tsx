@@ -40,6 +40,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { FileUploadPreview } from "@/components/file-upload-preview";
+import { FormatMessage } from "@/components/format-message";
 import {
   Command,
   CommandEmpty,
@@ -1108,7 +1109,7 @@ export default function ChannelsPage() {
                         )}
                       </div>
                       <div className="text-sm">
-                        {formatMessageWithMentions(message.content)}
+                        <FormatMessage content={message.content} />
                       </div>
                     </div>
                   </div>
