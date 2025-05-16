@@ -471,7 +471,7 @@ export default function ChannelsPage() {
   }, [messageText, cursorPosition, users]);
   
   // Handle message form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (messageText.trim() === '') return;
     
@@ -512,16 +512,18 @@ export default function ChannelsPage() {
       setMessages(prevMessages => [...prevMessages, optimisticMessage]);
       
       // Using WebSocket for real-time messaging
-      sendMessage({
+      const success = await sendMessage({
         type: "channel_message", 
         channelId: selectedChannelId,
         content: messageText,
         mentions: mentionedUserIds
       });
       
+      console.log("Message send result:", success ? "Success" : "Failed");
+      
       // Add direct API call as fallback
-      if (wsStatus !== 'connected') {
-        console.log("WebSocket not connected, using API fallback");
+      if (wsStatus !== 'connected' || !success) {
+        console.log("WebSocket not connected or send failed, using API fallback");
         
         fetch(`/api/channels/${selectedChannelId}/messages`, {
           method: 'POST',

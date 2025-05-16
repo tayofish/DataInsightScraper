@@ -208,8 +208,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // Try to send over WebSocket first
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
+        console.log('[WebSocket] Sending message via WebSocket:', message.type);
         socketRef.current.send(JSON.stringify(message));
-        return true; // Message sent successfully
+        return true; // Message sent successfully via WebSocket
       } catch (error) {
         console.error('[WebSocket] Error sending message:', error);
         // Will fall through to API fallback below
