@@ -4906,7 +4906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Send message to receiver if they're connected
             try {
-              const receiverConnection = connections.get(receiverId);
+              const receiverConnection = clients.get(receiverId);
               if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
                 receiverConnection.send(JSON.stringify({
                   type: 'new_direct_message',
@@ -4978,7 +4978,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // For direct messages
             if (receiverId) {
               try {
-                const receiverConnection = connections.get(receiverId);
+                const receiverConnection = clients.get(receiverId);
                 if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
                   receiverConnection.send(JSON.stringify(typingData));
                 }
@@ -5001,7 +5001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 if (channel) {
                   // Broadcast typing indicator to appropriate users
-                  for (const [userId, connection] of connections.entries()) {
+                  for (const [userId, connection] of clients.entries()) {
                     if (connection.readyState === WebSocket.OPEN) {
                       try {
                         // For public channels, send to everyone
