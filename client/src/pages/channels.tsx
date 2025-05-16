@@ -171,10 +171,10 @@ export default function ChannelsPage() {
     }
   }, [user, selectedChannelId]);
 
-  // Keep the query for reactive updates, but use our direct data as a backup
+  // Keep the query for reactive updates
   const channelsQuery = useQuery({
     queryKey: ["/api/channels"],
-    enabled: !!user && wsStatus === 'connected', // Only fetch channels if user is authenticated and WebSocket is connected
+    enabled: !!user, // Fetch channels if user is authenticated, regardless of WebSocket state
     onSuccess: (data) => {
       console.log("Channel data received from query:", data);
       if (Array.isArray(data)) {
@@ -190,11 +190,12 @@ export default function ChannelsPage() {
     },
   });
   
-  // Get channel messages
+  // Get channel messages - always fetch messages regardless of WebSocket status
   const messagesQuery = useQuery({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
-    enabled: !!selectedChannelId && !!user && wsStatus === 'connected',
+    enabled: !!selectedChannelId && !!user, 
     onSuccess: (data) => {
+      console.log("Messages data received:", data);
       if (Array.isArray(data)) {
         setMessages(data);
       } else {
@@ -856,7 +857,18 @@ export default function ChannelsPage() {
                   </div>
                 ))}
               </div>
-            ) : messages.length === 0 ? (
+            ) : messagesQuery.isError ? (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <AlertTriangle className="h-16 w-16 text-destructive mb-4" />
+                <h3 className="text-lg font-medium">Error loading messages</h3>
+                <p className="text-muted-foreground mb-4">
+                  There was an error loading the messages. Please try again.
+                </p>
+                <Button onClick={() => messagesQuery.refetch()}>
+                  <RefreshCw className="h-4 w-4 mr-2" /> Retry
+                </Button>
+              </div>
+            ) : messagesQuery.data?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <MessagesSquare className="h-16 w-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium">No messages yet</h3>
@@ -866,7 +878,8 @@ export default function ChannelsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {messages.map((message) => (
+                {/* Always access messages from messagesQuery.data instead of local state */}
+                {messagesQuery.data?.map((message) => (
                   <div key={message.id} className="flex items-start gap-3 group">
                     <Avatar>
                       <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
@@ -884,6 +897,28 @@ export default function ChannelsPage() {
                     </div>
                   </div>
                 ))}
+                {/* Add optimistic messages */}
+                {messages
+                  .filter(msg => msg.isOptimistic)
+                  .map((message) => (
+                    <div key={message.id} className="flex items-start gap-3 group opacity-70">
+                      <Avatar>
+                        <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                      </Avatar>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{message.user?.name || message.user?.username}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(message.createdAt).toLocaleDateString()} {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="text-xs text-muted-foreground italic">(sending...)</span>
+                        </div>
+                        <div className="text-sm">
+                          {formatMessageWithMentions(message.content)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 <div ref={messagesEndRef} />
               </div>
             )}
