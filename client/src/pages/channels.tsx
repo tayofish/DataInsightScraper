@@ -339,6 +339,37 @@ export default function ChannelsPage() {
     },
   });
   
+  // Edit message mutation
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, content }: { messageId: number, content: string }) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/messages/${messageId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: `${content} (edited)` }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to edit message");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/messages`] });
+      toast({
+        title: "Message updated",
+        description: "Your message has been edited",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to edit message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   // Update channel settings
   const updateChannelMutation = useMutation({
     mutationFn: async (values: ChannelFormValues) => {
@@ -1239,6 +1270,20 @@ export default function ChannelsPage() {
                         )}
                       </div>
                       {/* Display message content based on type */}
+                      <FormatMessage
+                        content={message.content}
+                        fileUrl={message.fileUrl}
+                        fileName={message.fileName}
+                        type={message.type}
+                        messageId={message.id}
+                        userId={message.userId}
+                        currentUserId={user?.id}
+                        createdAt={message.createdAt}
+                        onEditMessage={(messageId, content) => {
+                          // Call the edit message mutation
+                          editMessageMutation.mutate({ messageId, content });
+                        }}
+                      />
                       {message.type === 'image' && message.fileUrl && (
                         <div className="mt-1">
                           <a href={message.fileUrl} target="_blank" rel="noopener noreferrer">
