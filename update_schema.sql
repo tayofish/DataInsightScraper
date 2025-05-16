@@ -24,9 +24,17 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_type') THEN
         CREATE TYPE message_type AS ENUM ('text', 'file', 'system', 'image');
     ELSE
-        -- ALTER TYPE to add 'image' if it doesn't already exist
+        -- Add 'image' to message_type enum if it doesn't already exist
         BEGIN
-            ALTER TYPE message_type ADD VALUE 'image' IF NOT EXISTS;
+            -- Check if 'image' already exists in the enum
+            IF NOT EXISTS (
+                SELECT 1 
+                FROM pg_enum 
+                WHERE enumtypid = (SELECT oid FROM pg_type WHERE typname = 'message_type')
+                AND enumlabel = 'image'
+            ) THEN
+                ALTER TYPE message_type ADD VALUE 'image';
+            END IF;
         EXCEPTION
             WHEN duplicate_object THEN
                 NULL; -- Type value already exists, do nothing
