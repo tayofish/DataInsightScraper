@@ -68,11 +68,11 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   return (
     <div>
       {/* Display the formatted text content */}
-      {content && <div dangerouslySetInnerHTML={{ __html: formattedContent }} />}
+      {content && content.trim() !== "" && <div dangerouslySetInnerHTML={{ __html: formattedContent }} />}
       
       {/* Display file attachment */}
       {fileUrl && (
-        <div className="mt-2">
+        <div className={content && content.trim() !== "" ? "mt-2" : ""}>
           {isImage ? (
             <div>
               <a href={fileUrl} target="_blank" rel="noopener noreferrer">
