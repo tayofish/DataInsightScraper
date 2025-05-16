@@ -706,17 +706,57 @@ const DirectMessagesPage: FC = () => {
 
             {/* Message Input */}
             <div className="p-4 border-t">
-              <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                  <Input
-                    ref={messageInputRef}
-                    placeholder="Type a message... (use @ to mention users)"
-                    value={message}
-                    onChange={handleInputChange}
-                    onKeyDown={handleMessageKeyDown}
-                    disabled={sendMessageMutation.isPending}
-                    className="flex-1"
+              <form onSubmit={handleSendMessage} className="flex flex-col">
+                {/* Formatting Toolbar */}
+                {showFormatToolbar && (
+                  <FormattingToolbar 
+                    onFormatClick={handleFormatClick}
+                    onFileUploadClick={handleFileUploadClick}
+                    onImageUploadClick={handleImageUploadClick}
                   />
+                )}
+                
+                {/* File Upload Preview */}
+                {selectedFile && (
+                  <FileUploadPreview 
+                    file={selectedFile}
+                    progress={uploadProgress}
+                    onCancel={cancelFileUpload}
+                  />
+                )}
+                
+                {/* Hidden File Input */}
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                
+                <div className="flex items-center space-x-2">
+                  <div className="relative flex-1">
+                    <Textarea
+                      ref={messageInputRef}
+                      placeholder="Type a message... (use @ to mention users)"
+                      value={message}
+                      onChange={handleInputChange}
+                      onKeyDown={handleMessageKeyDown}
+                      disabled={sendMessageMutation.isPending}
+                      className="min-h-9 resize-none custom-scrollbar py-2 pr-8"
+                      rows={1}
+                      onFocus={() => setShowFormatToolbar(true)}
+                      onBlur={() => setTimeout(() => setShowFormatToolbar(false), 200)}
+                    />
+                    <Button 
+                      type="button" 
+                      size="icon" 
+                      variant="ghost" 
+                      className="absolute right-2 top-1.5 h-6 w-6 opacity-70 hover:opacity-100"
+                      onClick={() => setShowFormatToolbar(prev => !prev)}
+                    >
+                      <Bold className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   
                   {/* Mentions dropdown */}
                   {mentionDropdownOpen && (
