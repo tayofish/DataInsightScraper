@@ -51,6 +51,23 @@ export const storage = {
     });
   },
   
+  getUserByMention: async (mention: string): Promise<User | undefined> => {
+    // First try to find by username (exact match)
+    const userByUsername = await db.query.users.findFirst({
+      where: eq(users.username, mention)
+    });
+    
+    if (userByUsername) {
+      return userByUsername;
+    }
+    
+    // If not found, try to find by name with underscores replaced with spaces
+    // This supports @full_name mentions
+    return db.query.users.findFirst({
+      where: eq(users.name, mention.replace(/_/g, ' '))
+    });
+  },
+  
   createUser: async (userData: InsertUser): Promise<User> => {
     const [newUser] = await db.insert(users).values(userData).returning();
     return newUser;

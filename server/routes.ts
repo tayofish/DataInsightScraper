@@ -4497,14 +4497,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log('Extracting mentions from text content');
             const mentionedUsers = extractMentions(content);
             if (mentionedUsers.length > 0) {
-              const users = await db.query.users.findMany({
-                where: (fields, { inArray }) => 
-                  inArray(fields.username, mentionedUsers)
-              });
+              // Process each mention to find users by username or full name with underscores
+              const foundUsers = [];
+              for (const mention of mentionedUsers) {
+                const user = await storage.getUserByMention(mention);
+                if (user) {
+                  foundUsers.push(user);
+                }
+              }
               
               // Update message with mentions
-              if (users.length > 0) {
-                const userIds = users.map(u => u.id);
+              if (foundUsers.length > 0) {
+                const userIds = foundUsers.map(u => u.id);
                 console.log('Extracted mentions from text:', userIds);
                 await db.update(messages)
                   .set({ 
@@ -4515,15 +4519,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               // Send notifications to mentioned users
-              for (const user of users) {
+              for (const user of foundUsers) {
                 // Only notify if the user is a channel member for private channels
                 const isMember = channel.members.some(m => m.userId === user.id);
                 if (!isMember && channel.type !== 'public') continue;
                 
+                // Skip self mentions
+                if (user.id === ws.userId) continue;
+                
                 await db.insert(notifications).values({
                   userId: user.id,
                   title: "Mentioned in channel",
-                  message: `${sender?.name} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                  message: `${sender?.name || sender?.username} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
                   type: "mention",
                   referenceId: newMessage.id,
                   referenceType: "channel_message",
