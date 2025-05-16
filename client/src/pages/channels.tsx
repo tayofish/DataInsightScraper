@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import { useState, useEffect, useRef, KeyboardEvent, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { 
@@ -195,31 +195,24 @@ export default function ChannelsPage() {
   // Get channel messages - always fetch messages regardless of WebSocket status
   const messagesQuery = useQuery({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
-    enabled: !!selectedChannelId && !!user, 
-    onSuccess: (data) => {
-      console.log("Messages data received:", data);
-      if (Array.isArray(data)) {
-        // When we get real messages from the server, we need to remove any optimistic
-        // messages that are no longer needed
-        setMessages(prevMessages => {
-          // Filter out any optimistic messages that have now been confirmed by the server
-          // An optimistic message is confirmed when the content matches a real message
-          const optimisticMsgs = prevMessages.filter(msg => 
-            msg.isOptimistic && 
-            !data.some(serverMsg => 
-              serverMsg.content === msg.content && 
-              serverMsg.userId === msg.userId
-            )
-          );
-          
-          // Combine real messages with any remaining optimistic messages
-          return [...data, ...optimisticMsgs];
-        });
-      } else {
-        console.error("Messages data is not an array:", data);
-      }
-    },
+    enabled: !!selectedChannelId && !!user
   });
+  
+  // Combine server messages with optimistic ones
+  const combinedMessages = useMemo(() => {
+    const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
+    
+    // Only include optimistic messages that haven't been confirmed yet
+    const pendingMessages = messages.filter(msg => {
+      return msg.isOptimistic && 
+        !serverMessages.some(serverMsg => 
+          serverMsg.content === msg.content && 
+          serverMsg.userId === msg.userId
+        );
+    });
+    
+    return [...serverMessages, ...pendingMessages];
+  }, [messagesQuery.data, messages]);
   
   // Get channel details
   const channelQuery = useQuery({
@@ -895,7 +888,7 @@ export default function ChannelsPage() {
                   <RefreshCw className="h-4 w-4 mr-2" /> Retry
                 </Button>
               </div>
-            ) : messagesQuery.data?.length === 0 ? (
+            ) : (!combinedMessages.length) ? (
               <div className="flex flex-col items-center justify-center h-full text-center">
                 <MessagesSquare className="h-16 w-16 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium">No messages yet</h3>
@@ -905,8 +898,8 @@ export default function ChannelsPage() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Always access messages from messagesQuery.data instead of local state */}
-                {messagesQuery.data?.map((message) => (
+                {/* Display all messages using our combined messages array */}
+                {combinedMessages.map((message) => (
                   <div key={message.id} className="flex items-start gap-3 group">
                     <Avatar>
                       <AvatarFallback>{message.user?.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
