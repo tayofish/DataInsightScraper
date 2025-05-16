@@ -132,7 +132,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="container py-8">
+    <div className="container py-8 h-full overflow-y-auto">
       {/* Project Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div>
