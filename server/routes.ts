@@ -4766,7 +4766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Send to all connected users who are channel members
             let broadcastCount = 0;
-            for (const [userId, connection] of connections.entries()) {
+            for (const [userId, connection] of clients.entries()) {
               try {
                 if (connection.readyState === WebSocket.OPEN) {
                   // For public channels, send to everyone
@@ -4779,10 +4779,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               } catch (connectionError) {
                 console.error(`Error sending to user ${userId}:`, connectionError);
-                // Continue trying other connections
+                // Continue trying other clients
               }
             }
-            console.log(`Message broadcast to ${broadcastCount} connections`);
+            console.log(`Message broadcast to ${broadcastCount} clients`);
             
             // Log the activity
             try {
