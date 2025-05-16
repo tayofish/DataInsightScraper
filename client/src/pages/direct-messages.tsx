@@ -847,10 +847,14 @@ const DirectMessagesPage: FC = () => {
                 <div className="flex items-center justify-between px-1 mb-1">
                   <div className="flex items-center gap-2">
                     <Button 
+                      type="button"
                       variant="ghost" 
                       size="sm" 
                       className="h-6 text-xs"
-                      onClick={() => setTextFormattingEnabled(!textFormattingEnabled)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setTextFormattingEnabled(!textFormattingEnabled);
+                      }}
                     >
                       {textFormattingEnabled ? "Hide Markdown" : "Show Markdown"}
                     </Button>
@@ -884,6 +888,7 @@ const DirectMessagesPage: FC = () => {
                   <Button 
                     type="submit" 
                     size="icon" 
+                    className="h-10 w-10 flex items-center justify-center" 
                     disabled={sendMessageMutation.isPending || (message.trim() === '' && !selectedFile)}
                   >
                     <ChevronRight className="h-5 w-5" />

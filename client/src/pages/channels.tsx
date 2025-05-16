@@ -1343,10 +1343,14 @@ export default function ChannelsPage() {
                 <div className="flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
                     <Button 
+                      type="button"
                       variant="ghost" 
                       size="sm" 
                       className="h-6 text-xs"
-                      onClick={() => setTextFormattingEnabled(!textFormattingEnabled)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setTextFormattingEnabled(!textFormattingEnabled);
+                      }}
                     >
                       {textFormattingEnabled ? "Hide Markdown" : "Show Markdown"}
                     </Button>
