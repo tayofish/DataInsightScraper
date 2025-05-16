@@ -879,7 +879,12 @@ const DirectMessagesPage: FC = () => {
                             </span>
                           </div>
                           <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                            <FormatMessage content={msg.content} />
+                            <FormatMessage 
+                              content={msg.content} 
+                              fileUrl={msg.fileUrl} 
+                              fileName={msg.fileName}
+                              type={msg.type}
+                            />
                           </div>
                         </div>
                       </div>
