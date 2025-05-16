@@ -1,4 +1,4 @@
-import { FC, useState, useEffect, useRef } from "react";
+import { FC, useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Search, MoreVertical, User, Phone, Plus } from "lucide-react";
@@ -39,6 +39,9 @@ const DirectMessagesPage: FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
+  
+  // Local state for optimistic messages
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
   
   // Mention functionality
   const [mentionDropdownOpen, setMentionDropdownOpen] = useState(false);
@@ -122,14 +125,26 @@ const DirectMessagesPage: FC = () => {
   });
 
   // Fetch messages for the selected conversation
-  const {
-    data: messages = [],
-    isLoading: isLoadingMessages,
-    error: messagesError,
-  } = useQuery<any[]>({
+  const messagesQuery = useQuery<any[]>({
     queryKey: [`/api/direct-messages/${selectedUserId}`],
     enabled: !!selectedUserId && !!user,
   });
+  
+  // Combine server messages with optimistic ones
+  const messages = useMemo(() => {
+    const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
+    
+    // Only include optimistic messages that haven't been confirmed yet
+    const pendingMessages = localMessages.filter(msg => 
+      msg.isOptimistic && 
+      !serverMessages.some(serverMsg => 
+        serverMsg.content === msg.content && 
+        serverMsg.senderId === user?.id
+      )
+    );
+    
+    return [...serverMessages, ...pendingMessages];
+  }, [messagesQuery.data, localMessages, user?.id]);
 
   // Send a direct message
   const sendMessageMutation = useMutation({
@@ -283,7 +298,7 @@ const DirectMessagesPage: FC = () => {
     // Create an optimistic message for immediate UI feedback
     const optimisticMessage = {
       id: `temp-${Date.now()}`,
-      senderId: user.id,
+      senderId: user?.id,
       receiverId: selectedUserId,
       content: message,
       createdAt: new Date().toISOString(),
@@ -292,7 +307,7 @@ const DirectMessagesPage: FC = () => {
     };
     
     // Immediately update the UI with the optimistic message
-    setMessages(prev => [...prev, optimisticMessage]);
+    setLocalMessages(prev => [...prev, optimisticMessage]);
     
     // Use WebSocket for real-time messaging
     if (wsStatus === 'connected') {
