@@ -494,6 +494,8 @@ export const messages = pgTable("messages", {
   content: text("content").notNull(),
   type: messageTypeEnum("type").default('text'),
   attachments: text("attachments"), // JSON string of attachments
+  fileUrl: text("file_url"), // URL to the uploaded file
+  fileName: text("file_name"), // Original name of the uploaded file
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at"),
   isEdited: boolean("is_edited").default(false),
