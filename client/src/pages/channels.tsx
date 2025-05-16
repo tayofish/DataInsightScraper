@@ -119,6 +119,7 @@ export default function ChannelsPage() {
   const { sendMessage, status: wsStatus } = useWebSocket();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
+  const [selectedChannel, setSelectedChannel] = useState<any>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [settingsSheetOpen, setSettingsSheetOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
