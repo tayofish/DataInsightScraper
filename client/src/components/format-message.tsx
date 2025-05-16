@@ -31,13 +31,14 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   const [editedContent, setEditedContent] = useState(content);
   const [showToolbar, setShowToolbar] = useState(false);
   
-  // Check if current user is the message author
-  const canEdit = userId === currentUserId && messageId !== undefined;
+  // Check if current user is the message author and message is editable
+  const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
   
   const handleSaveEdit = () => {
     if (messageId && onEditMessage && editedContent.trim() !== '') {
       onEditMessage(messageId, editedContent);
       setIsEditing(false);
+      setShowToolbar(false);
     }
   };
   

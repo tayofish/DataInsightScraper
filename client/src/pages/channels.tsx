@@ -912,6 +912,57 @@ export default function ChannelsPage() {
   };
   
   // Handle keyboard events for message input
+  // Function to handle editing a message
+  const handleEditMessage = async (messageId: number, newContent: string) => {
+    if (!selectedChannelId) return;
+    
+    try {
+      console.log("Editing message:", messageId, "with new content:", newContent);
+      
+      // Optimistically update the UI
+      setMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === messageId 
+            ? {...msg, content: newContent, edited: true} 
+            : msg
+        )
+      );
+      
+      // Send the edit request to the server
+      const response = await fetch(`/api/channels/${selectedChannelId}/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: newContent }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to edit message');
+      }
+      
+      // The real update will come via WebSocket, but we can also update with the server response
+      const updatedMessage = await response.json();
+      console.log("Message edited successfully:", updatedMessage);
+      
+      // Refresh messages to ensure consistency
+      messagesQuery.refetch();
+      
+    } catch (error) {
+      console.error("Error editing message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to edit message. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Revert the optimistic update
+      messagesQuery.refetch();
+    }
+  };
+  
   const handleMessageKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // Handle mention selection with arrow keys
     if (mentionDropdownOpen) {
@@ -1279,10 +1330,7 @@ export default function ChannelsPage() {
                         userId={message.userId}
                         currentUserId={user?.id}
                         createdAt={message.createdAt}
-                        onEditMessage={(messageId, content) => {
-                          // Call the edit message mutation
-                          editMessageMutation.mutate({ messageId, content });
-                        }}
+                        onEditMessage={handleEditMessage}
                       />
                       {message.type === 'image' && message.fileUrl && (
                         <div className="mt-1">

@@ -596,6 +596,57 @@ const DirectMessagesPage: FC = () => {
     }
   }, [messages]);
 
+  // Function to handle editing direct messages
+  const handleEditMessage = async (messageId: number, newContent: string) => {
+    if (!selectedUserId) return;
+    
+    try {
+      console.log("Editing direct message:", messageId, "with new content:", newContent);
+      
+      // Optimistically update the UI
+      setLocalMessages(prevMessages => 
+        prevMessages.map(msg => 
+          msg.id === messageId 
+            ? {...msg, content: newContent, edited: true} 
+            : msg
+        )
+      );
+      
+      // Send the edit request to the server
+      const response = await fetch(`/api/direct-messages/${messageId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ content: newContent }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to edit message');
+      }
+      
+      // The real update will come via WebSocket, but we can also update with the server response
+      const updatedMessage = await response.json();
+      console.log("Direct message edited successfully:", updatedMessage);
+      
+      // Refresh messages to ensure consistency
+      messagesQuery.refetch();
+      
+    } catch (error) {
+      console.error("Error editing direct message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to edit message. Please try again.",
+        variant: "destructive"
+      });
+      
+      // Revert the optimistic update
+      messagesQuery.refetch();
+    }
+  };
+
   // Use the global WebSocket context to handle direct message events
   useEffect(() => {
     if (!user || !queryClient) return;

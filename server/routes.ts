@@ -4166,6 +4166,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Edit channel message
+  app.patch("/api/channels/:channelId/messages/:messageId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.channelId);
+      const messageId = parseInt(req.params.messageId);
+      
+      if (isNaN(channelId) || isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid channel ID or message ID" });
+      }
+      
+      // Check if message exists
+      const message = await db.query.messages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, messageId),
+        with: {
+          user: true
+        }
+      });
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Check if user is the author of the message or an admin
+      if (message.userId !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ message: "You can only edit your own messages" });
+      }
+      
+      // Validate content
+      const { content } = req.body;
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ message: "Message content cannot be empty" });
+      }
+      
+      // Update the message
+      await db.update(messages)
+        .set({ 
+          content,
+          edited: true,
+          updatedAt: new Date()
+        })
+        .where(eq(messages.id, messageId));
+      
+      // Get the updated message
+      const updatedMessage = await db.query.messages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, messageId),
+        with: {
+          user: true
+        }
+      });
+      
+      // Broadcast the message update to all clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: "message_updated",
+            channelId,
+            message: updatedMessage
+          }));
+        }
+      });
+      
+      // Create activity record
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'edit_message',
+        resourceType: 'message',
+        resourceId: messageId,
+        details: JSON.stringify({ 
+          channelId,
+          messageId,
+          previousContent: message.content
+        })
+      });
+      
+      return res.status(200).json(updatedMessage);
+    } catch (error) {
+      console.error("Error editing message:", error);
+      return res.status(500).json({ message: "Failed to edit message" });
+    }
+  });
+  
   // === DIRECT MESSAGES ===
   // Get direct message conversations for current user
   app.get("/api/direct-messages/conversations", async (req, res) => {
@@ -4391,6 +4476,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading file to direct message:", error);
       return res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Edit direct message
+  app.patch("/api/direct-messages/:messageId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const messageId = parseInt(req.params.messageId);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid message ID" });
+      }
+      
+      // Check if message exists and user is the sender
+      const message = await db.query.directMessages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, messageId)
+      });
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      if (message.senderId !== req.user!.id) {
+        return res.status(403).json({ message: "You can only edit your own messages" });
+      }
+      
+      // Validate content
+      const { content } = req.body;
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ message: "Message content cannot be empty" });
+      }
+      
+      // Update the message
+      await db.update(directMessages)
+        .set({ 
+          content,
+          edited: true,
+          updatedAt: new Date()
+        })
+        .where(eq(directMessages.id, messageId));
+      
+      // Get the updated message with user data
+      const updatedMessage = await db.query.directMessages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, messageId),
+        with: {
+          sender: true,
+          receiver: true
+        }
+      });
+      
+      // Send update to the receiver if they're online
+      if (updatedMessage) {
+        wss.clients.forEach((client: ExtendedWebSocket) => {
+          if (client.userId === updatedMessage.receiverId && client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({
+              type: 'direct_message_updated',
+              message: updatedMessage
+            }));
+          }
+        });
+      }
+      
+      // Log the activity
+      await db.insert(userActivities).values({
+        userId: req.user!.id,
+        action: 'edit_message',
+        resourceType: 'direct_message',
+        resourceId: messageId,
+        details: JSON.stringify({ 
+          previousContent: message.content,
+          newContent: content
+        })
+      });
+      
+      return res.status(200).json(updatedMessage);
+    } catch (error) {
+      console.error("Error editing direct message:", error);
+      return res.status(500).json({ message: "Failed to edit message" });
     }
   });
 
