@@ -885,8 +885,8 @@ const DirectMessagesPage: FC = () => {
                           <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                             <FormatMessage 
                               content={msg.content} 
-                              fileUrl={msg.attachments ? `/uploads/${msg.attachments.fileName}` : msg.fileUrl} 
-                              fileName={msg.attachments ? msg.attachments.originalName : msg.fileName}
+                              fileUrl={msg.fileUrl} 
+                              fileName={msg.fileName}
                               type={msg.type}
                             />
                           </div>
