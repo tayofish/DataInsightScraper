@@ -3565,6 +3565,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get channel members
+  app.get("/api/channels/:id/members", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+      
+      const channel = await db.query.channels.findFirst({
+        where: eq(channels.id, channelId),
+        with: {
+          members: {
+            with: {
+              user: true
+            }
+          }
+        }
+      });
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+      
+      // Check if user has access to this channel
+      if (channel.type === 'private') {
+        const isMember = channel.members.some(m => m.userId === req.user!.id);
+        if (!isMember && !req.user!.isAdmin) {
+          return res.status(403).json({ message: "You don't have access to this channel" });
+        }
+      }
+      
+      return res.json(channel.members);
+      
+    } catch (error) {
+      console.error("Error getting channel members:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
   // Get channel by ID
   app.get("/api/channels/:id", async (req, res) => {
     try {
