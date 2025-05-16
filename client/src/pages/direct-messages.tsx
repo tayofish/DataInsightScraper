@@ -130,6 +130,10 @@ const DirectMessagesPage: FC = () => {
     enabled: !!selectedUserId && !!user,
   });
   
+  // Loading and error states from the query
+  const isLoadingMessages = messagesQuery.isLoading;
+  const messagesError = messagesQuery.error;
+  
   // Combine server messages with optimistic ones
   const messages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
@@ -161,8 +165,14 @@ const DirectMessagesPage: FC = () => {
       }
       return response.json();
     },
-    onSuccess: () => {
-      setMessage("");
+    onSuccess: (data, variables) => {
+      // Remove the optimistic message now that we have confirmation
+      setLocalMessages(prev => 
+        prev.filter(msg => 
+          !(msg.isOptimistic && msg.content === variables.content)
+        )
+      );
+      
       queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
     },
@@ -336,7 +346,22 @@ const DirectMessagesPage: FC = () => {
     }
     
     // Clear the input field immediately for better UX
+  // Also invalidate the query to refresh the messages
     setMessage("");
+    
+    // Set up a timeout to clear the message if it gets stuck
+    const messageId = optimisticMessage.id;
+    const timeoutId = setTimeout(() => {
+      // Check if the optimistic message is still in state and remove it if so
+      setLocalMessages(prevMessages => {
+        const messageStillExists = prevMessages.some(msg => msg.id === messageId);
+        if (messageStillExists) {
+          console.log(`Message timeout triggered for: ${messageId}`);
+          return prevMessages.filter(msg => msg.id !== messageId);
+        }
+        return prevMessages;
+      });
+    }, 10000); // 10 seconds timeout
   };
 
   // Scroll to bottom of messages when new messages arrive
