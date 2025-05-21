@@ -4235,15 +4235,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                   
                   // Broadcast member addition to all connected clients
-                  wssRef.clients.forEach((client: ExtendedWebSocket) => {
-                    if (client.readyState === WebSocket.OPEN) {
-                      client.send(JSON.stringify({
-                        type: "channel_member_added",
-                        channelId,
-                        userId: user.id
-                      }));
+                  try {
+                    const wss = getWebSocketServer();
+                    if (wss) {
+                      wss.clients.forEach((client: ExtendedWebSocket) => {
+                        if (client.readyState === WebSocket.OPEN) {
+                          client.send(JSON.stringify({
+                            type: "channel_member_added",
+                            channelId,
+                            userId: user.id
+                          }));
+                        }
+                      });
                     }
-                  });
+                  } catch (error) {
+                    console.error('Error broadcasting channel member addition:', error);
+                    // Continue even if WebSocket notification fails
+                  }
                 } else {
                   console.log(`User ${req.user!.username} doesn't have permission to add ${user.username} to private channel ${channel.name}`);
                 }
