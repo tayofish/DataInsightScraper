@@ -253,13 +253,36 @@ export default function ChannelsPage() {
     const messageToEdit = combinedMessages.find(msg => msg.id === messageId);
     if (!messageToEdit) return;
     
-    // Optimistically update the UI
+    // Optimistically update the UI with explicit edited flag
     const updatedMessages = messages.map(msg => 
       msg.id === messageId 
-        ? { ...msg, content: newContent, updatedAt: new Date().toISOString(), isEdited: true }
+        ? { 
+            ...msg, 
+            content: newContent, 
+            updatedAt: new Date().toISOString(), 
+            isEdited: true // Explicitly mark as edited for UI indicator
+          }
         : msg
     );
     setMessages(updatedMessages);
+    
+    // Update in the tanstack query cache as well
+    queryClient.setQueryData(
+      [`/api/channels/${selectedChannelId}/messages`],
+      (oldData: any[] = []) => {
+        if (!oldData || !Array.isArray(oldData)) return updatedMessages;
+        return oldData.map(msg => 
+          msg.id === messageId 
+            ? { 
+                ...msg, 
+                content: newContent, 
+                updatedAt: new Date().toISOString(), 
+                isEdited: true 
+              }
+            : msg
+        );
+      }
+    );
     
     // Store edit in localStorage for offline resilience
     try {

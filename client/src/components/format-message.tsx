@@ -31,6 +31,9 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   updatedAt,
   onEditMessage
 }) => {
+  // Log message edit status for debugging
+  console.log(`Message ${messageId} isEdited:`, isEdited, "updatedAt:", updatedAt);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(content);
   const [showToolbar, setShowToolbar] = useState(false);
