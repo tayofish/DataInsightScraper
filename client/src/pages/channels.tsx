@@ -245,6 +245,106 @@ export default function ChannelsPage() {
     }
   }, [messagesQuery.data, messages]);
   
+  // Handle editing channel messages with offline-first approach
+  const handleEditMessage = async (messageId: number, newContent: string) => {
+    if (!newContent.trim() || !selectedChannelId || !messageId) return;
+    
+    // Get the existing message
+    const messageToEdit = combinedMessages.find(msg => msg.id === messageId);
+    if (!messageToEdit) return;
+    
+    // Optimistically update the UI
+    const updatedMessages = messages.map(msg => 
+      msg.id === messageId 
+        ? { ...msg, content: newContent, updatedAt: new Date().toISOString(), isEdited: true }
+        : msg
+    );
+    setMessages(updatedMessages);
+    
+    // Store edit in localStorage for offline resilience
+    try {
+      // Keep track of pending edits
+      const pendingEdits = JSON.parse(localStorage.getItem('pendingChannelMessageEdits') || '[]');
+      const editIndex = pendingEdits.findIndex((edit: any) => edit.messageId === messageId);
+      
+      const editData = {
+        messageId,
+        channelId: selectedChannelId,
+        content: newContent,
+        timestamp: new Date().toISOString()
+      };
+      
+      if (editIndex >= 0) {
+        pendingEdits[editIndex] = editData;
+      } else {
+        pendingEdits.push(editData);
+      }
+      
+      localStorage.setItem('pendingChannelMessageEdits', JSON.stringify(pendingEdits));
+    } catch (err) {
+      console.error('Failed to save message edit to localStorage', err);
+    }
+    
+    // Attempt to send via WebSocket first
+    try {
+      sendMessage({
+        type: 'edit_channel_message',
+        messageId,
+        channelId: selectedChannelId,
+        content: newContent
+      });
+      
+      console.log('Edit message request sent via WebSocket');
+      return true;
+    } catch (error) {
+      console.error('Failed to send message edit via WebSocket:', error);
+      
+      // Websocket attempt failed, let's try direct API call
+      try {
+        const response = await fetch(`/api/channels/${selectedChannelId}/messages/${messageId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ content: newContent })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        // On success, remove from pending edits
+        const pendingEdits = JSON.parse(localStorage.getItem('pendingChannelMessageEdits') || '[]');
+        const updatedPendingEdits = pendingEdits.filter((edit: any) => edit.messageId !== messageId);
+        localStorage.setItem('pendingChannelMessageEdits', JSON.stringify(updatedPendingEdits));
+        
+        // Refresh the messages after successful edit
+        if (messagesQuery.refetch) {
+          messagesQuery.refetch();
+        }
+        
+        console.log('Successfully edited message:', messageId);
+        return true;
+      } catch (apiError) {
+        console.error('Failed to save message edit via API:', apiError);
+        
+        // Set up background sync retry
+        setTimeout(() => {
+          const pendingEdits = JSON.parse(localStorage.getItem('pendingChannelMessageEdits') || '[]');
+          const pendingEdit = pendingEdits.find((edit: any) => edit.messageId === messageId);
+          
+          if (pendingEdit) {
+            console.log('Retrying message edit in background:', messageId);
+            // Try again silently in the background
+            handleEditMessage(messageId, newContent);
+          }
+        }, 30000); // Retry after 30 seconds
+        
+        return false;
+      }
+    }
+  };
+
   // Combine server messages with optimistic ones
   const combinedMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];

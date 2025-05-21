@@ -341,6 +341,31 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           console.error('[WebSocket] Channel message API error:', error);
           return false;
         });
+      }
+      else if (message.type === 'edit_channel_message') {
+        // Edit channel message fallback
+        fetch(`/api/channels/${message.channelId}/messages/${message.messageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            content: message.content
+          })
+        })
+        .then(response => {
+          if (response.ok) {
+            console.log('[WebSocket] Channel message edit sent using API fallback');
+            // Force refresh query data
+            queryClient.invalidateQueries({ queryKey: [`/api/channels/${message.channelId}/messages`] });
+            return true;
+          } else {
+            console.error('[WebSocket] API fallback failed for channel message edit');
+            return false;
+          }
+        })
+        .catch(error => {
+          console.error('[WebSocket] Channel message edit API error:', error);
+          return false;
+        });
       } 
       else if (message.type === 'direct_message') {
         // Direct message fallback
