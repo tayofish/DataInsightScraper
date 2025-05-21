@@ -1,19 +1,13 @@
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from './use-auth';
-import { queryClient } from '@/lib/queryClient';
 
-// WebSocket connection status
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'offline';
-
-// WebSocket context type
 interface WebSocketContextType {
-  status: ConnectionStatus;
+  status: string;
   sendMessage: (message: any) => void;
   lastMessage: any;
   isDatabaseDown: boolean;
 }
 
-// Create context with default values
 const WebSocketContext = createContext<WebSocketContextType>({
   status: 'disconnected',
   sendMessage: () => {},
@@ -21,193 +15,177 @@ const WebSocketContext = createContext<WebSocketContextType>({
   isDatabaseDown: false
 });
 
-// Maximum reconnection attempts
-const MAX_RECONNECT_ATTEMPTS = 10;
-
-// WebSocket Provider component
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [status, setStatus] = useState('disconnected');
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [isDatabaseDown, setIsDatabaseDown] = useState(false);
+  
   const socketRef = useRef<WebSocket | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const offlineQueueRef = useRef<any[]>([]);
-
-  // Check for database connectivity issues
+  
+  // Load stored offline queue on mount
   useEffect(() => {
-    const checkDatabaseStatus = () => {
-      const lastDatabaseError = localStorage.getItem('last_database_error');
-      if (lastDatabaseError) {
-        const lastErrorTime = new Date(lastDatabaseError).getTime();
-        const now = new Date().getTime();
-        // Consider database down if error was in the last 5 minutes
-        if (now - lastErrorTime < 5 * 60 * 1000) {
-          setIsDatabaseDown(true);
-          return;
-        }
+    try {
+      const storedQueue = localStorage.getItem('offline_message_queue');
+      if (storedQueue) {
+        offlineQueueRef.current = JSON.parse(storedQueue);
       }
-      setIsDatabaseDown(false);
-    };
-
-    checkDatabaseStatus();
+    } catch (error) {
+      console.error('Error loading offline queue:', error);
+    }
     
+    // Check for database connection status periodically
+    const checkDatabaseStatus = async () => {
+      try {
+        const response = await fetch('/api/health');
+        const data = await response.json();
+        setIsDatabaseDown(!data.databaseConnected);
+      } catch (error) {
+        console.error('Error checking database status:', error);
+        setIsDatabaseDown(true);
+      }
+    };
+    
+    checkDatabaseStatus();
     const interval = setInterval(checkDatabaseStatus, 30000);
     
     return () => clearInterval(interval);
   }, []);
-
-  // Process messages in the offline queue
-  const processOfflineQueue = useCallback(() => {
-    if (offlineQueueRef.current.length === 0 || !socketRef.current || isDatabaseDown) {
-      return;
-    }
+  
+  // Setup WebSocket connection
+  const setupWebSocket = useCallback(() => {
+    if (!user) return;
     
-    console.log(`[WebSocket] Processing ${offlineQueueRef.current.length} offline messages`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    const queue = [...offlineQueueRef.current];
-    offlineQueueRef.current = [];
-    
-    queue.forEach(item => {
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-        try {
-          socketRef.current.send(JSON.stringify(item.data));
-          console.log('[WebSocket] Successfully sent cached message');
-        } catch (e) {
-          console.error('Error sending queued message:', e);
-          offlineQueueRef.current.push(item);
-        }
-      } else {
-        offlineQueueRef.current.push(item);
-      }
-    });
-    
-    // Update storage if there are still items in the queue
-    if (offlineQueueRef.current.length > 0) {
-      localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
-    } else {
-      localStorage.removeItem('offline_message_queue');
-    }
-  }, [isDatabaseDown]);
-
-  // Cleanup WebSocket connection
-  const cleanupSocket = useCallback(() => {
-    if (reconnectTimerRef.current) {
-      clearTimeout(reconnectTimerRef.current);
-      reconnectTimerRef.current = null;
-    }
-
-    if (socketRef.current) {
-      try {
-        socketRef.current.close();
-      } catch (e) {
-        console.error("Error closing socket", e);
-      }
-    }
-  }, []);
-
-  // Connect to WebSocket server
-  const connectSocket = useCallback(() => {
-    if (!user) {
-      return;
-    }
-
     try {
-      cleanupSocket();
-      setStatus('connecting');
-
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
       
-      socketRef.current = new WebSocket(wsUrl);
-
-      socketRef.current.onopen = () => {
+      socket.onopen = () => {
+        console.log('WebSocket connected');
         setStatus('connected');
-        reconnectAttemptsRef.current = 0;
         
-        // Authenticate
-        if (socketRef.current && user) {
-          const authMessage = {
+        // Send user info once connected
+        if (user) {
+          socket.send(JSON.stringify({
             type: 'auth',
             userId: user.id,
             username: user.username
-          };
-          socketRef.current.send(JSON.stringify(authMessage));
+          }));
         }
-        
-        // Process any queued messages
-        processOfflineQueue();
       };
-
-      socketRef.current.onmessage = (event) => {
+      
+      socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           setLastMessage(data);
           
-          // Handle different message types to update React Query cache
-          if (data.type === 'new_direct_message' || data.type === 'direct_message_updated') {
-            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${data.otherUserId}`] });
-            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
-          } else if (data.type === 'new_channel_message' || data.type === 'channel_message_updated') {
-            queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.channelId}/messages`] });
+          // Handle specific message types
+          if (data.type === 'database_status') {
+            setIsDatabaseDown(!data.connected);
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
         }
       };
-
-      socketRef.current.onerror = () => {
-        setStatus('error');
-      };
-
-      socketRef.current.onclose = () => {
+      
+      socket.onclose = () => {
+        console.log('WebSocket disconnected');
         setStatus('disconnected');
         
-        // Try to reconnect with exponential backoff
-        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          
-          reconnectTimerRef.current = setTimeout(() => {
-            reconnectAttemptsRef.current += 1;
-            connectSocket();
-          }, delay);
+        // Try to reconnect after a delay
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
         }
+        
+        reconnectTimeoutRef.current = setTimeout(() => {
+          setupWebSocket();
+        }, 5000);
+      };
+      
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setStatus('error');
       };
     } catch (error) {
       console.error('Error setting up WebSocket:', error);
       setStatus('error');
     }
-  }, [user, cleanupSocket, processOfflineQueue]);
-
-  // Initialize WebSocket connection when component mounts
-  useEffect(() => {
-    if (user && status === 'disconnected' && !isDatabaseDown) {
-      connectSocket();
+  }, [user]);
+  
+  // Attempt to process offline queue when connection is restored
+  const processOfflineQueue = useCallback(() => {
+    if (offlineQueueRef.current.length === 0 || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      return;
     }
     
-    return cleanupSocket;
-  }, [user, connectSocket, cleanupSocket, status, isDatabaseDown]);
-
-  // Load offline queue from localStorage
-  useEffect(() => {
-    try {
-      const queueData = localStorage.getItem('offline_message_queue');
-      if (queueData) {
-        offlineQueueRef.current = JSON.parse(queueData);
+    console.log(`Processing ${offlineQueueRef.current.length} offline messages`);
+    
+    const tempQueue = [...offlineQueueRef.current];
+    offlineQueueRef.current = [];
+    
+    let success = 0;
+    let failed = 0;
+    
+    for (const message of tempQueue) {
+      try {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify(message));
+          success++;
+        } else {
+          offlineQueueRef.current.push(message);
+          failed++;
+        }
+      } catch (error) {
+        console.error('Error sending offline message:', error);
+        offlineQueueRef.current.push(message);
+        failed++;
       }
-    } catch (e) {
-      console.error('Error loading offline queue:', e);
     }
     
-    // Listen for manual sync attempts
+    console.log(`Offline queue processing: ${success} sent, ${failed} requeued`);
+    
+    // Update localStorage
+    if (offlineQueueRef.current.length > 0) {
+      localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+    } else {
+      localStorage.removeItem('offline_message_queue');
+    }
+  }, []);
+  
+  // Process queue when connection status changes
+  useEffect(() => {
+    if (status === 'connected' && !isDatabaseDown) {
+      processOfflineQueue();
+    }
+  }, [status, isDatabaseDown, processOfflineQueue]);
+  
+  // Setup WebSocket when user changes
+  useEffect(() => {
+    if (user) {
+      setupWebSocket();
+    }
+    
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [user, setupWebSocket]);
+  
+  // Handle manual sync requests
+  useEffect(() => {
     const handleManualSync = () => {
-      if (status !== 'connected') {
-        connectSocket();
-      } else {
-        processOfflineQueue();
-      }
+      console.log('Manual sync requested');
+      processOfflineQueue();
     };
     
     window.addEventListener('manual-sync-attempt', handleManualSync);
@@ -215,60 +193,27 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return () => {
       window.removeEventListener('manual-sync-attempt', handleManualSync);
     };
-  }, [status, connectSocket, processOfflineQueue]);
-
-  // Send a message through the WebSocket
+  }, [processOfflineQueue]);
+  
+  // Send a message with offline fallback
   const sendMessage = useCallback((message: any) => {
-    // Mark message as optimistic for UI
-    if (message.type === 'channel_message' || message.type === 'direct_message') {
-      message.isOptimistic = true;
-      message.timestamp = new Date().toISOString();
-    }
-    
-    // Save to offline queue if offline or database is down
-    if (status !== 'connected' || isDatabaseDown) {
-      const queueItem = {
-        type: message.type,
-        data: message,
-        timestamp: Date.now()
-      };
-      
-      offlineQueueRef.current.push(queueItem);
-      
-      try {
-        localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
-      } catch (e) {
-        console.error('Error saving to offline queue:', e);
-      }
-      
-      return;
-    }
-    
-    // Send through WebSocket if connected
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+    // Try to send immediately if connected
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && !isDatabaseDown) {
       try {
         socketRef.current.send(JSON.stringify(message));
-      } catch (e) {
-        console.error('Error sending message:', e);
-        // Fall back to offline queue on error
-        offlineQueueRef.current.push({
-          type: message.type,
-          data: message,
-          timestamp: Date.now()
-        });
-        localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+        return;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        // Fall through to offline queue
       }
-    } else {
-      // Add to offline queue if not connected
-      offlineQueueRef.current.push({
-        type: message.type,
-        data: message,
-        timestamp: Date.now()
-      });
-      localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
     }
-  }, [status, isDatabaseDown]);
-
+    
+    // Store in offline queue if sending failed
+    console.log('Storing message in offline queue:', message);
+    offlineQueueRef.current.push(message);
+    localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+  }, [isDatabaseDown]);
+  
   return (
     <WebSocketContext.Provider value={{ status, sendMessage, lastMessage, isDatabaseDown }}>
       {children}
@@ -276,5 +221,4 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   );
 };
 
-// Custom hook to use the WebSocket context
 export const useWebSocket = () => useContext(WebSocketContext);

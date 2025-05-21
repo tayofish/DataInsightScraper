@@ -3,21 +3,26 @@ import { WifiOff, Database, Clock, ArrowDownUp, RefreshCw, AlertCircle } from 'l
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from '@/hooks/robust-websocket';
+import { useWebSocket } from '@/hooks/ws-hook';
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false);
   const [offlineSince, setOfflineSince] = useState<Date | null>(null);
   const { toast } = useToast();
   
-  // Use our improved WebSocket context
+  // Use our WebSocket context
   const { 
     status, 
-    isDatabaseDown, 
-    pendingMessageCount,
-    forceSyncNow,
-    lastConnectionAttempt 
+    isDatabaseDown 
   } = useWebSocket();
+  
+  // For now, we'll use these placeholders until we implement the full functionality
+  const pendingMessageCount = 0;
+  const lastConnectionAttempt = null;
+  const forceSyncNow = () => {
+    // We'll dispatch an event that our WebSocket hook is listening for
+    window.dispatchEvent(new Event('manual-sync-attempt'));
+  };
   
   // Track offline status based on both network status and database status
   useEffect(() => {
@@ -144,7 +149,7 @@ export function OfflineModeIndicator() {
 
   return (
     <Alert 
-      variant={isDatabaseDown ? "destructive" : (isOffline ? "destructive" : "warning")} 
+      variant={isDatabaseDown || isOffline ? "destructive" : "default"} 
       className="fixed bottom-4 right-4 z-50 max-w-md shadow-lg animate-pulse-slow"
     >
       <div className="flex flex-col">
