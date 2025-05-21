@@ -608,13 +608,13 @@ const DirectMessagesPage: FC = () => {
         console.error("Error sending message via WebSocket:", error);
         
         // Still keep optimistic message visible since it's in the queue
-        if (isDatabaseDown) {
+        if (isOffline) {
           toast({
             title: "Message queued",
             description: "Your message will be delivered when connection is restored.",
           });
         } else {
-          // Only try API if database is actually connected
+          // Only try API if we're connected
           sendMessageMutation.mutate({
             content: message,
             receiverId: selectedUserId,
@@ -622,11 +622,20 @@ const DirectMessagesPage: FC = () => {
         }
       }
     } else {
-      // Use the API if WebSocket is not connected but database is up
-      sendMessageMutation.mutate({
-        content: message,
-        receiverId: selectedUserId,
-      });
+      // Check if we should attempt to use the API
+      if (isOffline) {
+        // We're offline but still want to show the message locally
+        toast({
+          title: "Message queued",
+          description: "Your message will be sent when connection is restored.",
+        });
+      } else {
+        // Use the API if WebSocket is not connected but we're online
+        sendMessageMutation.mutate({
+          content: message,
+          receiverId: selectedUserId,
+        });
+      }
     }
     
     // Clear the input field immediately for better UX
