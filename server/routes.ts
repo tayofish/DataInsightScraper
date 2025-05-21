@@ -3329,7 +3329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the new member to all connected clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_member_added",
@@ -3410,7 +3410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(channelMembers.id, membershipToRemove.id));
       
       // Broadcast the member removal to all connected clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_member_removed",
@@ -3487,7 +3487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       // Broadcast the update to all connected clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_updated",
@@ -3547,7 +3547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(channels).where(eq(channels.id, channelId));
       
       // Broadcast the channel deletion to all connected clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_deleted",
@@ -3633,7 +3633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the role update to all connected clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_member_updated",
@@ -3731,7 +3731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast to all channel members via WebSocket
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: 'new_message',
@@ -4205,7 +4205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                   
                   // Broadcast member addition to all connected clients
-                  wss.clients.forEach((client: ExtendedWebSocket) => {
+                  wssRef.clients.forEach((client: ExtendedWebSocket) => {
                     if (client.readyState === WebSocket.OPEN) {
                       client.send(JSON.stringify({
                         type: "channel_member_added",
@@ -4346,7 +4346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the message update to all clients
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "channel_message_updated",
@@ -4588,7 +4588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send real-time notification via WebSocket if the recipient is online
-      wss.clients.forEach((client: ExtendedWebSocket) => {
+      wssRef.clients.forEach((client: ExtendedWebSocket) => {
         if (client.userId === receiverId && client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
             type: "direct_message_sent",
@@ -4656,7 +4656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Send update to the receiver if they're online
       if (updatedMessage) {
-        wss.clients.forEach((client: ExtendedWebSocket) => {
+        wssRef.clients.forEach((client: ExtendedWebSocket) => {
           if (client.userId === updatedMessage.receiverId && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
               type: 'direct_message_updated',
