@@ -112,6 +112,13 @@ BEGIN
             ALTER TABLE "direct_messages" ADD COLUMN "file_name" TEXT;
             RAISE NOTICE 'Added file_name column to direct_messages table';
         END IF;
+        
+        -- Add updated_at column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'direct_messages' AND column_name = 'updated_at') THEN
+            ALTER TABLE "direct_messages" ADD COLUMN "updated_at" TIMESTAMP;
+            RAISE NOTICE 'Added updated_at column to direct_messages table';
+        END IF;
     ELSE
         -- Create direct_messages table if it doesn't exist
         CREATE TABLE "direct_messages" (
@@ -124,6 +131,7 @@ BEGIN
             "file_url" TEXT,
             "file_name" TEXT,
             "created_at" TIMESTAMP NOT NULL DEFAULT now(),
+            "updated_at" TIMESTAMP,
             "is_read" BOOLEAN DEFAULT false,
             "is_edited" BOOLEAN DEFAULT false,
             "mentions" TEXT

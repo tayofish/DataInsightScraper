@@ -397,7 +397,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const queueItem = {
         type: message.type,
         data: message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        attempts: 0
       };
       
       offlineQueueRef.current.push(queueItem);
