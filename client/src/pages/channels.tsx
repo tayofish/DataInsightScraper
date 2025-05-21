@@ -862,18 +862,21 @@ export default function ChannelsPage() {
       } 
       // For text-only messages, use WebSocket (with API fallback)
       else {
+        // Try both WebSocket and direct API call for better reliability
+        console.log("Attempting to send channel message via both WebSocket and API");
+        
         // Send via WebSocket for real-time messaging
         sendMessage({
           type: "channel_message", 
           channelId: selectedChannelId,
           content: messageText,
-          mentions: mentionedUserIds
+          mentions: mentionedUserIds,
+          tempId: tempId // Include the tempId to link back to our optimistic message
         });
         
-        // Add direct API call as fallback for WebSocket issues
-        if (wsStatus !== 'connected') {
-          console.log("WebSocket not connected or send failed, using API fallback");
-          
+        // Always use direct API call for reliability regardless of WebSocket status
+        console.log("Sending direct API message to ensure delivery");
+        
           fetch(`/api/channels/${selectedChannelId}/messages`, {
             method: 'POST',
             headers: {
