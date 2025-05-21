@@ -214,8 +214,25 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const enhancedMessage = {
       ...message,
       clientId: message.clientId || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: message.timestamp || Date.now()
+      timestamp: message.timestamp || Date.now(),
+      userId: user?.id // Add user ID for better message tracking
     };
+    
+    // Store a backup in type-specific storage for recovery
+    const messageType = enhancedMessage.type || 'unknown';
+    try {
+      // Store in type-specific storage for better recovery options
+      const storageKey = `offline_${messageType}_messages`;
+      const existingMessages = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      existingMessages.push({
+        ...enhancedMessage,
+        queuedAt: Date.now(),
+        recoveryId: `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`
+      });
+      localStorage.setItem(storageKey, JSON.stringify(existingMessages));
+    } catch (e) {
+      console.warn('Error backing up message to local storage:', e);
+    }
     
     // Emit an event for UI components to potentially handle optimistic updates
     const messageEvent = new CustomEvent('websocket-message-sent', { 
@@ -227,6 +244,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && !isDatabaseDown) {
       try {
         socketRef.current.send(JSON.stringify(enhancedMessage));
+        console.log(`Message sent successfully (${messageType}): ${enhancedMessage.clientId}`);
         return;
       } catch (error) {
         console.error('Error sending message, queueing instead:', error);
@@ -241,7 +259,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       ...enhancedMessage,
       queuedAt: Date.now(),
       attempts: 0,
-      lastAttempt: null
+      lastAttempt: null,
+      offline: true // Mark specifically as offline for easier tracking
     });
     
     // Update UI indicators and persist to localStorage
@@ -251,7 +270,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     // If this is a direct message, make sure the UI knows about its pending state
     if (enhancedMessage.type === 'direct_message') {
       const pendingEvent = new CustomEvent('direct-message-pending', { 
-        detail: { message: enhancedMessage } 
+        detail: { message: enhancedMessage, isDatabaseDown } 
       });
       window.dispatchEvent(pendingEvent);
     }
