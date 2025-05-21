@@ -3754,14 +3754,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast to all channel members via WebSocket
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: 'new_message',
-            message: fullMessage
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'new_message',
+                message: fullMessage
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting new file message:', error);
+      }
       
       // Update last read for this user
       await db.update(channelMembers)
@@ -4369,15 +4376,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the message update to all clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_message_updated",
-            channelId,
-            message: updatedMessage
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_message_updated",
+                channelId,
+                message: updatedMessage
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting channel message update:', error);
+        // Continue even if WebSocket notification fails
+      }
       
       // Create activity record
       await db.insert(userActivities).values({
