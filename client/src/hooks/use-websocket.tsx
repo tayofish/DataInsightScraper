@@ -450,7 +450,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       
       processQueue();
     }
-  }, [status, isDatabaseDown]);
+  }, [status, isDatabaseDown, processQueue]);
 
   // Send a message through WebSocket with fallback to API and offline storage
   const sendMessage = useCallback((message: any) => {
