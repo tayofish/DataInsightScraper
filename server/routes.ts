@@ -5323,37 +5323,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Continue even if notification fails
             }
             
-            // Send message to receiver if they're connected
+            // Enhanced real-time message delivery to ALL connected clients
             try {
-              const receiverConnection = clients.get(receiverId);
-              if (receiverConnection && receiverConnection.readyState === WebSocket.OPEN) {
-                receiverConnection.send(JSON.stringify({
-                  type: 'new_direct_message',
-                  message: {
-                    ...newMessage,
-                    sender,
-                    receiver
+              // Prepare the message payload for both users
+              const messagePayload = {
+                ...newMessage,
+                sender,
+                receiver
+              };
+              
+              console.log("Broadcasting direct message:", newMessage.id, "from user", ws.userId, "to user", receiverId);
+              
+              // Loop through all connected clients
+              wss.clients.forEach((client: ExtendedWebSocket) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  // If this is the sender, send a sent confirmation
+                  if (client.userId === ws.userId) {
+                    client.send(JSON.stringify({
+                      type: 'direct_message_sent',
+                      message: messagePayload
+                    }));
+                    console.log("Sent confirmation to sender:", client.userId);
+                  } 
+                  // If this is the receiver, send a new message notification
+                  else if (client.userId === receiverId) {
+                    client.send(JSON.stringify({
+                      type: 'new_direct_message',
+                      message: messagePayload
+                    }));
+                    console.log("Sent new message to receiver:", client.userId);
                   }
-                }));
-              }
-            } catch (sendError) {
-              console.error("Error sending message to recipient:", sendError);
-              // Continue even if real-time delivery fails
-            }
-            
-            // Send confirmation to sender
-            try {
-              ws.send(JSON.stringify({
-                type: 'direct_message_sent',
-                message: {
-                  ...newMessage,
-                  sender,
-                  receiver
                 }
-              }));
-            } catch (confirmError) {
-              console.error("Error sending confirmation to sender:", confirmError);
-              // Continue even if confirmation fails
+              });
+            } catch (broadcastError) {
+              console.error("Error broadcasting direct message:", broadcastError);
+              // Send an error notice to the sender, but don't fail completely
+              try {
+                ws.send(JSON.stringify({
+                  type: 'warning',
+                  message: 'Message was saved but there was an issue with real-time delivery'
+                }));
+              } catch (error) {
+                console.error("Failed to send error notice:", error);
+              }
             }
             
             // Log the activity
