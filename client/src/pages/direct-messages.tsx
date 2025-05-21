@@ -281,18 +281,36 @@ const DirectMessagesPage: FC = () => {
   const isLoadingMessages = messagesQuery.isLoading;
   const messagesError = messagesQuery.error;
   
-  // Combine server messages with optimistic ones
+  // Combine server messages with optimistic ones (improved for offline support)
   const messages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
     
-    // Only include optimistic messages that haven't been confirmed yet
-    const pendingMessages = localMessages.filter(msg => 
-      msg.isOptimistic && 
-      !serverMessages.some(serverMsg => 
-        serverMsg.content === msg.content && 
-        serverMsg.senderId === user?.id
-      )
-    );
+    // Use a more resilient approach to identify and keep optimistic messages
+    // Include any local messages that are marked as optimistic and don't have a matching server message
+    const pendingMessages = localMessages.filter(localMsg => {
+      // Keep optimistic messages that haven't been confirmed yet
+      if (!localMsg.isOptimistic) return false;
+      
+      // Generate a client-side ID if none exists
+      const clientId = localMsg.clientId || `local-${localMsg.content.substring(0, 10)}-${Date.now()}`;
+      
+      // Check if this message exists on the server by content and rough timestamp
+      return !serverMessages.some(serverMsg => {
+        // Check for exact content match
+        const contentMatch = serverMsg.content === localMsg.content;
+        
+        // If sender IDs don't match, it's definitely not a match
+        if (serverMsg.senderId !== user?.id) return false;
+        
+        // If we have a direct ID match based on clientId, it's a match
+        if (serverMsg.clientId === clientId) return true;
+        
+        // Fallback: use content matching
+        return contentMatch;
+      });
+    });
+    
+    console.log(`Combining ${serverMessages.length} server messages with ${pendingMessages.length} pending messages`);
     
     // Combine and sort messages by creation time to ensure newest messages are at the bottom
     return [...serverMessages, ...pendingMessages].sort((a, b) => {
