@@ -597,7 +597,7 @@ const DirectMessagesPage: FC = () => {
         });
         
         // If we're offline, show toast about queuing
-        if (isOffline) {
+        if (offline) {
           toast({
             title: "Message queued",
             description: "Your message will be delivered when connection is restored.",
@@ -607,7 +607,7 @@ const DirectMessagesPage: FC = () => {
         console.error("Error sending message via WebSocket:", error);
         
         // Still keep optimistic message visible since it's in the queue
-        if (isOffline) {
+        if (offline) {
           toast({
             title: "Message queued",
             description: "Your message will be delivered when connection is restored.",
@@ -622,7 +622,7 @@ const DirectMessagesPage: FC = () => {
       }
     } else {
       // Check if we should attempt to use the API
-      if (isOffline) {
+      if (offline) {
         // We're offline but still want to show the message locally
         toast({
           title: "Message queued",
