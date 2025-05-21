@@ -91,7 +91,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { channelFormSchema } from "@/shared/schema";
+import { channelFormSchema } from "../../../shared/schema";
 import {
   Select,
   SelectContent,
