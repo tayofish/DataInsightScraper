@@ -353,7 +353,15 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
         <div className="group relative">
           {/* Display the formatted text content */}
           {content && content.trim() !== "" && (
-            <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
+            <>
+              <div dangerouslySetInnerHTML={{ __html: formattedContent }} />
+              {/* Display edit indicator if message has been edited */}
+              {isEdited && (
+                <div className="text-xs text-muted-foreground mt-1 italic">
+                  (edited {updatedAt ? new Date(updatedAt).toLocaleString() : ''})
+                </div>
+              )}
+            </>
           )}
           
           {/* Edit button (only visible on hover if user can edit) */}

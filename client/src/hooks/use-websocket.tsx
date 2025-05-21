@@ -179,8 +179,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               // Ensure the message is marked as edited
               const updatedMessage = {
                 ...data.message,
-                isEdited: true
+                isEdited: true,
+                updatedAt: data.message.updatedAt || new Date().toISOString()
               };
+              
+              console.log('[WebSocket] Message marked as edited:', updatedMessage);
               
               // Update the message in the cache
               queryClient.setQueryData(
