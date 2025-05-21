@@ -727,25 +727,72 @@ const DirectMessagesPage: FC = () => {
     }
   };
 
-  // Use the global WebSocket context to handle direct message events
+  // Enhanced WebSocket handler for real-time message delivery
   useEffect(() => {
     if (!user || !queryClient) return;
     
-    // The WebSocket connection is now managed by the global WebSocket context
-    // We just need to react to messages related to direct messages
-    
-    // The lastMessage will be automatically updated by the WebSocket context
-    // whenever a new message is received
-    const handleNewMessage = () => {
-      // If the global context has a lastMessage property, use it
-      if (wsStatus === 'connected' && selectedUserId) {
-        // When a new direct message is received, we need to update our queries
-        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
-        queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+    // Function to handle WebSocket direct messages in real-time
+    const handleSocketMessage = (event: any) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log("WebSocket message received:", data.type);
+        
+        // Handle direct message or message confirmation
+        if ((data.type === 'direct_message' || data.type === 'direct_message_sent') && data.message) {
+          const message = data.message;
+          
+          // Only process messages related to the current conversation
+          if ((message.senderId === selectedUserId && message.receiverId === user.id) || 
+              (message.senderId === user.id && message.receiverId === selectedUserId)) {
+              
+            console.log("Received message for current conversation:", message);
+            
+            // Add to local messages immediately if not already there
+            setLocalMessages(prev => {
+              // Check if message already exists
+              const exists = prev.some(m => 
+                m.id === message.id || 
+                (m.clientId && m.clientId === message.clientId)
+              );
+              
+              if (!exists) {
+                console.log("Adding new message to local state:", message);
+                return [...prev, message];
+              }
+              return prev;
+            });
+            
+            // Also refresh the API data for consistency
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+            
+            // Scroll to the bottom to show new message
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          } else {
+            // It's a message for another conversation - just refresh conversation list
+            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
+          }
+        }
+      } catch (err) {
+        console.error("Error processing WebSocket message:", err);
       }
     };
     
-    // The useEffect cleanup function will run automatically when the component is unmounted
+    // Set up direct WebSocket listener
+    const socket = socketRef.current || new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+    
+    // Store socket reference for cleanup
+    socketRef.current = socket;
+    
+    // Listen for messages
+    socket.addEventListener('message', handleSocketMessage);
+    
+    // The useEffect cleanup function will run when component unmounts
+    return () => {
+      socket.removeEventListener('message', handleSocketMessage);
+    };
   }, [user, selectedUserId, queryClient, wsStatus]);
 
   // Set selectedUserId when URL param changes
