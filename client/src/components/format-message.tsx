@@ -27,6 +27,8 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   userId,
   currentUserId,
   createdAt,
+  isEdited,
+  updatedAt,
   onEditMessage
 }) => {
   const [isEditing, setIsEditing] = useState(false);

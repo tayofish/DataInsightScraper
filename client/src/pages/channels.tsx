@@ -1566,6 +1566,8 @@ export default function ChannelsPage() {
                                   userId={message.userId}
                                   currentUserId={user?.id}
                                   createdAt={message.createdAt}
+                                  updatedAt={message.updatedAt}
+                                  isEdited={message.isEdited}
                                   onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
                                 />
                               </div>
