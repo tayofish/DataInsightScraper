@@ -1459,7 +1459,16 @@ export default function ChannelsPage() {
                           </div>
                           <div className="text-sm">
                             {message.type === 'text' && (
-                              <FormatMessage content={message.content} />
+                              <div data-message-id={message.id} className="message-content">
+                                <FormatMessage 
+                                  content={message.content} 
+                                  messageId={message.id}
+                                  userId={message.userId}
+                                  currentUserId={user?.id}
+                                  createdAt={message.createdAt}
+                                  onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                />
+                              </div>
                             )}
                             {message.type === 'file' && (
                               <div>
@@ -1473,8 +1482,15 @@ export default function ChannelsPage() {
                                   <span className="font-medium">{message.fileName || "File"}</span>
                                 </a>
                                 {message.content && (
-                                  <p className="mt-2">
-                                    <FormatMessage content={message.content} />
+                                  <p className="mt-2" data-message-id={message.id} className="message-content">
+                                    <FormatMessage 
+                                      content={message.content}
+                                      messageId={message.id}
+                                      userId={message.userId}
+                                      currentUserId={user?.id}
+                                      createdAt={message.createdAt}
+                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)} 
+                                    />
                                   </p>
                                 )}
                               </div>
@@ -1507,8 +1523,15 @@ export default function ChannelsPage() {
                                   )}
                                 </a>
                                 {message.content && (
-                                  <p className="mt-2">
-                                    <FormatMessage content={message.content} />
+                                  <p className="mt-2" data-message-id={message.id} className="message-content">
+                                    <FormatMessage 
+                                      content={message.content}
+                                      messageId={message.id}
+                                      userId={message.userId}
+                                      currentUserId={user?.id}
+                                      createdAt={message.createdAt} 
+                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                    />
                                   </p>
                                 )}
                               </div>
