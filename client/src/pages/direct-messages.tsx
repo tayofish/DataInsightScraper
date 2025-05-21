@@ -925,15 +925,16 @@ const DirectMessagesPage: FC = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className={`max-w-[70%] ${isCurrentUser ? 'text-right' : ''}`}>
-                          <div className="flex items-center space-x-2">
+                          <div className={`flex items-center ${isCurrentUser ? 'justify-end' : ''} space-x-2`}>
                             <span className="font-semibold">
                               {isCurrentUser ? 'You' : (msg.sender?.name || msg.sender?.username || "Unknown User")}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {msg.isEdited && <span className="ml-1">(edited)</span>}
                             </span>
                           </div>
-                          <div className={`mt-1 p-3 rounded-lg ${isCurrentUser && msg.type !== "file" ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
+                          <div className={`mt-1 p-3 rounded-lg ${isCurrentUser ? 'bg-accent text-accent-foreground' : 'bg-muted'}`}>
                             {msg.type === "file" ? (
                               <div>
                                 {msg.content && msg.content.trim() !== "" && (
