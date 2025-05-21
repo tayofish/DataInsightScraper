@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,6 +20,7 @@ import AuthPage from "@/pages/auth-page";
 import NotificationsPage from "@/pages/notifications";
 import ChannelsPage from "@/pages/channels";
 import DirectMessagesPage from "@/pages/direct-messages";
+import DatabaseErrorPage from "@/pages/database-error";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 import { OfflineModeIndicator } from "@/components/offline-mode-indicator";
@@ -27,6 +28,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
+import { useEffect, useState } from "react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
