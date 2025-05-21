@@ -4827,15 +4827,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create WebSocket server for real-time messaging
-  const wss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws',
-    clientTracking: true
-  });
-  
-  // Store reference in the global variable we created earlier
-  wssRef = wss;
+  // Create WebSocket server for real-time messaging using our helper
+  const wss = initializeWebSocketServer(httpServer);
   
   // The WebSocket import is already at the top of the file
   
@@ -4848,7 +4841,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store active connections with user IDs - we'll use this consistently throughout the codebase
   const clients = new Map<number, ExtendedWebSocket>();
   
-  wssRef.on('connection', (ws: ExtendedWebSocket, req) => {
+  // Health check endpoint for database status
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Force a fresh check of the database
+      await checkDatabaseAvailability();
+      
+      return res.json({ 
+        status: 'ok', 
+        databaseConnected: isDatabaseAvailable,
+        lastCheck: new Date(lastDatabaseCheck).toISOString() 
+      });
+    } catch (error) {
+      console.error('Health check error:', error);
+      
+      // Set database as unavailable
+      isDatabaseAvailable = false;
+      lastDatabaseCheck = Date.now();
+      
+      // Broadcast to all clients
+      broadcastDatabaseStatus(false);
+      
+      return res.status(500).json({ 
+        status: 'error', 
+        databaseConnected: false,
+        message: 'Error checking database health',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  wss.on('connection', (ws: ExtendedWebSocket, req) => {
     console.log('WebSocket connection established');
     
     // Send initial database status to client

@@ -51,6 +51,51 @@ export function broadcastToAllClients(message: any): void {
   }
 }
 
+// Broadcast a message to a specific user
+export function broadcastToUser(userId: number, message: any): void {
+  const wss = getWebSocketServer();
+  
+  if (!wss) {
+    console.error('WebSocket server not initialized');
+    return;
+  }
+  
+  try {
+    wss.clients.forEach((client: ExtendedWebSocket) => {
+      if (client.readyState === WebSocket.OPEN && client.userId === userId) {
+        client.send(JSON.stringify(message));
+      }
+    });
+  } catch (error) {
+    console.error(`Error broadcasting message to user ${userId}:`, error);
+  }
+}
+
+// Broadcast a message to a channel
+export function broadcastToChannel(channelId: number, message: any): void {
+  const wss = getWebSocketServer();
+  
+  if (!wss) {
+    console.error('WebSocket server not initialized');
+    return;
+  }
+  
+  try {
+    // Implementation would depend on how you track channel memberships
+    wss.clients.forEach((client: ExtendedWebSocket) => {
+      if (client.readyState === WebSocket.OPEN) {
+        // In a real implementation, you'd check if the user is in the channel
+        client.send(JSON.stringify({
+          ...message,
+          channelId
+        }));
+      }
+    });
+  } catch (error) {
+    console.error(`Error broadcasting message to channel ${channelId}:`, error);
+  }
+}
+
 // Safely broadcast database status to all clients
 export function broadcastDatabaseStatus(isConnected: boolean): void {
   broadcastToAllClients({
