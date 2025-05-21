@@ -4224,7 +4224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       wss.clients.forEach((client: ExtendedWebSocket) => {
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify({
-            type: "message_updated",
+            type: "channel_message_updated",
             channelId,
             message: updatedMessage
           }));
