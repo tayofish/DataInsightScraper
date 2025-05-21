@@ -1827,4 +1827,3 @@ export default function ChannelsPage() {
   );
 }
 
-export default ChannelsPage;
