@@ -36,6 +36,9 @@ let isDatabaseAvailable = false;
 let lastDatabaseCheck = 0;
 const DB_CHECK_INTERVAL = 30000; // 30 seconds
 
+// WebSocket server reference - will be initialized later
+let wssRef: WebSocketServer | null = null;
+
 // Check database availability
 async function checkDatabaseAvailability() {
   try {
@@ -53,15 +56,18 @@ async function checkDatabaseAvailability() {
       // This function will be called after we update the status below
       setTimeout(() => {
         try {
-          wss?.clients?.forEach((client: WebSocket) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'database_status',
-                connected: true,
-                timestamp: new Date().toISOString()
-              }));
-            }
-          });
+          // Make sure WebSocket server exists before trying to send messages
+          if (wssRef && wssRef.clients) {
+            wssRef.clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'database_status',
+                  connected: true,
+                  timestamp: new Date().toISOString()
+                }));
+              }
+            });
+          }
         } catch (error) {
           console.error('Error notifying clients of database status change:', error);
         }
@@ -4842,6 +4848,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     clientTracking: true
   });
   
+  // Store reference in the global variable we created earlier
+  wssRef = wss;
+  
   // The WebSocket import is already at the top of the file
   
   // Define custom WebSocket type with user properties
@@ -4853,7 +4862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store active connections with user IDs - we'll use this consistently throughout the codebase
   const clients = new Map<number, ExtendedWebSocket>();
   
-  wss.on('connection', (ws: ExtendedWebSocket, req) => {
+  wssRef.on('connection', (ws: ExtendedWebSocket, req) => {
     console.log('WebSocket connection established');
     
     // Send initial database status to client
