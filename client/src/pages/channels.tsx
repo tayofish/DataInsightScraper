@@ -326,13 +326,18 @@ export default function ChannelsPage() {
   const combinedMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
     
-    // Only include optimistic messages that haven't been confirmed yet
+    // Create a map of content-userId pairs from server messages to avoid duplicates
+    const serverMessageMap = new Map();
+    serverMessages.forEach(msg => {
+      const key = `${msg.content}-${msg.userId}`;
+      serverMessageMap.set(key, true);
+    });
+    
+    // Only include optimistic messages that haven't been confirmed yet by comparing content and userId
     const pendingMessages = messages.filter(msg => {
-      return msg.isOptimistic && 
-        !serverMessages.some(serverMsg => 
-          serverMsg.content === msg.content && 
-          serverMsg.userId === msg.userId
-        );
+      if (!msg.isOptimistic) return false;
+      const key = `${msg.content}-${msg.userId}`;
+      return !serverMessageMap.has(key);
     });
     
     console.log(`Combined messages: ${serverMessages.length} server + ${pendingMessages.length} pending`);
