@@ -573,20 +573,19 @@ const DirectMessagesPage: FC = () => {
     // Immediately update the UI with the optimistic message
     setLocalMessages(prev => [...prev, optimisticMessage]);
     
-    // Get WebSocket context with connection status
-    const { status: wsStatus, sendMessage } = useWebSocket();
-    // Check connection status
-    const isOffline = wsStatus !== 'connected';
+    // Generate a client ID for message tracking
     const clientId = `dm-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    const connectionStatus = wsStatus; // Cache the current connection status
+    const offline = connectionStatus !== 'connected';
     
     // Update local message with client ID for tracking
     setLocalMessages(prev => prev.map(msg => 
       msg.id === optimisticMessage.id 
-        ? {...msg, clientId, pendingSync: true, offline: wsStatus !== 'connected'} 
+        ? {...msg, clientId, pendingSync: true, offline} 
         : msg
     ));
     
-    if (wsStatus === 'connected' || isOffline) {
+    if (connectionStatus === 'connected' || offline) {
       try {
         // Send through WebSocket, which will queue if offline
         sendMessage({
