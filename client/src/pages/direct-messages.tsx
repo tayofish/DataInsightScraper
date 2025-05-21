@@ -196,8 +196,18 @@ const DirectMessagesPage: FC = () => {
     const fragments: React.ReactNode[] = [];
     let lastIndex = 0;
     
-    // Use matchAll to get all matches with their positions
-    const matches = [...content.matchAll(mentionRegex)];
+    // Use exec to find all matches with their positions
+    let matches = [];
+    let match;
+    const regex = new RegExp(mentionRegex);
+    
+    while ((match = regex.exec(content)) !== null) {
+      matches.push({
+        match: match[0],
+        username: match[1],
+        index: match.index
+      });
+    }
     
     if (matches.length === 0) {
       return content; // No mentions found
@@ -215,7 +225,7 @@ const DirectMessagesPage: FC = () => {
       }
       
       // Get the mention name and convert underscores back to spaces
-      const mentionName = match[1].replace(/_/g, ' '); // Convert underscores back to spaces
+      const mentionName = match.username.replace(/_/g, ' '); // Convert underscores back to spaces
       
       // Add the mention with highlighting
       fragments.push(
@@ -228,7 +238,7 @@ const DirectMessagesPage: FC = () => {
       );
       
       // Update lastIndex to after this mention
-      lastIndex = (match.index || 0) + match[0].length;
+      lastIndex = (match.index || 0) + match.match.length;
     }
     
     // Add any remaining text after the last mention

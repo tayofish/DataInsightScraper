@@ -1,19 +1,68 @@
 import { Button } from "@/components/ui/button";
-import { Database, RefreshCw } from "lucide-react";
+import { Database, RefreshCw, Clock, ArrowDownUp, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 
 export default function DatabaseErrorPage() {
   const [_, navigate] = useLocation();
+  const [retryCount, setRetryCount] = useState(0);
+  const [isChecking, setIsChecking] = useState(false);
+  const [errorDetails, setErrorDetails] = useState("Control plane request failed: endpoint is disabled");
+  const [pendingMessages, setPendingMessages] = useState(0);
+  
+  // Check for pending messages in offline queue
+  useEffect(() => {
+    try {
+      const offlineQueue = localStorage.getItem('offline_message_queue');
+      if (offlineQueue) {
+        const queue = JSON.parse(offlineQueue);
+        setPendingMessages(queue.length);
+      }
+    } catch (e) {
+      console.error("Error checking pending messages:", e);
+    }
+  }, []);
   
   // Store that we're in offline mode
   const setOfflineMode = () => {
     localStorage.setItem('last_database_error', new Date().toISOString());
+    localStorage.setItem('offline_since', new Date().toISOString());
     localStorage.setItem('offline_mode', 'true');
+    
+    // Dispatch an event for WebSocket to attempt reconnection
+    window.dispatchEvent(new CustomEvent('manual-sync-attempt'));
+    
     navigate('/');
   };
   
-  const retryConnection = () => {
-    window.location.reload();
+  const retryConnection = async () => {
+    setIsChecking(true);
+    setRetryCount(prev => prev + 1);
+    
+    try {
+      // Try to fetch a simple endpoint to check database connectivity
+      const response = await fetch('/api/user');
+      if (response.ok) {
+        // Database is available again
+        localStorage.removeItem('last_database_error');
+        localStorage.removeItem('offline_mode');
+        
+        // Trigger sync of any pending messages
+        window.dispatchEvent(new CustomEvent('manual-sync-attempt'));
+        
+        // Redirect to home
+        navigate('/');
+      } else {
+        // Still has issues
+        const data = await response.text();
+        setErrorDetails(data || "Database is still unavailable");
+        setIsChecking(false);
+      }
+    } catch (error) {
+      console.error("Connection retry failed:", error);
+      setErrorDetails(error.message || "Connection failed");
+      setIsChecking(false);
+    }
   };
 
   return (

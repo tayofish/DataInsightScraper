@@ -29,7 +29,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const offlineQueueRef = useRef<Array<{type: string, data: any, timestamp: number}>>([]);
+  const offlineQueueRef = useRef<Array<{type: string, data: any, timestamp: number, attempts?: number, lastAttempt?: number}>>([]);
   
   // Check if we have a database connection issue
   const [isDatabaseDown, setIsDatabaseDown] = useState(false);
@@ -341,7 +341,34 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('[WebSocket] Error loading offline message queue:', error);
     }
     
-    // Process offline queue when connection is restored
+    // Listen for manual sync attempts from the offline indicator
+    const handleManualSync = () => {
+      console.log('[WebSocket] Manual sync attempt triggered');
+      
+      // First try to reconnect if disconnected
+      if (status !== 'connected' || !socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+        console.log('[WebSocket] Attempting reconnection as part of manual sync');
+        cleanupSocket();
+        setupSocket();
+      }
+      
+      // Then force process the queue even if we think the database is down
+      setTimeout(() => {
+        console.log('[WebSocket] Forcing queue processing as part of manual sync');
+        if (typeof processQueue === 'function') {
+          processQueue(true); // Pass true to force processing
+        }
+      }, 1000); // Small delay to allow socket to reconnect
+    };
+    
+    window.addEventListener('manual-sync-attempt', handleManualSync);
+    
+    return () => {
+      window.removeEventListener('manual-sync-attempt', handleManualSync);
+    };
+  }, [status, setupSocket, cleanupSocket]);
+  
+  // Process offline queue when connection is restored
     if (status === 'connected' && !isDatabaseDown && offlineQueueRef.current.length > 0) {
       console.log(`[WebSocket] Connection restored. Processing ${offlineQueueRef.current.length} offline messages`);
       
