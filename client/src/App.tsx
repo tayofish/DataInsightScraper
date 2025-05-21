@@ -22,6 +22,7 @@ import ChannelsPage from "@/pages/channels";
 import DirectMessagesPage from "@/pages/direct-messages";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
+import { OfflineModeIndicator } from "@/components/offline-mode-indicator";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -171,6 +172,8 @@ function App() {
           <TooltipProvider>
             <Router />
             <Toaster />
+            {/* Add offline mode indicator for database connectivity issues */}
+            <OfflineModeIndicator />
           </TooltipProvider>
         </WebSocketProvider>
       </AuthProvider>

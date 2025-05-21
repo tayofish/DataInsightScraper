@@ -63,6 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Cache the user data for offline access
+      try {
+        localStorage.setItem('cached_user', JSON.stringify(user));
+        console.log("User data cached for offline access");
+      } catch (cacheError) {
+        console.error("Failed to cache user data:", cacheError);
+      }
+      
       toast({
         title: "Logged in successfully",
         description: `Welcome back, ${user.name}!`,
@@ -74,6 +83,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message || "Invalid username or password",
         variant: "destructive",
       });
+      
+      // Check if there's cached user data for offline login
+      try {
+        const cachedUser = localStorage.getItem('cached_user');
+        if (cachedUser) {
+          console.log("Using cached credentials for offline login");
+          const parsedUser = JSON.parse(cachedUser);
+          
+          // Only use cache if username matches
+          if (parsedUser.username === credentials.username) {
+            toast({
+              title: "Offline mode activated",
+              description: "Using cached credentials for offline access",
+            });
+            queryClient.setQueryData(["/api/user"], parsedUser);
+          }
+        }
+      } catch (cacheError) {
+        console.error("Failed to check cached credentials:", cacheError);
+      }
     },
   });
 
