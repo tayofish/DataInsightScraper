@@ -219,6 +219,65 @@ export default function ChannelsPage() {
     enabled: !!selectedChannelId
   });
   
+  // Add members to channel
+  const addMembersToChannel = async (userIds: number[]) => {
+    if (!selectedChannelId || userIds.length === 0) return;
+    
+    try {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to add members to channel');
+      }
+      
+      // Success handling
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/members`] });
+      setSelectedUserIds([]);
+      toast({
+        title: "Members added",
+        description: "New members have been added to the channel"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to add members",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Remove member from channel
+  const removeMemberFromChannel = async (memberId: number) => {
+    if (!selectedChannelId) return;
+    
+    try {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members/${memberId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove member from channel');
+      }
+      
+      // Success handling
+      queryClient.invalidateQueries({ queryKey: [`/api/channels/${selectedChannelId}/members`] });
+      toast({
+        title: "Member removed",
+        description: "Member has been removed from the channel"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to remove member",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive"
+      });
+    }
+  };
+  
   // Fix channel data handling for debugging
   useEffect(() => {
     if (channelsQuery.data) {
