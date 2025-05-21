@@ -588,6 +588,20 @@ const DirectMessagesPage: FC = () => {
     if (connectionStatus === 'connected' || offline) {
       try {
         // Send through WebSocket, which will queue if offline
+        console.log("Sending direct message via WebSocket", {
+          type: "direct_message",
+          receiverId: selectedUserId,
+          content: message,
+          clientId
+        });
+        
+        // Use REST API as primary method (more reliable)
+        sendMessageMutation.mutate({
+          content: message,
+          receiverId: selectedUserId
+        });
+        
+        // Also try WebSocket as backup
         sendMessage({
           type: "direct_message",
           receiverId: selectedUserId,
