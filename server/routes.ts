@@ -3315,15 +3315,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the new member to all connected clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_member_added",
-            channelId,
-            member: { ...member, user: userRecord }
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_member_added",
+                channelId,
+                member: { ...member, user: userRecord }
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting channel member added:', error);
+      }
       
       return res.status(201).json({ ...member, user: userRecord });
     } catch (error) {
@@ -4574,14 +4581,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Send real-time notification via WebSocket if the recipient is online
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.userId === receiverId && client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "direct_message_sent",
-            message: fullMessage
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.userId === receiverId && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "direct_message_sent",
+                message: fullMessage
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error sending WebSocket notification for direct message:', error);
+      }
       
       return res.status(200).json(fullMessage);
     } catch (error) {
