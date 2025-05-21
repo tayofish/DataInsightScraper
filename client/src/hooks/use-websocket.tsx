@@ -3,7 +3,7 @@ import { useAuth } from './use-auth';
 import { queryClient } from '@/lib/queryClient';
 
 // WebSocket connection status
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
+type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'offline';
 
 // WebSocket context type
 interface WebSocketContextType {
@@ -29,6 +29,33 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const offlineQueueRef = useRef<Array<{type: string, data: any, timestamp: number}>>([]);
+  
+  // Check if we have a database connection issue
+  const [isDatabaseDown, setIsDatabaseDown] = useState(false);
+  
+  // Check for database connectivity issues
+  useEffect(() => {
+    const checkDatabaseStatus = () => {
+      const lastDatabaseError = localStorage.getItem('last_database_error');
+      const lastErrorTime = lastDatabaseError ? new Date(lastDatabaseError) : null;
+      const now = new Date();
+      
+      // Database is considered down if there was an error in the last 5 minutes
+      if (lastErrorTime && (now.getTime() - lastErrorTime.getTime() < 5 * 60 * 1000)) {
+        setIsDatabaseDown(true);
+        setStatus('offline');
+      } else {
+        setIsDatabaseDown(false);
+      }
+    };
+    
+    // Check immediately and then every 30 seconds
+    checkDatabaseStatus();
+    const interval = setInterval(checkDatabaseStatus, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Cleanup function to handle socket closing
   const cleanupSocket = useCallback(() => {
@@ -300,9 +327,114 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [user, cleanupSocket]);
 
-  // Send a message through WebSocket with fallback to API
+  // Handle offline message queue - loading cached messages and processing offline queue
+  useEffect(() => {
+    // Load offline queue from localStorage
+    try {
+      const offlineMessages = localStorage.getItem('offline_message_queue');
+      if (offlineMessages) {
+        const parsedMessages = JSON.parse(offlineMessages);
+        offlineQueueRef.current = parsedMessages;
+        console.log(`[WebSocket] Loaded ${parsedMessages.length} cached messages from offline storage`);
+      }
+    } catch (error) {
+      console.error('[WebSocket] Error loading offline message queue:', error);
+    }
+    
+    // Process offline queue when connection is restored
+    if (status === 'connected' && !isDatabaseDown && offlineQueueRef.current.length > 0) {
+      console.log(`[WebSocket] Connection restored. Processing ${offlineQueueRef.current.length} offline messages`);
+      
+      // Process queue with a slight delay between messages to prevent rate limiting
+      const processQueue = async () => {
+        const queue = [...offlineQueueRef.current];
+        offlineQueueRef.current = []; // Clear the queue first to prevent duplicates if processing fails
+        
+        try {
+          localStorage.removeItem('offline_message_queue'); // Clear localStorage queue
+          
+          for (const item of queue) {
+            console.log(`[WebSocket] Processing offline message: ${item.type} from ${new Date(item.timestamp).toLocaleString()}`);
+            await new Promise(resolve => setTimeout(resolve, 300)); // Small delay between messages
+            
+            // Try to send the message now that we're online
+            if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+              socketRef.current.send(JSON.stringify(item.data));
+              console.log('[WebSocket] Successfully sent cached message');
+            } else {
+              console.warn('[WebSocket] Failed to send cached message, socket not open');
+              // Add back to queue if sending fails
+              offlineQueueRef.current.push(item);
+            }
+          }
+          
+          // If any messages failed to send, update localStorage
+          if (offlineQueueRef.current.length > 0) {
+            localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+          }
+        } catch (error) {
+          console.error('[WebSocket] Error processing offline message queue:', error);
+        }
+      };
+      
+      processQueue();
+    }
+  }, [status, isDatabaseDown]);
+
+  // Send a message through WebSocket with fallback to API and offline storage
   const sendMessage = useCallback((message: any) => {
-    // Try to send over WebSocket first
+    // Mark message as optimistic for local display in the UI
+    if (message.type === 'channel_message' || message.type === 'direct_message') {
+      message.isOptimistic = true;
+      message.timestamp = new Date().toISOString();
+    }
+    
+    // If we're in offline mode or database is down, save to offline queue
+    if (status === 'offline' || isDatabaseDown) {
+      console.log('[WebSocket] In offline mode, storing message for later sync:', message.type);
+      
+      // Store in offline queue
+      const queueItem = {
+        type: message.type,
+        data: message,
+        timestamp: Date.now()
+      };
+      
+      offlineQueueRef.current.push(queueItem);
+      
+      // Persist to localStorage for resilience against page reloads
+      try {
+        localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+        console.log(`[WebSocket] Saved message to offline queue (${offlineQueueRef.current.length} pending)`);
+      } catch (error) {
+        console.error('[WebSocket] Error saving to offline queue:', error);
+      }
+      
+      // Immediately update UI with optimistic update if it's a message
+      if (message.type === 'channel_message' && message.channelId) {
+        // Create optimistic message for immediate UI feedback
+        const optimisticMessage = {
+          id: `temp_${Date.now()}`,
+          channelId: message.channelId,
+          content: message.content,
+          userId: message.userId || (user ? user.id : 0),
+          username: user ? user.username : 'Unknown',
+          createdAt: new Date().toISOString(),
+          isOptimistic: true,
+          isPending: true
+        };
+        
+        // Update UI immediately with optimistic message
+        queryClient.setQueryData(
+          [`/api/channels/${message.channelId}/messages`],
+          (oldData: any[] = []) => [...oldData, optimisticMessage]
+        );
+      }
+      
+      return true; // Message stored for later sync
+    }
+    
+    // Try to send over WebSocket if connected
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
         console.log('[WebSocket] Sending message via WebSocket:', message.type);
