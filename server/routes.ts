@@ -4723,6 +4723,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     clientTracking: true
   });
   
+  // The WebSocket import is already at the top of the file
+  
   // Define custom WebSocket type with user properties
   interface ExtendedWebSocket extends WebSocket {
     userId?: number;
