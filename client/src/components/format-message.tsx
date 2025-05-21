@@ -43,6 +43,29 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
       setIsSaving(true);
       setEditError(null);
       
+      // Update the UI immediately for better perceived performance
+      setIsEditing(false);
+      setShowToolbar(false);
+      
+      // Apply optimistic update to the DOM for immediate visual feedback
+      const messageElement = document.querySelector(`[data-message-id="${messageId}"] .message-content`);
+      if (messageElement) {
+        // Store original content in case we need to revert
+        const originalContent = messageElement.innerHTML;
+        messageElement.setAttribute('data-original-content', originalContent);
+        
+        // Apply new content with simple markdown formatting 
+        let formattedContent = editedContent
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>')
+          .replace(/__(.*?)__/g, '<u>$1</u>')
+          .replace(/```(.*?)```/g, '<code>$1</code>')
+          .replace(/`(.*?)`/g, '<code>$1</code>')
+          .replace(/\n/g, '<br>');
+        
+        messageElement.innerHTML = formattedContent;
+      }
+      
       // Store edit in session storage for immediate retrieval even if page reloads
       const cacheKey = `message_${messageId}_content`;
       try {
@@ -73,10 +96,6 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
       } catch (err) {
         console.warn("Failed to save edit to storage", err);
       }
-      
-      // Update the UI immediately for better perceived performance
-      setIsEditing(false);
-      setShowToolbar(false);
       
       // Set up background sync strategy with exponential backoff
       const scheduleBackgroundSync = (delay = 2000) => {

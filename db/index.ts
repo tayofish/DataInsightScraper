@@ -49,8 +49,8 @@ class RateLimiter {
   }
 }
 
-// Create global rate limiter instance
-export const dbRateLimiter = new RateLimiter(1000, 3);
+// Create global rate limiter instance - further reduced to avoid rate limits
+export const dbRateLimiter = new RateLimiter(2000, 2); // 2 requests per 2 seconds to be extra conservative
 
 // Configure pool with connection retry and timeout settings - optimized for rate limiting
 export const pool = new Pool({ 

@@ -223,15 +223,15 @@ export default function ChannelsPage() {
       if (Array.isArray(channelsQuery.data)) {
         console.log("Setting channels from query:", channelsQuery.data.length);
         setChannels(channelsQuery.data);
-        if (data.length > 0 && !selectedChannelId) {
-          console.log("Setting selected channel ID from query:", data[0].id);
-          setSelectedChannelId(data[0].id);
+        if (channelsQuery.data.length > 0 && !selectedChannelId) {
+          console.log("Setting selected channel ID from query:", channelsQuery.data[0].id);
+          setSelectedChannelId(channelsQuery.data[0].id);
         }
       } else {
-        console.error("Channels data is not an array:", data);
+        console.error("Channels data is not an array:", channelsQuery.data);
       }
-    },
-  });
+    }
+  }, [channelsQuery.data, selectedChannelId]);
   
   // Get channel messages - always fetch messages regardless of WebSocket status
   const messagesQuery = useQuery({
