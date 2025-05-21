@@ -346,12 +346,29 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.log(`[WebSocket] Connection restored. Processing ${offlineQueueRef.current.length} offline messages`);
       
       // Process queue with a slight delay between messages to prevent rate limiting
-      const processQueue = async () => {
+      // forceProcess = true can be used to force processing even if DB is down
+      const processQueue = async (forceProcess = false) => {
+        // Don't process if database is down, unless forced
+        if (isDatabaseDown && !forceProcess) {
+          console.log('[WebSocket] Database is down, skipping queue processing');
+          return;
+        }
+        
         const queue = [...offlineQueueRef.current];
-        offlineQueueRef.current = []; // Clear the queue first to prevent duplicates if processing fails
+        if (queue.length === 0) {
+          console.log('[WebSocket] No messages in offline queue to process');
+          return;
+        }
+        
+        console.log(`[WebSocket] Processing ${queue.length} offline messages${forceProcess ? ' (forced)' : ''}`);
+        
+        // Clear the queue but keep a backup to restore failed items
+        offlineQueueRef.current = [];
+        localStorage.removeItem('offline_message_queue');
         
         try {
-          localStorage.removeItem('offline_message_queue'); // Clear localStorage queue
+          let successCount = 0;
+          let failedItems = [];
           
           for (const item of queue) {
             console.log(`[WebSocket] Processing offline message: ${item.type} from ${new Date(item.timestamp).toLocaleString()}`);
@@ -359,18 +376,45 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             
             // Try to send the message now that we're online
             if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-              socketRef.current.send(JSON.stringify(item.data));
-              console.log('[WebSocket] Successfully sent cached message');
+              try {
+                socketRef.current.send(JSON.stringify(item.data));
+                console.log('[WebSocket] Successfully sent cached message');
+                successCount++;
+              } catch (e) {
+                console.warn('[WebSocket] Error sending cached message:', e);
+                // Track retry attempts
+                const updatedItem = { 
+                  ...item, 
+                  attempts: (item.attempts || 0) + 1,
+                  lastAttempt: Date.now()
+                };
+                
+                // Only retry messages that haven't failed too many times
+                if (updatedItem.attempts < 5) {
+                  failedItems.push(updatedItem);
+                } else {
+                  console.warn(`[WebSocket] Message dropped after ${updatedItem.attempts} failed attempts`);
+                }
+              }
             } else {
               console.warn('[WebSocket] Failed to send cached message, socket not open');
-              // Add back to queue if sending fails
-              offlineQueueRef.current.push(item);
+              failedItems.push({ 
+                ...item, 
+                attempts: (item.attempts || 0) + 1,
+                lastAttempt: Date.now()
+              });
             }
           }
+          
+          // Restore failed items to the queue
+          offlineQueueRef.current = failedItems;
           
           // If any messages failed to send, update localStorage
           if (offlineQueueRef.current.length > 0) {
             localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+            console.log(`[WebSocket] ${successCount} messages sent, ${offlineQueueRef.current.length} messages still pending`);
+          } else if (successCount > 0) {
+            console.log(`[WebSocket] All ${successCount} offline messages processed successfully`);
           }
         } catch (error) {
           console.error('[WebSocket] Error processing offline message queue:', error);
