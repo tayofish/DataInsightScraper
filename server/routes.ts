@@ -45,6 +45,29 @@ async function checkDatabaseAvailability() {
     
     // Simple query to check database connection
     await db.execute(sql`SELECT 1`);
+    
+    // If database status changed from down to up, notify all connected clients
+    if (!isDatabaseAvailable) {
+      console.log('Database connection restored. Notifying clients...');
+      
+      // This function will be called after we update the status below
+      setTimeout(() => {
+        try {
+          wss?.clients?.forEach((client: WebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'database_status',
+                connected: true,
+                timestamp: new Date().toISOString()
+              }));
+            }
+          });
+        } catch (error) {
+          console.error('Error notifying clients of database status change:', error);
+        }
+      }, 0);
+    }
+    
     isDatabaseAvailable = true;
     lastDatabaseCheck = Date.now();
     return true;
@@ -4832,6 +4855,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   wss.on('connection', (ws: ExtendedWebSocket, req) => {
     console.log('WebSocket connection established');
+    
+    // Send initial database status to client
+    ws.send(JSON.stringify({
+      type: 'database_status',
+      connected: isDatabaseAvailable,
+      timestamp: new Date().toISOString()
+    }));
     
     // Handle authentication and all messages
     ws.on('message', async (message) => {

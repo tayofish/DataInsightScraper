@@ -10,19 +10,14 @@ export function OfflineModeIndicator() {
   const [offlineSince, setOfflineSince] = useState<Date | null>(null);
   const { toast } = useToast();
   
-  // Use our WebSocket context
+  // Use our WebSocket context with all available properties
   const { 
     status, 
-    isDatabaseDown 
+    isDatabaseDown,
+    pendingMessageCount,
+    lastConnectionAttempt,
+    forceSyncNow
   } = useWebSocket();
-  
-  // For now, we'll use these placeholders until we implement the full functionality
-  const pendingMessageCount = 0;
-  const lastConnectionAttempt = null;
-  const forceSyncNow = () => {
-    // We'll dispatch an event that our WebSocket hook is listening for
-    window.dispatchEvent(new Event('manual-sync-attempt'));
-  };
   
   // Track offline status based on both network status and database status
   useEffect(() => {
@@ -99,10 +94,11 @@ export function OfflineModeIndicator() {
     if (!lastConnectionAttempt) return 'never';
     
     const now = new Date();
-    // If lastConnectionAttempt is a valid Date, use it, otherwise return 'never'
-    if (!(lastConnectionAttempt instanceof Date)) return 'never';
+    // Convert to Date object if needed
+    const attemptDate = lastConnectionAttempt instanceof Date ? 
+      lastConnectionAttempt : new Date(lastConnectionAttempt);
     
-    const diffMs = now.getTime() - lastConnectionAttempt.getTime();
+    const diffMs = now.getTime() - attemptDate.getTime();
     const diffSecs = Math.floor(diffMs / 1000);
     
     if (diffSecs < 5) return 'just now';
