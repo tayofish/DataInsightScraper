@@ -4789,9 +4789,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mentions: mentions || 'none'
           });
           
+          let channel;
           try {
             // Verify user has access to this channel
-            const channel = await db.query.channels.findFirst({
+            channel = await db.query.channels.findFirst({
               where: (fields, { eq }) => eq(fields.id, channelId),
               with: {
                 members: true
@@ -4815,16 +4816,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Check permissions for private channels
-          if (channel.type !== 'public') {
-            const user = await db.query.users.findFirst({
-              where: (fields, { eq }) => eq(fields.id, ws.userId)
-            });
-            
-            const isMember = channel.members.some(m => m.userId === ws.userId);
-            if (!isMember && !(user && user.isAdmin)) {
+          if (channel && channel.type !== 'public') {
+            try {
+              const user = await db.query.users.findFirst({
+                where: (fields, { eq }) => eq(fields.id, ws.userId)
+              });
+              
+              const isMember = channel.members && Array.isArray(channel.members) && 
+                channel.members.some(m => m.userId === ws.userId);
+                
+              if (!isMember && !(user && user.isAdmin)) {
+                ws.send(JSON.stringify({ 
+                  type: 'error', 
+                  message: 'You don\'t have access to this channel' 
+                }));
+                return;
+              }
+            } catch (error) {
+              console.error('Error checking user permissions:', error);
               ws.send(JSON.stringify({ 
                 type: 'error', 
-                message: 'You don\'t have access to this channel' 
+                message: 'Error verifying permissions' 
               }));
               return;
             }
