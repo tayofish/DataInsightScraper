@@ -3403,15 +3403,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(channelMembers.id, membershipToRemove.id));
       
       // Broadcast the member removal to all connected clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_member_removed",
-            channelId,
-            userId
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_member_removed",
+                channelId,
+                userId
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting channel member removal:', error);
+        // Continue with the request even if real-time notification fails
+      }
       
       return res.status(200).json({ message: "Member removed from channel successfully" });
     } catch (error) {
@@ -3480,14 +3488,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .returning();
       
       // Broadcast the update to all connected clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_updated",
-            channel: updatedChannel
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_updated",
+                channel: updatedChannel
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting channel update:', error);
+        // Continue with the request even if real-time notification fails
+      }
       
       return res.status(200).json(updatedChannel);
     } catch (error) {
@@ -3540,14 +3556,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.delete(channels).where(eq(channels.id, channelId));
       
       // Broadcast the channel deletion to all connected clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_deleted",
-            channelId
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_deleted",
+                channelId
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting channel deletion:', error);
+      }
       
       return res.status(200).json({ 
         success: true, 
@@ -3626,15 +3649,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Broadcast the role update to all connected clients
-      wssRef.clients.forEach((client: ExtendedWebSocket) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify({
-            type: "channel_member_updated",
-            channelId,
-            member: { ...updatedMember, user: userRecord }
-          }));
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: "channel_member_updated",
+                channelId,
+                member: { ...updatedMember, user: userRecord }
+              }));
+            }
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error broadcasting member role update:', error);
+      }
       
       return res.status(200).json({ ...updatedMember, user: userRecord });
     } catch (error) {
