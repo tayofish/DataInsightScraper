@@ -58,29 +58,43 @@ export default function DatabaseErrorPage() {
         setErrorDetails(data || "Database is still unavailable");
         setIsChecking(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Connection retry failed:", error);
-      setErrorDetails(error.message || "Connection failed");
+      setErrorDetails(error?.message || "Connection failed");
       setIsChecking(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="max-w-md w-full p-8 bg-white rounded-xl shadow-lg">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
         <div className="text-center">
-          <div className="bg-red-100 p-3 rounded-full inline-flex items-center justify-center mb-4">
-            <Database className="h-10 w-10 text-red-600" />
+          <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full inline-flex items-center justify-center mb-4">
+            <Database className="h-10 w-10 text-red-600 dark:text-red-400" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Database Connection Issue</h1>
-          <div className="text-red-500 text-sm font-mono p-3 bg-red-50 rounded mb-4 overflow-auto">
-            Error: Control plane request failed: endpoint is disabled
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Database Connection Issue</h1>
+          <div className="text-red-500 dark:text-red-400 text-sm font-mono p-3 bg-red-50 dark:bg-red-900/20 rounded mb-4 overflow-auto">
+            Error: {errorDetails}
           </div>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             The database is currently unavailable. You can continue using the app in offline mode,
             where you'll have access to cached data and can create messages that will sync when 
             the database connection is restored.
           </p>
+          
+          {pendingMessages > 0 && (
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-left">
+              <div className="flex items-center text-yellow-700 dark:text-yellow-400 font-medium mb-1">
+                <ArrowDownUp className="h-4 w-4 mr-2" />
+                Pending Messages
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                You have {pendingMessages} {pendingMessages === 1 ? 'message' : 'messages'} waiting to be 
+                synchronized when the database connection is restored.
+              </p>
+            </div>
+          )}
+          
           <div className="flex flex-col gap-3">
             <Button 
               onClick={setOfflineMode}
@@ -94,10 +108,25 @@ export default function DatabaseErrorPage() {
               onClick={retryConnection}
               variant="outline" 
               className="w-full flex items-center justify-center gap-2"
+              disabled={isChecking}
             >
-              <RefreshCw className="h-4 w-4" />
-              Retry Connection
+              {isChecking ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Checking Connection...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4" />
+                  Retry Connection {retryCount > 0 ? `(${retryCount})` : ''}
+                </>
+              )}
             </Button>
+            
+            <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+              <Clock className="h-3 w-3 inline-block mr-1" />
+              Your data will automatically sync when the database is back online.
+            </div>
           </div>
         </div>
       </div>
