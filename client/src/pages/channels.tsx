@@ -7,6 +7,7 @@ import {
   Plus, 
   Users, 
   MessagesSquare, 
+  MessageSquare,
   Settings, 
   Search,
   UserPlus,
@@ -16,6 +17,7 @@ import {
   Crown,
   ShieldCheck,
   User,
+  UserMinus,
   AtSign,
   AlertTriangle,
   RefreshCw,
@@ -97,6 +99,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
