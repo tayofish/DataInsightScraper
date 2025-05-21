@@ -6,13 +6,19 @@ interface WebSocketContextType {
   sendMessage: (message: any) => void;
   lastMessage: any;
   isDatabaseDown: boolean;
+  pendingMessageCount?: number;
+  lastConnectionAttempt?: Date | null;
+  forceSyncNow?: () => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType>({
   status: 'disconnected',
   sendMessage: () => {},
   lastMessage: null,
-  isDatabaseDown: false
+  isDatabaseDown: false,
+  pendingMessageCount: 0,
+  lastConnectionAttempt: null,
+  forceSyncNow: () => {}
 });
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -20,6 +26,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [status, setStatus] = useState('disconnected');
   const [lastMessage, setLastMessage] = useState<any>(null);
   const [isDatabaseDown, setIsDatabaseDown] = useState(false);
+  const [pendingMessageCount, setPendingMessageCount] = useState(0);
+  const [lastConnectionAttempt, setLastConnectionAttempt] = useState<Date | null>(null);
   
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -214,8 +222,27 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
   }, [isDatabaseDown]);
   
+  // Create a function for manually triggering sync
+  const forceSyncNow = useCallback(() => {
+    setLastConnectionAttempt(new Date());
+    processOfflineQueue();
+  }, [processOfflineQueue]);
+  
+  // Update pending message count whenever the queue changes
+  useEffect(() => {
+    setPendingMessageCount(offlineQueueRef.current.length);
+  }, []);
+  
   return (
-    <WebSocketContext.Provider value={{ status, sendMessage, lastMessage, isDatabaseDown }}>
+    <WebSocketContext.Provider value={{ 
+      status, 
+      sendMessage, 
+      lastMessage, 
+      isDatabaseDown,
+      pendingMessageCount,
+      lastConnectionAttempt,
+      forceSyncNow
+    }}>
       {children}
     </WebSocketContext.Provider>
   );

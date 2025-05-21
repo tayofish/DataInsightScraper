@@ -3,7 +3,7 @@ import { WifiOff, Database, Clock, ArrowDownUp, RefreshCw, AlertCircle } from 'l
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from '@/hooks/ws-hook';
+import { useWebSocket } from '@/hooks/simple-ws';
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false);
@@ -99,6 +99,9 @@ export function OfflineModeIndicator() {
     if (!lastConnectionAttempt) return 'never';
     
     const now = new Date();
+    // If lastConnectionAttempt is a valid Date, use it, otherwise return 'never'
+    if (!(lastConnectionAttempt instanceof Date)) return 'never';
+    
     const diffMs = now.getTime() - lastConnectionAttempt.getTime();
     const diffSecs = Math.floor(diffMs / 1000);
     
