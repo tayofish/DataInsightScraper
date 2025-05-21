@@ -65,6 +65,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('Initial database check failed:', error);
     isDatabaseAvailable = false;
   }
+  
+  // Add health check endpoint for frontend to check database status
+  app.get("/api/health", async (req, res) => {
+    try {
+      const isDbAvailable = await checkDatabaseAvailability();
+      
+      // Get database connection status from the connection_status table if available
+      let connectionDetails = null;
+      if (isDbAvailable) {
+        try {
+          const statusResult = await db.execute(
+            sql`SELECT * FROM connection_status ORDER BY last_updated DESC LIMIT 1`
+          );
+          
+          if (statusResult && statusResult.rows && statusResult.rows.length > 0) {
+            connectionDetails = statusResult.rows[0];
+          }
+        } catch (error) {
+          console.error('Error fetching connection status:', error);
+        }
+      }
+      
+      // Update connection status if database is available
+      if (isDbAvailable) {
+        try {
+          // Update connection status to online
+          await db.execute(
+            sql`UPDATE connection_status SET status = 'online', last_updated = NOW(), 
+            details = 'Database connection available', reconnect_attempts = 0 
+            WHERE id = (SELECT id FROM connection_status ORDER BY id DESC LIMIT 1)`
+          );
+        } catch (error) {
+          console.error('Error updating connection status:', error);
+        }
+      }
+      
+      // Return health status
+      return res.status(200).json({
+        status: 'ok',
+        databaseConnected: isDbAvailable,
+        timestamp: new Date().toISOString(),
+        details: connectionDetails,
+        lastChecked: lastDatabaseCheck,
+        checkInterval: DB_CHECK_INTERVAL
+      });
+    } catch (error) {
+      console.error('Health check error:', error);
+      return res.status(500).json({
+        status: 'error',
+        databaseConnected: false,
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
   // Setup authentication routes and middleware
   setupAuth(app);
   
