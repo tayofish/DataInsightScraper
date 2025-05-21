@@ -1582,7 +1582,7 @@ export default function ChannelsPage() {
                                   <span className="font-medium">{message.fileName || "File"}</span>
                                 </a>
                                 {message.content && (
-                                  <p className="mt-2" data-message-id={message.id} className="message-content">
+                                  <p className="mt-2 message-content" data-message-id={message.id}>
                                     <FormatMessage 
                                       content={message.content}
                                       messageId={message.id}
@@ -1623,7 +1623,7 @@ export default function ChannelsPage() {
                                   )}
                                 </a>
                                 {message.content && (
-                                  <p className="mt-2" data-message-id={message.id} className="message-content">
+                                  <p className="mt-2 message-content" data-message-id={message.id}>
                                     <FormatMessage 
                                       content={message.content}
                                       messageId={message.id}
