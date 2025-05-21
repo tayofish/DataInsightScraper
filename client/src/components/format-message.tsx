@@ -395,13 +395,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
             </div>
           )}
           
-          {/* Display edited indicator if message was edited */}
-          {createdAt && type !== 'system' && (
-            <div className="text-xs text-muted-foreground mt-1">
-              {new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              {(content.includes('(edited)') || content.includes('edited:true')) && <span className="ml-1">(edited)</span>}
-            </div>
-          )}
+          {/* We no longer need this timestamp display here since it's moved to the parent component */}
         </div>
       )}
     </div>

@@ -168,28 +168,35 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
               queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
             }
-          } else if (data.type === 'message_updated' && data.message) {
-            console.log('[WebSocket] Received updated channel message');
+          } else if ((data.type === 'message_updated' || data.type === 'channel_message_updated') && data.message) {
+            console.log('[WebSocket] Received updated channel message:', data);
             
             // Update channel messages in the cache
-            if (data.channelId && data.message) {
-              console.log('[WebSocket] Updating edited message for channel:', data.channelId, data.message.id);
+            const channelId = data.channelId || data.message.channelId;
+            if (channelId && data.message) {
+              console.log('[WebSocket] Updating edited message for channel:', channelId, data.message.id);
+              
+              // Ensure the message is marked as edited
+              const updatedMessage = {
+                ...data.message,
+                isEdited: true
+              };
               
               // Update the message in the cache
               queryClient.setQueryData(
-                [`/api/channels/${data.channelId}/messages`], 
+                [`/api/channels/${channelId}/messages`], 
                 (oldData: any[] = []) => {
-                  if (!oldData || !Array.isArray(oldData)) return [data.message];
+                  if (!oldData || !Array.isArray(oldData)) return [updatedMessage];
                   
                   // Replace the edited message with the updated version
                   return oldData.map(msg => 
-                    msg.id === data.message.id ? data.message : msg
+                    msg.id === updatedMessage.id ? updatedMessage : msg
                   );
                 }
               );
               
               // Invalidate queries to ensure consistency
-              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.channelId}/messages`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
             }
           } else if (data.type === 'direct_message_updated' && data.message) {
             console.log('[WebSocket] Received updated direct message');
