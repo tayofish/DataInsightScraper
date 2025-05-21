@@ -25,7 +25,7 @@ import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 import { OfflineModeIndicator } from "@/components/offline-mode-indicator";
 import { AuthProvider } from "@/hooks/use-auth";
-import { WebSocketProvider } from "@/hooks/fixed-websocket";
+import { WebSocketProvider } from "@/hooks/robust-websocket";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
 import { useEffect, useState } from "react";
