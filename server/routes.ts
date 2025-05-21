@@ -55,22 +55,8 @@ async function checkDatabaseAvailability() {
       
       // This function will be called after we update the status below
       setTimeout(() => {
-        try {
-          // Make sure WebSocket server exists before trying to send messages
-          if (wssRef && wssRef.clients) {
-            wssRef.clients.forEach((client) => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(JSON.stringify({
-                  type: 'database_status',
-                  connected: true,
-                  timestamp: new Date().toISOString()
-                }));
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Error notifying clients of database status change:', error);
-        }
+        // Use our websocket helper functions for safer broadcasting
+        broadcastDatabaseStatus(true);
       }, 0);
     }
     

@@ -3,7 +3,7 @@ import { WifiOff, Database, Clock, ArrowDownUp, RefreshCw, AlertCircle } from 'l
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from '@/hooks/simple-ws';
+import { useWebSocket } from '@/hooks/websocket-provider';
 
 export function OfflineModeIndicator() {
   const [isOffline, setIsOffline] = useState(false);
