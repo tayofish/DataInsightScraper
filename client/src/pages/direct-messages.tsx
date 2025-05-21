@@ -57,6 +57,7 @@ const DirectMessagesPage: FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(userId ? parseInt(userId) : null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [newConversationDialogOpen, setNewConversationDialogOpen] = useState(false);
   
   // Local state for optimistic messages
@@ -780,11 +781,14 @@ const DirectMessagesPage: FC = () => {
       }
     };
     
-    // Set up direct WebSocket listener
-    const socket = socketRef.current || new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
-    
-    // Store socket reference for cleanup
-    socketRef.current = socket;
+    // Set up direct WebSocket listener for real-time updates
+    let socket;
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socket = socketRef.current;
+    } else {
+      socket = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`);
+      socketRef.current = socket;
+    }
     
     // Listen for messages
     socket.addEventListener('message', handleSocketMessage);
