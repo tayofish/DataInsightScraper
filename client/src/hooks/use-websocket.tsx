@@ -369,6 +369,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [status, setupSocket, cleanupSocket]);
   
   // Process offline queue when connection is restored
+  useEffect(() => {
     if (status === 'connected' && !isDatabaseDown && offlineQueueRef.current.length > 0) {
       console.log(`[WebSocket] Connection restored. Processing ${offlineQueueRef.current.length} offline messages`);
       

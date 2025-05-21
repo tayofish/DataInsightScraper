@@ -36,8 +36,8 @@ let isDatabaseAvailable = false;
 let lastDatabaseCheck = 0;
 const DB_CHECK_INTERVAL = 30000; // 30 seconds
 
-// WebSocket server reference - will be initialized later
-let wssRef: WebSocketServer | null = null;
+// Import the WebSocket helpers
+import { initializeWebSocketServer, getWebSocketServer, broadcastDatabaseStatus, ExtendedWebSocket } from './websocket-helper';
 
 // Check database availability
 async function checkDatabaseAvailability() {
