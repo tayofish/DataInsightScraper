@@ -170,9 +170,34 @@ export default function ChannelsPage() {
     refetchOnWindowFocus: false,
   });
   
-  // Directly fetch channels data for debugging
+  // Directly fetch channels data for debugging with offline resilience
   useEffect(() => {
     if (user) {
+      // Try to load cached channels first for immediate display
+      try {
+        const cachedChannels = localStorage.getItem('cached_channels');
+        if (cachedChannels) {
+          const parsedChannels = JSON.parse(cachedChannels);
+          if (Array.isArray(parsedChannels) && parsedChannels.length > 0) {
+            console.log("Using cached channels from localStorage:", parsedChannels.length);
+            setChannels(parsedChannels);
+            if (!selectedChannelId) {
+              setSelectedChannelId(parsedChannels[0].id);
+              setSelectedChannel(parsedChannels[0]);
+            } else {
+              // Update selected channel object based on ID
+              const channel = parsedChannels.find((c) => c.id === selectedChannelId);
+              if (channel) {
+                setSelectedChannel(channel);
+              }
+            }
+          }
+        }
+      } catch (cacheError) {
+        console.warn("Error loading cached channels:", cacheError);
+      }
+      
+      // Then fetch from API to get latest data
       fetch('/api/channels')
         .then(res => res.json())
         .then(data => {
@@ -180,6 +205,14 @@ export default function ChannelsPage() {
           if (Array.isArray(data) && data.length > 0) {
             console.log("Setting channels directly:", data.length);
             setChannels(data);
+            
+            // Cache the channels for offline usage
+            try {
+              localStorage.setItem('cached_channels', JSON.stringify(data));
+            } catch (err) {
+              console.warn("Failed to cache channels:", err);
+            }
+            
             if (!selectedChannelId) {
               setSelectedChannelId(data[0].id);
               // Also set the selected channel object
@@ -195,6 +228,7 @@ export default function ChannelsPage() {
         })
         .catch(err => {
           console.error("Error fetching channels:", err);
+          // No further action needed here as we already loaded from cache
         });
     }
   }, [user, selectedChannelId]);

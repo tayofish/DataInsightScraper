@@ -24,7 +24,47 @@ import * as emailService from "./services/email-service";
 import nodemailer from "nodemailer";
 import { eq, and, or, desc, asc, sql, isNull, isNotNull } from "drizzle-orm";
 
+// Add a global store for cached data when database is unavailable
+const fallbackCache = {
+  messages: new Map<number, any[]>(),
+  channels: new Map<number, any>(),
+  users: new Map<number, any>()
+};
+
+// Database status tracking
+let isDatabaseAvailable = false;
+let lastDatabaseCheck = 0;
+const DB_CHECK_INTERVAL = 30000; // 30 seconds
+
+// Check database availability
+async function checkDatabaseAvailability() {
+  try {
+    if (Date.now() - lastDatabaseCheck < DB_CHECK_INTERVAL) {
+      return isDatabaseAvailable; // Use cached status if checked recently
+    }
+    
+    // Simple query to check database connection
+    await db.execute(sql`SELECT 1`);
+    isDatabaseAvailable = true;
+    lastDatabaseCheck = Date.now();
+    return true;
+  } catch (error) {
+    console.warn('Database availability check failed:', error);
+    isDatabaseAvailable = false;
+    lastDatabaseCheck = Date.now();
+    return false;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Check database on startup
+  try {
+    isDatabaseAvailable = await checkDatabaseAvailability();
+    console.log(`Database availability: ${isDatabaseAvailable ? 'ONLINE' : 'OFFLINE'}`);
+  } catch (error) {
+    console.error('Initial database check failed:', error);
+    isDatabaseAvailable = false;
+  }
   // Setup authentication routes and middleware
   setupAuth(app);
   
