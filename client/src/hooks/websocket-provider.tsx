@@ -208,23 +208,53 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [user, processOfflineQueue]);
   
-  // Send a message with offline fallback
+  // Enhanced send message function with improved offline support
   const sendMessage = useCallback((message: any) => {
-    // Try to send if we're connected
+    // Add clientId and timestamp if missing to help with message tracking
+    const enhancedMessage = {
+      ...message,
+      clientId: message.clientId || `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      timestamp: message.timestamp || Date.now()
+    };
+    
+    // Emit an event for UI components to potentially handle optimistic updates
+    const messageEvent = new CustomEvent('websocket-message-sent', { 
+      detail: { message: enhancedMessage, offline: isDatabaseDown } 
+    });
+    window.dispatchEvent(messageEvent);
+    
+    // Try to send if we're connected and database is up
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && !isDatabaseDown) {
       try {
-        socketRef.current.send(JSON.stringify(message));
+        socketRef.current.send(JSON.stringify(enhancedMessage));
         return;
       } catch (error) {
         console.error('Error sending message, queueing instead:', error);
       }
     }
     
-    // Store message for later if sending failed
-    console.log('Storing message in offline queue:', message);
-    offlineQueueRef.current.push(message);
+    // Store message for later if sending failed or we're offline
+    console.log(`Storing message in offline queue (type: ${enhancedMessage.type}):`, enhancedMessage);
+    
+    // Add to queue with pending status
+    offlineQueueRef.current.push({
+      ...enhancedMessage,
+      queuedAt: Date.now(),
+      attempts: 0,
+      lastAttempt: null
+    });
+    
+    // Update UI indicators and persist to localStorage
     setPendingMessageCount(offlineQueueRef.current.length);
     localStorage.setItem('offline_message_queue', JSON.stringify(offlineQueueRef.current));
+    
+    // If this is a direct message, make sure the UI knows about its pending state
+    if (enhancedMessage.type === 'direct_message') {
+      const pendingEvent = new CustomEvent('direct-message-pending', { 
+        detail: { message: enhancedMessage } 
+      });
+      window.dispatchEvent(pendingEvent);
+    }
   }, [isDatabaseDown]);
   
   return (

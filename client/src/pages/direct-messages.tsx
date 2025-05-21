@@ -573,26 +573,56 @@ const DirectMessagesPage: FC = () => {
     // Immediately update the UI with the optimistic message
     setLocalMessages(prev => [...prev, optimisticMessage]);
     
-    // Use WebSocket for real-time messaging
-    if (wsStatus === 'connected') {
+    // Get WebSocket context with connection status
+    const { status: wsStatus, sendMessage } = useWebSocket();
+    // Check connection status
+    const isOffline = wsStatus !== 'connected';
+    const clientId = `dm-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    
+    // Update local message with client ID for tracking
+    setLocalMessages(prev => prev.map(msg => 
+      msg.id === optimisticMessage.id 
+        ? {...msg, clientId, pendingSync: true, offline: wsStatus !== 'connected'} 
+        : msg
+    ));
+    
+    if (wsStatus === 'connected' || isOffline) {
       try {
+        // Send through WebSocket, which will queue if offline
         sendMessage({
           type: "direct_message",
           receiverId: selectedUserId,
-          content: message
+          content: message,
+          clientId,
+          timestamp: Date.now()
         });
         
-        setMessage("");
+        // If we're offline, show toast about queuing
+        if (isOffline) {
+          toast({
+            title: "Message queued",
+            description: "Your message will be delivered when connection is restored.",
+          });
+        }
       } catch (error) {
         console.error("Error sending message via WebSocket:", error);
-        // Fallback to API if WebSocket fails
-        sendMessageMutation.mutate({
-          content: message,
-          receiverId: selectedUserId,
-        });
+        
+        // Still keep optimistic message visible since it's in the queue
+        if (isDatabaseDown) {
+          toast({
+            title: "Message queued",
+            description: "Your message will be delivered when connection is restored.",
+          });
+        } else {
+          // Only try API if database is actually connected
+          sendMessageMutation.mutate({
+            content: message,
+            receiverId: selectedUserId,
+          });
+        }
       }
     } else {
-      // Use the API if WebSocket is not connected
+      // Use the API if WebSocket is not connected but database is up
       sendMessageMutation.mutate({
         content: message,
         receiverId: selectedUserId,
