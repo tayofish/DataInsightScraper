@@ -252,10 +252,39 @@ export default function ChannelsPage() {
     }
   }, [channelsQuery.data, selectedChannelId]);
   
-  // Query for messages
+  // Query for messages with offline resilience
   const messagesQuery = useQuery({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
-    enabled: !!selectedChannelId && !!user
+    enabled: !!selectedChannelId && !!user,
+    // Add this to handle errors and fallback to cache
+    onError: (error) => {
+      console.error("Error fetching messages:", error);
+      
+      // Try to load from cache on error
+      if (selectedChannelId) {
+        try {
+          const cachedData = localStorage.getItem(`channel_${selectedChannelId}_messages`);
+          if (cachedData) {
+            let parsedMessages;
+            try {
+              // Try to parse as the new format first
+              const cacheItem = JSON.parse(cachedData);
+              parsedMessages = cacheItem.messages;
+            } catch {
+              // Fall back to old format if new format parsing fails
+              parsedMessages = JSON.parse(cachedData);
+            }
+            
+            if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+              console.log(`Using ${parsedMessages.length} cached messages for channel ${selectedChannelId} due to API error`);
+              queryClient.setQueryData([`/api/channels/${selectedChannelId}/messages`], parsedMessages);
+            }
+          }
+        } catch (cacheError) {
+          console.error("Error reading from cache:", cacheError);
+        }
+      }
+    }
   });
   
   // Effect to remove optimistic messages when they're confirmed by the server
@@ -279,7 +308,7 @@ export default function ChannelsPage() {
     }
   }, [messagesQuery.data, messages]);
   
-  // Handle editing channel messages with offline-first approach
+  // Handle editing channel messages with enhanced offline-first approach
   const handleEditMessage = async (messageId: number, newContent: string) => {
     if (!newContent.trim() || !selectedChannelId || !messageId) return;
     
@@ -287,13 +316,41 @@ export default function ChannelsPage() {
     const messageToEdit = combinedMessages.find(msg => msg.id === messageId);
     if (!messageToEdit) return;
     
+    console.log("Editing message with enhanced offline resilience:", messageId);
+    
+    // Timestamp for both optimistic updates and offline storage
+    const editTimestamp = new Date().toISOString();
+    
+    // Store edit in localStorage for offline resilience
+    try {
+      const pendingEditsKey = `pending_edits_channel_${selectedChannelId}`;
+      const existingEditsStr = localStorage.getItem(pendingEditsKey) || '[]';
+      const existingEdits = JSON.parse(existingEditsStr);
+      
+      // Add this edit to pending edits, replacing any previous edit for the same message
+      const newPendingEdits = existingEdits.filter((edit: any) => edit.messageId !== messageId);
+      newPendingEdits.push({
+        messageId,
+        channelId: selectedChannelId,
+        content: newContent,
+        originalContent: messageToEdit.content,
+        updatedAt: editTimestamp,
+        timestamp: editTimestamp,
+      });
+      
+      localStorage.setItem(pendingEditsKey, JSON.stringify(newPendingEdits));
+      console.log(`Stored edit in offline cache (${newPendingEdits.length} pending edits)`);
+    } catch (err) {
+      console.error("Failed to store edit in localStorage:", err);
+    }
+    
     // Optimistically update the UI with explicit edited flag
     const updatedMessages = messages.map(msg => 
       msg.id === messageId 
         ? { 
             ...msg, 
             content: newContent, 
-            updatedAt: new Date().toISOString(), 
+            updatedAt: editTimestamp, 
             isEdited: true // Explicitly mark as edited for UI indicator
           }
         : msg
@@ -644,6 +701,65 @@ export default function ChannelsPage() {
       messagesEndRef.current.scrollIntoView({ behavior: "auto" });
     }
   }, [messages, selectedChannelId, messagesQuery.data]);
+  
+  // Effect to periodically try to sync pending message edits with the server
+  useEffect(() => {
+    if (!selectedChannelId || !user || wsStatus !== 'connected') return;
+    
+    // Attempt to sync pending edits with the server
+    const syncPendingEdits = async () => {
+      try {
+        const pendingEditsKey = `pending_edits_channel_${selectedChannelId}`;
+        const pendingEditsStr = localStorage.getItem(pendingEditsKey);
+        
+        if (!pendingEditsStr) return;
+        
+        const pendingEdits = JSON.parse(pendingEditsStr);
+        if (!Array.isArray(pendingEdits) || pendingEdits.length === 0) return;
+        
+        console.log(`Attempting to sync ${pendingEdits.length} pending edits for channel ${selectedChannelId}`);
+        
+        // Try to send each edit to the server
+        const successfulEdits = [];
+        
+        for (const edit of pendingEdits) {
+          try {
+            // Try to send via WebSocket first
+            sendMessage({
+              type: 'edit_channel_message',
+              messageId: edit.messageId,
+              channelId: selectedChannelId,
+              content: edit.content
+            });
+            
+            // Mark as successfully sent
+            successfulEdits.push(edit.messageId);
+            console.log(`Successfully synced edit for message ${edit.messageId}`);
+          } catch (editError) {
+            console.error(`Failed to sync edit for message ${edit.messageId}:`, editError);
+          }
+        }
+        
+        // Remove successful edits from pending list
+        if (successfulEdits.length > 0) {
+          const remainingEdits = pendingEdits.filter((edit: any) => 
+            !successfulEdits.includes(edit.messageId)
+          );
+          
+          localStorage.setItem(pendingEditsKey, JSON.stringify(remainingEdits));
+          console.log(`Removed ${successfulEdits.length} successfully synced edits, ${remainingEdits.length} remaining`);
+        }
+      } catch (error) {
+        console.error("Error syncing pending edits:", error);
+      }
+    };
+    
+    // Run immediately and then every 30 seconds
+    syncPendingEdits();
+    const interval = setInterval(syncPendingEdits, 30000);
+    
+    return () => clearInterval(interval);
+  }, [selectedChannelId, user, wsStatus, sendMessage]);
   
   // Handle @ mentions
   useEffect(() => {

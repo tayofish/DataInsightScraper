@@ -39,6 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    // Handle offline scenarios by falling back to cached user data
+    onError: (error) => {
+      console.error("Error fetching user data:", error);
+      // Try to load user from cache
+      try {
+        const cachedUser = localStorage.getItem('cached_user');
+        if (cachedUser) {
+          console.log("Using cached user data due to API error");
+          const parsedUser = JSON.parse(cachedUser);
+          queryClient.setQueryData(["/api/user"], parsedUser);
+        }
+      } catch (cacheError) {
+        console.error("Failed to load cached user:", cacheError);
+      }
+    }
   });
 
   const loginMutation = useMutation({
