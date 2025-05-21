@@ -13,6 +13,8 @@ interface FormatMessageProps {
   userId?: number;
   currentUserId?: number;
   createdAt?: Date | string;
+  isEdited?: boolean;
+  updatedAt?: Date | string;
   onEditMessage?: (messageId: number, content: string) => void;
 }
 
