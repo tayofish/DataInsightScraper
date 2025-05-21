@@ -3,7 +3,7 @@ import { Database, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function DatabaseErrorPage() {
-  const navigate = useNavigate();
+  const [_, navigate] = useLocation();
   
   // Store that we're in offline mode
   const setOfflineMode = () => {
