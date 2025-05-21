@@ -4640,16 +4640,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // Send update to the receiver if they're online
+      // Send update to the receiver if they're online using our helper function
       if (updatedMessage) {
-        wssRef.clients.forEach((client: ExtendedWebSocket) => {
-          if (client.userId === updatedMessage.receiverId && client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify({
-              type: 'direct_message_updated',
-              message: updatedMessage
-            }));
+        try {
+          // Use our safer broadcasting function
+          const wss = getWebSocketServer();
+          if (wss) {
+            wss.clients.forEach((client: ExtendedWebSocket) => {
+              if (client.userId === updatedMessage.receiverId && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'direct_message_updated',
+                  message: updatedMessage
+                }));
+              }
+            });
           }
-        });
+        } catch (error) {
+          console.error('Error notifying about message update:', error);
+          // Message update still works even if notification fails
+        }
       }
       
       // Log the activity

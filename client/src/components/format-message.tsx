@@ -308,7 +308,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
               onFocus={() => setShowToolbar(true)}
-              className="min-h-[100px] text-sm resize-none"
+              className="min-h-[100px] text-sm resize-none bg-white dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600"
               placeholder="Edit your message..."
             />
             {editError && (
