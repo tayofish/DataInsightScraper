@@ -743,17 +743,42 @@ export default function ChannelsPage() {
       // Optimistically update the UI immediately
       setMessages(prevMessages => [...prevMessages, optimisticMessage]);
       
+      // Store message in localStorage for offline resilience
+      try {
+        // Get existing pending messages or initialize empty array
+        const storageKey = `pendingChannelMessages_${selectedChannelId}`;
+        const pendingMessagesJson = localStorage.getItem(storageKey);
+        const pendingMessages = pendingMessagesJson ? JSON.parse(pendingMessagesJson) : [];
+        
+        // Add this message to pending list
+        pendingMessages.push({
+          ...optimisticMessage,
+          timestamp: Date.now(),
+          retryCount: 0,
+          // Don't store the file URL as it's not serializable
+          fileUrl: null
+        });
+        
+        // Save back to localStorage
+        localStorage.setItem(storageKey, JSON.stringify(pendingMessages));
+        console.log("Message saved to localStorage for offline resilience");
+      } catch (error) {
+        console.error("Error saving message to localStorage:", error);
+      }
+      
       // Auto-cleanup for stuck messages after timeout (10 seconds)
       setTimeout(() => {
         console.log(`Message timeout check for: ${tempId}`);
         setMessages(prev => {
           const stillExists = prev.some(msg => msg.id === tempId);
           if (stillExists) {
-            console.log(`Message still pending after timeout, cleaning up: ${tempId}`);
-            // Force refresh messages from server to make sure we're in sync
-            messagesQuery.refetch();
-            // Remove the stuck message
-            return prev.filter(msg => msg.id !== tempId);
+            console.log(`Message still pending after timeout, but keeping for offline sync`);
+            // Update the message to show offline state instead of removing it
+            return prev.map(msg => 
+              msg.id === tempId 
+                ? { ...msg, offlineMode: true, retrying: false } 
+                : msg
+            );
           }
           return prev;
         });
