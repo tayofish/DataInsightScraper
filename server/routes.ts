@@ -4207,7 +4207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.update(messages)
         .set({ 
           content,
-          edited: true,
+          isEdited: true,
           updatedAt: new Date()
         })
         .where(eq(messages.id, messageId));
@@ -4515,7 +4515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db.update(directMessages)
         .set({ 
           content,
-          edited: true,
+          isEdited: true,
           updatedAt: new Date()
         })
         .where(eq(directMessages.id, messageId));

@@ -1535,9 +1535,9 @@ export default function ChannelsPage() {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
-                              {message.updatedAt && message.updatedAt !== message.createdAt && (
-                                <> · Edited</>
-                              )}
+                              {(message.updatedAt && message.updatedAt !== message.createdAt) || message.isEdited ? (
+                                <> · <span className="italic">Edited</span></>
+                              ) : null}
                             </span>
                             {isOptimistic && !isOffline && (
                               <span className="text-xs text-muted-foreground animate-pulse">
