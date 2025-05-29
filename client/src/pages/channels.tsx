@@ -510,7 +510,8 @@ export default function ChannelsPage() {
         body: JSON.stringify(values),
       });
       if (!response.ok) {
-        throw new Error("Failed to create channel");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create channel");
       }
       return response.json();
     },
@@ -525,9 +526,13 @@ export default function ChannelsPage() {
       });
     },
     onError: (error: any) => {
+      const errorMessage = error.message === "A channel with this name already exists" 
+        ? "Cannot create duplicate channel name" 
+        : error.message;
+      
       toast({
         title: "Failed to create channel",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
