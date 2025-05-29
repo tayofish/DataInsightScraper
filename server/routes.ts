@@ -3255,10 +3255,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const channelId = parseInt(req.params.id);
-      const { userId, role = 'member' } = req.body;
+      const { userId, userIds, role = 'member' } = req.body;
       
-      if (isNaN(channelId) || !userId) {
-        return res.status(400).json({ message: "Invalid channel ID or user ID" });
+      // Handle both single userId and multiple userIds
+      const userIdsToAdd = userIds ? userIds : (userId ? [userId] : []);
+      
+      if (isNaN(channelId) || !userIdsToAdd.length) {
+        return res.status(400).json({ message: "Invalid channel ID or user ID provided" });
       }
       
       // Check if channel exists
@@ -3284,55 +3287,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Only channel owners and admins can add members" });
       }
       
-      // Check if user is already a member
-      const isAlreadyMember = channel.members.some(m => m.userId === userId);
+      const addedMembers = [];
+      const errors = [];
       
-      if (isAlreadyMember) {
-        return res.status(400).json({ message: "User is already a member of this channel" });
-      }
-      
-      // Add user to channel
-      const [member] = await db.insert(channelMembers).values({
-        channelId,
-        userId,
-        role,
-        joinedAt: new Date()
-      }).returning();
-      
-      // Get the user data to return in response
-      const userRecord = await db.query.users.findFirst({
-        where: eq(users.id, userId)
-      });
-      
-      // Create notification for the added user
-      await db.insert(notifications).values({
-        userId,
-        title: "Channel Invitation",
-        message: `You've been added to the ${channel.name} channel`,
-        type: "channel_invitation",
-        isRead: false,
-        createdAt: new Date()
-      });
-      
-      // Broadcast the new member to all connected clients
-      try {
-        const wss = getWebSocketServer();
-        if (wss) {
-          wss.clients.forEach((client: ExtendedWebSocket) => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: "channel_member_added",
-                channelId,
-                member: { ...member, user: userRecord }
-              }));
-            }
+      // Process each user ID
+      for (const userIdToAdd of userIdsToAdd) {
+        try {
+          // Check if user is already a member
+          const isAlreadyMember = channel.members.some(m => m.userId === userIdToAdd);
+          
+          if (isAlreadyMember) {
+            errors.push(`User ${userIdToAdd} is already a member of this channel`);
+            continue;
+          }
+          
+          // Add user to channel
+          const [member] = await db.insert(channelMembers).values({
+            channelId,
+            userId: userIdToAdd,
+            role,
+            joinedAt: new Date()
+          }).returning();
+          
+          // Get the user data to return in response
+          const userRecord = await db.query.users.findFirst({
+            where: eq(users.id, userIdToAdd)
           });
+          
+          // Create notification for the added user
+          await db.insert(notifications).values({
+            userId: userIdToAdd,
+            title: "Channel Invitation",
+            message: `You've been added to the ${channel.name} channel`,
+            type: "channel_invitation",
+            isRead: false,
+            createdAt: new Date()
+          });
+          
+          addedMembers.push({ ...member, user: userRecord });
+          
+          // Broadcast the new member to all connected clients
+          try {
+            const wss = getWebSocketServer();
+            if (wss) {
+              wss.clients.forEach((client: ExtendedWebSocket) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify({
+                    type: "channel_member_added",
+                    channelId,
+                    member: { ...member, user: userRecord }
+                  }));
+                }
+              });
+            }
+          } catch (error) {
+            console.error('Error broadcasting channel member added:', error);
+          }
+        } catch (error) {
+          console.error(`Error adding user ${userIdToAdd} to channel:`, error);
+          errors.push(`Failed to add user ${userIdToAdd}`);
         }
-      } catch (error) {
-        console.error('Error broadcasting channel member added:', error);
       }
       
-      return res.status(201).json({ ...member, user: userRecord });
+      // Return results
+      if (addedMembers.length === 0) {
+        return res.status(400).json({ 
+          message: "No members were added", 
+          errors 
+        });
+      }
+      
+      return res.status(201).json({ 
+        addedMembers, 
+        errors: errors.length > 0 ? errors : undefined 
+      });
     } catch (error) {
       console.error("Error adding channel member:", error);
       return res.status(500).json({ message: "Failed to add member to channel" });
