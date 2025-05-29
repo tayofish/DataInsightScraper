@@ -763,8 +763,22 @@ const DirectMessagesPage: FC = () => {
               return prev;
             });
             
+            // Immediately update the query cache with the new message
+            queryClient.setQueryData(
+              [`/api/direct-messages/${selectedUserId}`],
+              (oldData: any[] = []) => {
+                // Check if message already exists
+                const exists = oldData.some((m: any) => m.id === message.id);
+                if (!exists) {
+                  return [...oldData, message].sort((a, b) => 
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                  );
+                }
+                return oldData;
+              }
+            );
+            
             // Also refresh the API data for consistency
-            queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/${selectedUserId}`] });
             queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
             
             // Scroll to the bottom to show new message
