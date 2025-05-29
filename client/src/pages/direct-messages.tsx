@@ -739,7 +739,7 @@ const DirectMessagesPage: FC = () => {
         console.log("WebSocket message received:", data.type);
         
         // Handle direct message or message confirmation
-        if ((data.type === 'direct_message' || data.type === 'direct_message_sent') && data.message) {
+        if ((data.type === 'new_direct_message' || data.type === 'direct_message_sent') && data.message) {
           const message = data.message;
           
           // Only process messages related to the current conversation
