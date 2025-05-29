@@ -1,0 +1,54 @@
+root@app:~/DataInsightScraper# pm2 log
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/root/.pm2/pm2.log last 15 lines:
+PM2        | 2025-05-29T14:37:25: PM2 log: App [promellon:0] online
+PM2        | 2025-05-29T14:37:25: PM2 log: App [promellon:0] exited with code [1] via signal [SIGINT]
+PM2        | 2025-05-29T14:37:25: PM2 log: App [promellon:0] starting in -fork mode-
+PM2        | 2025-05-29T14:37:25: PM2 log: App [promellon:0] online
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] exited with code [1] via signal [SIGINT]
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] starting in -fork mode-
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] online
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] exited with code [1] via signal [SIGINT]
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] starting in -fork mode-
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] online
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] exited with code [1] via signal [SIGINT]
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] starting in -fork mode-
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] online
+PM2        | 2025-05-29T14:37:26: PM2 log: App [promellon:0] exited with code [1] via signal [SIGINT]
+PM2        | 2025-05-29T14:37:26: PM2 log: Script /usr/bin/tsx had too many unstable restarts (16). Stopped. "errored"
+
+/root/.pm2/logs/promellon-out.log last 15 lines:
+0|promello | > rest-express@1.0.0 dev
+0|promello | > tsx server/index.ts
+0|promello |
+0|promello |
+0|promello | > rest-express@1.0.0 dev
+0|promello | > tsx server/index.ts
+0|promello |
+0|promello |
+0|promello | > rest-express@1.0.0 dev
+0|promello | > tsx server/index.ts
+0|promello |
+0|promello |
+0|promello | > rest-express@1.0.0 dev
+0|promello | > tsx server/index.ts
+0|promello |
+
+/root/.pm2/logs/promellon-error.log last 15 lines:
+0|promello | Error [ERR_REQUIRE_ESM]: require() of ES Module /usr/lib/node_modules/tsx/dist/cli.mjs not supported.
+0|promello | Instead change the require of /usr/lib/node_modules/tsx/dist/cli.mjs to a dynamic import() which is available in all CommonJS modules.
+0|promello |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23) {
+0|promello |   code: 'ERR_REQUIRE_ESM'
+0|promello | }
+0|promello | Error [ERR_REQUIRE_ESM]: require() of ES Module /usr/lib/node_modules/tsx/dist/cli.mjs not supported.
+0|promello | Instead change the require of /usr/lib/node_modules/tsx/dist/cli.mjs to a dynamic import() which is available in all CommonJS modules.
+0|promello |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23) {
+0|promello |   code: 'ERR_REQUIRE_ESM'
+0|promello | }
+0|promello | Error [ERR_REQUIRE_ESM]: require() of ES Module /usr/lib/node_modules/tsx/dist/cli.mjs not supported.
+0|promello | Instead change the require of /usr/lib/node_modules/tsx/dist/cli.mjs to a dynamic import() which is available in all CommonJS modules.
+0|promello |     at Object.<anonymous> (/usr/lib/node_modules/pm2/lib/ProcessContainerFork.js:33:23) {
+0|promello |   code: 'ERR_REQUIRE_ESM'
+0|promello | }
+
+
