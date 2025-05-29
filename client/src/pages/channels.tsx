@@ -629,8 +629,8 @@ export default function ChannelsPage() {
   
   // Remove a member from the channel
   const removeMemberMutation = useMutation({
-    mutationFn: async (memberId: number) => {
-      const response = await fetch(`/api/channels/${selectedChannelId}/members/${memberId}`, {
+    mutationFn: async (userId: number) => {
+      const response = await fetch(`/api/channels/${selectedChannelId}/members/${userId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -1640,7 +1640,7 @@ export default function ChannelsPage() {
                                         <Button 
                                           variant="ghost" 
                                           size="icon"
-                                          onClick={() => removeMemberFromChannel(member.id)}
+                                          onClick={() => removeMemberFromChannel(member.userId)}
                                         >
                                           <UserMinus className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -2101,7 +2101,7 @@ export default function ChannelsPage() {
                         <Button 
                           variant="ghost" 
                           size="icon"
-                          onClick={() => removeMemberFromChannel(member.id)}
+                          onClick={() => removeMemberFromChannel(member.userId)}
                         >
                           <UserMinus className="h-4 w-4 text-destructive" />
                         </Button>
