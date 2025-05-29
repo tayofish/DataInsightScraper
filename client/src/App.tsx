@@ -32,9 +32,9 @@ import { useEffect, useState } from "react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-screen bg-background">
       <Sidebar />
-      <div className="flex flex-col w-0 flex-1 overflow-hidden">
+      <div className="flex flex-col w-0 flex-1">
         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white/60 backdrop-blur-sm z-10">
           <div className="flex items-center">
             <h1 className="text-xl font-semibold gradient-heading">Task Management System</h1>
@@ -49,7 +49,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <NotificationDropdown />
           </div>
         </header>
-        <main className="flex-1 relative overflow-hidden focus:outline-none">
+        <main className="flex-1 relative overflow-auto focus:outline-none">
           {children}
         </main>
       </div>
