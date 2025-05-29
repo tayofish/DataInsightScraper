@@ -128,10 +128,10 @@ export function OfflineModeIndicator() {
       return 'The database endpoint is currently disabled. The app is using cached data and will sync when the database is available again.';
     }
     if (status === 'disconnected') {
-      return 'WebSocket connection lost. Messages will be queued and sent when connection is restored.';
+      return 'WebSocket connection lost. Real-time features may be limited.';
     }
     if (pendingMessageCount > 0) {
-      return `You have ${pendingMessageCount} unsent message(s) that will be delivered when connection is restored.`;
+      return `You have ${pendingMessageCount} message(s) in your local cache.`;
     }
     return 'There are some connection issues. The app is still working, but some features may be limited.';
   };

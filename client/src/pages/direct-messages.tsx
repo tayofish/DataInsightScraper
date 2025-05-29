@@ -611,23 +611,12 @@ const DirectMessagesPage: FC = () => {
           timestamp: Date.now()
         });
         
-        // If we're offline, show toast about queuing
-        if (offline) {
-          toast({
-            title: "Message queued",
-            description: "Your message will be delivered when connection is restored.",
-          });
-        }
+
       } catch (error) {
         console.error("Error sending message via WebSocket:", error);
         
         // Still keep optimistic message visible since it's in the queue
-        if (offline) {
-          toast({
-            title: "Message queued",
-            description: "Your message will be delivered when connection is restored.",
-          });
-        } else {
+        if (!offline) {
           // Only try API if we're connected
           sendMessageMutation.mutate({
             content: message,
