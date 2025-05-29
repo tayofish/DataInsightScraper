@@ -86,17 +86,21 @@ process.on('unhandledRejection', (reason, promise) => {
   process.exit(1);
 });
 
+// Serve uploads directory for file attachments
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsPath = path.resolve(__dirname, "../uploads");
+app.use('/uploads', express.static(uploadsPath));
+
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
   const publicPath = path.resolve(__dirname, "../dist/public");
   
   app.use(express.static(publicPath));
   
   // Catch-all handler for client-side routing
   app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api")) {
+    if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
       return next();
     }
     res.sendFile(path.join(publicPath, "index.html"));
