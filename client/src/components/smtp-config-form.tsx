@@ -55,7 +55,7 @@ export default function SmtpConfigForm() {
     username: '',
     password: '',
     fromEmail: '',
-    fromName: 'TaskScout Notifications',
+    fromName: 'Promellon Notifications',
     enableTls: true,
     active: false,
   };
