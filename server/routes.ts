@@ -4808,6 +4808,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // REAL-TIME BROADCASTING: Send WebSocket notifications to both users
+      try {
+        const wss = getWebSocketServer();
+        if (wss && completeMessage) {
+          console.log("Broadcasting real-time message via HTTP route:", completeMessage.id);
+          
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              // Send to the receiver
+              if (client.userId === receiverId) {
+                client.send(JSON.stringify({
+                  type: 'new_direct_message',
+                  message: completeMessage
+                }));
+                console.log("Sent new message notification to receiver:", receiverId);
+              }
+              // Send confirmation to the sender
+              else if (client.userId === req.user!.id) {
+                client.send(JSON.stringify({
+                  type: 'direct_message_sent',
+                  message: completeMessage
+                }));
+                console.log("Sent confirmation to sender:", req.user!.id);
+              }
+            }
+          });
+        }
+      } catch (wsError) {
+        console.error("Error broadcasting WebSocket message:", wsError);
+        // Continue - don't fail the HTTP request if WebSocket fails
+      }
+      
       return res.status(201).json(completeMessage);
     } catch (error) {
       if (error instanceof z.ZodError) {
