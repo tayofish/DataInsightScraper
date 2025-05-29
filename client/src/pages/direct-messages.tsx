@@ -728,52 +728,75 @@ const DirectMessagesPage: FC = () => {
     }
   };
 
-  // Real-time message handler using existing WebSocket infrastructure
+  // Real-time message handler - direct WebSocket approach
   useEffect(() => {
     if (!user || !selectedUserId) return;
     
-    // Listen for real-time direct messages via custom events
-    const handleDirectMessage = (event: any) => {
-      const data = event.detail;
-      console.log("Received direct message event:", data);
-      
-      if (data && data.message) {
-        const message = data.message;
+    // Set up direct WebSocket connection for real-time messages
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('Direct message WebSocket connected');
+      // Authenticate
+      ws.send(JSON.stringify({
+        type: 'auth',
+        userId: user.id,
+        username: user.username
+      }));
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Direct WebSocket message:', data.type, data);
         
-        // Only process messages for the current conversation
-        if ((message.senderId === selectedUserId && message.receiverId === user.id) || 
-            (message.senderId === user.id && message.receiverId === selectedUserId)) {
+        // Handle direct message events
+        if ((data.type === 'new_direct_message' || data.type === 'direct_message_sent') && data.message) {
+          const message = data.message;
+          console.log('Processing real-time message:', message);
+          
+          // Only process messages for the current conversation
+          if ((message.senderId === selectedUserId && message.receiverId === user.id) || 
+              (message.senderId === user.id && message.receiverId === selectedUserId)) {
+              
+            console.log("Updating cache for conversation:", selectedUserId);
             
-          console.log("Processing message for current conversation:", message);
-          
-          // Immediately update the query cache with the new message
-          queryClient.setQueryData(
-            [`/api/direct-messages/${selectedUserId}`],
-            (oldData: any[] = []) => {
-              const exists = oldData.some((m: any) => m.id === message.id);
-              if (!exists) {
-                console.log("Adding message to cache:", message.id);
-                return [...oldData, message].sort((a, b) => 
-                  new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                );
+            // Immediately update the query cache
+            queryClient.setQueryData(
+              [`/api/direct-messages/${selectedUserId}`],
+              (oldData: any[] = []) => {
+                const exists = oldData.some((m: any) => m.id === message.id);
+                if (!exists) {
+                  console.log("Adding new message to cache:", message.id);
+                  const updated = [...oldData, message].sort((a, b) => 
+                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                  );
+                  return updated;
+                }
+                return oldData;
               }
-              return oldData;
-            }
-          );
-          
-          // Scroll to show new message
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
+            );
+            
+            // Scroll to show new message
+            setTimeout(() => {
+              messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+          }
         }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
       }
     };
     
-    // Listen for custom events
-    window.addEventListener('direct-message-received', handleDirectMessage);
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
     
     return () => {
-      window.removeEventListener('direct-message-received', handleDirectMessage);
+      ws.close();
     };
   }, [user, selectedUserId, queryClient]);
 
