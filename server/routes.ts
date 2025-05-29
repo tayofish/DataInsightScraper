@@ -3972,6 +3972,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Name and type are required" });
       }
       
+      // Check if channel with same name already exists
+      const existingChannel = await db.query.channels.findFirst({
+        where: eq(channels.name, name.trim())
+      });
+      
+      if (existingChannel) {
+        return res.status(400).json({ message: "A channel with this name already exists" });
+      }
+      
       // Create channel in transaction to also add creator as a member
       const newChannel = await db.transaction(async (tx) => {
         const [channel] = await tx.insert(channels).values({
