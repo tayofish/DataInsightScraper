@@ -164,9 +164,20 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             const data = JSON.parse(event.data);
             setLastMessage(data);
             
+            console.log('WebSocket message received:', data.type, data);
+            
             // Handle database status updates
             if (data.type === 'database_status') {
               setIsDatabaseDown(!data.connected);
+            }
+            
+            // Handle direct message events and dispatch custom events
+            if (data.type === 'new_direct_message' || data.type === 'direct_message_sent') {
+              console.log('Dispatching direct message event:', data);
+              const directMessageEvent = new CustomEvent('direct-message-received', {
+                detail: data
+              });
+              window.dispatchEvent(directMessageEvent);
             }
           } catch (error) {
             console.error('Error handling WebSocket message:', error);
