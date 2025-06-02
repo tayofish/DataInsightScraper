@@ -341,45 +341,49 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     commentMutation.mutate(comment);
   };
 
-  // Helpers for mentions
+  // Helpers for mentions - improved predictive filtering
   const handleCommentInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value;
     setComment(value);
     
-    // Check for @ mentions, but only if cursor is right after @ or within the mention query
+    // Check for @ mentions with improved detection
     if (commentInputRef.current) {
       const cursorPos = commentInputRef.current.selectionStart;
       const textBeforeCursor = value.substring(0, cursorPos);
       const lastAtPos = textBeforeCursor.lastIndexOf('@');
       
-      // Only show mentions if @ is followed by characters without space
-      // and cursor is still within the potential mention (not after a space)
+      // Show mentions if @ is found and is either at start or preceded by space/newline
       if (lastAtPos !== -1 && 
-          (lastAtPos === 0 || textBeforeCursor[lastAtPos - 1] === ' ') &&
-          !textBeforeCursor.substring(lastAtPos).includes(' ')) {
+          (lastAtPos === 0 || /[\s\n]/.test(textBeforeCursor[lastAtPos - 1]))) {
         
-        const query = textBeforeCursor.substring(lastAtPos + 1);
-        setMentionQuery(query);
+        // Get the text after @ up to the cursor position
+        const afterAt = textBeforeCursor.substring(lastAtPos + 1);
         
-        // Calculate position for the mention popover
-        const lines = textBeforeCursor.split('\n');
-        const currentLineIndex = lines.length - 1;
-        const currentLineChars = lines[currentLineIndex].length;
-        
-        // Rough estimation of position
-        const lineHeight = 24;
-        const charWidth = 8;
-        
-        setMentionPosition({
-          top: (currentLineIndex * lineHeight) + 24,
-          left: Math.min(currentLineChars * charWidth, 300),
-        });
-        
-        setShowMentions(true);
-      } else {
-        setShowMentions(false);
+        // Only continue if there's no space in the query (still typing the mention)
+        if (!afterAt.includes(' ') && !afterAt.includes('\n')) {
+          setMentionQuery(afterAt.toLowerCase());
+          
+          // Calculate position for the mention popover
+          const textarea = commentInputRef.current;
+          const rect = textarea.getBoundingClientRect();
+          const lines = textBeforeCursor.split('\n');
+          const currentLineIndex = lines.length - 1;
+          const currentLineChars = lines[currentLineIndex].length;
+          
+          // Better position calculation
+          const lineHeight = 20;
+          const charWidth = 7;
+          
+          setMentionPosition({
+            top: (currentLineIndex * lineHeight) + 30,
+            left: Math.min(currentLineChars * charWidth, 300),
+          });
+          
+          setShowMentions(true);
+          return;
+        }
       }
-    } else {
+      
       setShowMentions(false);
     }
   };
@@ -770,11 +774,33 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           <ScrollArea className="h-64">
                             <div className="p-2">
                               {users
-                                .filter((user: User) => 
-                                  mentionQuery === '' || 
-                                  user.username.toLowerCase().includes(mentionQuery.toLowerCase()) ||
-                                  (user.name && user.name.toLowerCase().includes(mentionQuery.toLowerCase()))
-                                )
+                                .filter((user: User) => {
+                                  if (mentionQuery === '') return true;
+                                  const query = mentionQuery.toLowerCase();
+                                  const username = user.username.toLowerCase();
+                                  const name = user.name?.toLowerCase() || '';
+                                  
+                                  // Prioritize matches that start with the query
+                                  return username.startsWith(query) || 
+                                         name.startsWith(query) ||
+                                         username.includes(query) || 
+                                         name.includes(query);
+                                })
+                                .sort((a: User, b: User) => {
+                                  if (mentionQuery === '') return 0;
+                                  const query = mentionQuery.toLowerCase();
+                                  
+                                  // Sort by relevance: exact starts first, then contains
+                                  const aUsernameStarts = a.username.toLowerCase().startsWith(query);
+                                  const bUsernameStarts = b.username.toLowerCase().startsWith(query);
+                                  const aNameStarts = a.name?.toLowerCase().startsWith(query) || false;
+                                  const bNameStarts = b.name?.toLowerCase().startsWith(query) || false;
+                                  
+                                  if ((aUsernameStarts || aNameStarts) && !(bUsernameStarts || bNameStarts)) return -1;
+                                  if (!(aUsernameStarts || aNameStarts) && (bUsernameStarts || bNameStarts)) return 1;
+                                  
+                                  return a.name?.localeCompare(b.name || '') || 0;
+                                })
                                 .map((user: User) => (
                                   <div 
                                     key={user.id}
