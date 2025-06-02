@@ -26,7 +26,28 @@ async function loadFavicon() {
   }
 }
 
-// Load favicon when app starts
+// Load and apply app name to document title
+async function loadAppName() {
+  try {
+    const response = await fetch('/api/app-settings/app-name');
+    if (response.ok) {
+      const appNameSetting = await response.json();
+      if (appNameSetting?.value) {
+        document.title = appNameSetting.value;
+      }
+    } else {
+      // Default title if no custom name is set
+      document.title = 'Task Management System';
+    }
+  } catch (error) {
+    // Default title if there's an error
+    document.title = 'Task Management System';
+    console.log('Using default app name');
+  }
+}
+
+// Load favicon and app name when app starts
 loadFavicon();
+loadAppName();
 
 createRoot(document.getElementById("root")!).render(<App />);

@@ -3453,6 +3453,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get app name
+  app.get("/api/app-settings/app-name", async (req, res) => {
+    try {
+      // Get the app name setting from the database
+      const appNameSetting = await storage.getAppSettingByKey("app-name");
+      
+      if (!appNameSetting) {
+        return res.status(404).json({ message: "App name not found" });
+      }
+      
+      return res.status(200).json(appNameSetting);
+    } catch (error) {
+      console.error("Error fetching app name:", error);
+      return res.status(500).json({ message: "Failed to fetch app name" });
+    }
+  });
+  
+  // Update app name (admin only)
+  app.post("/api/app-settings/app-name", isAdmin, async (req, res) => {
+    try {
+      const { appName } = req.body;
+      
+      if (!appName || typeof appName !== 'string') {
+        return res.status(400).json({ message: "App name is required and must be a string" });
+      }
+      
+      if (appName.trim().length === 0) {
+        return res.status(400).json({ message: "App name cannot be empty" });
+      }
+      
+      if (appName.length > 100) {
+        return res.status(400).json({ message: "App name must be less than 100 characters" });
+      }
+      
+      // Get current app name to potentially update
+      const currentAppName = await storage.getAppSettingByKey("app-name");
+      
+      // Save or update the app name setting in the database
+      let appNameSetting;
+      if (currentAppName) {
+        // Update existing setting
+        appNameSetting = await storage.updateAppSetting(currentAppName.id, {
+          value: appName.trim(),
+          updatedAt: new Date()
+        });
+      } else {
+        // Create new setting
+        appNameSetting = await storage.createAppSetting({
+          key: "app-name",
+          value: appName.trim(),
+          description: "The name of the application displayed in the interface"
+        });
+      }
+      
+      return res.status(200).json(appNameSetting);
+    } catch (error) {
+      console.error("Error updating app name:", error);
+      return res.status(500).json({ message: "Failed to update app name" });
+    }
+  });
+
   // === COLLABORATION FEATURES API ROUTES ===
   
   // === CHANNELS ===
