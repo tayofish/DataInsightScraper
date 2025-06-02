@@ -291,6 +291,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           } else if (data.type === 'typing_indicator') {
             // Handle typing indicators
             console.log('[WebSocket] Typing indicator received:', data);
+          } else if (data.type === 'ping') {
+            // Respond to server ping with pong to keep connection alive
+            if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+              socketRef.current.send(JSON.stringify({ type: 'pong' }));
+            }
           } else {
             console.log('[WebSocket] Unhandled message type:', data.type);
           }

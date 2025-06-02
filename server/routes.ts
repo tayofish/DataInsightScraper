@@ -5090,20 +5090,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'auth_success', 
             message: 'Successfully authenticated' 
           }));
-          
-          // Log user activity - wrapped in try/catch to handle rate limiting
-          try {
-            await db.insert(userActivities).values({
-              userId,
-              action: 'websocket_connect',
-              details: JSON.stringify({ 
-                timestamp: new Date().toISOString()
-              })
-            });
-          } catch (error) {
-            console.warn('Unable to log user activity due to database rate limiting - continuing without logging');
-            // Don't fail the connection if we can't log the activity
-          }
+        }
+        
+        // Handle pong response to ping for heartbeat
+        else if (data.type === 'pong') {
+          // Keep connection alive - no action needed, just acknowledge
+          console.log(`Received pong from user ${ws.userId || 'unknown'}`);
         }
         
         // Handle channel message
@@ -5603,6 +5595,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       type: 'welcome', 
       message: 'Connected to Promellon WebSocket server' 
     }));
+
+    // Set up heartbeat to keep connection alive
+    const heartbeatInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      } else {
+        clearInterval(heartbeatInterval);
+      }
+    }, 30000); // Send ping every 30 seconds
+
+    // Clean up interval on connection close
+    ws.on('close', () => {
+      clearInterval(heartbeatInterval);
+    });
   });
 
   return httpServer;
