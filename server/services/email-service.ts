@@ -7,6 +7,12 @@ import { storage } from '../storage';
 let transporter: Transporter | null = null;
 let smtpSettings: any = null;
 
+// Helper function to generate complete task URLs
+function getTaskUrl(taskId: number): string {
+  const baseUrl = process.env.APP_URL || 'https://1f298515-510f-433d-8fad-5ce4f4ce799e-00-3kl0zuem3y3dy.worf.replit.dev';
+  return `${baseUrl}/tasks/${taskId}`;
+}
+
 /**
  * Initialize the email service with the active SMTP configuration
  */
@@ -198,7 +204,7 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
     return;
   }
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
+  const taskUrl = getTaskUrl(task.id);
   console.log('Sending task creation notification for task:', {
     taskId: task.id,
     title: task.title,
@@ -343,7 +349,7 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
     assignedById: assignedBy?.id
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
+  const taskUrl = getTaskUrl(task.id);
   const assigneeName = assignee.name || assignee.username || 'User';
   const assignerName = assignedBy?.name || assignedBy?.username || 'Admin';
   
@@ -363,14 +369,29 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
       to: assignee.email,
       subject: `[Promellon] You've been assigned a task: ${task.title}`,
       html: `
-        <h2>Task Assignment</h2>
-        <p>Hello ${assigneeName},</p>
-        <p>You have been assigned to a task by ${assignerName}:</p>
-        <p><strong>${task.title}</strong></p>
-        <p>${task.description || ''}</p>
-        <p>Priority: ${task.priority}</p>
-        <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-        <p><a href="${taskUrl}">View Task</a></p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb; margin-bottom: 20px;">Task Assignment</h2>
+          <p>Hello ${assigneeName},</p>
+          <p>You have been assigned to a task by ${assignerName}:</p>
+          <p style="font-size: 18px; font-weight: bold; margin: 20px 0;">${task.title}</p>
+          <p style="margin: 15px 0;">${task.description || ''}</p>
+          <p style="margin: 10px 0;"><strong>Priority:</strong> ${task.priority}</p>
+          <p style="margin: 10px 0;"><strong>Due date:</strong> ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${taskUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">View Task</a>
+          </div>
+          <p style="margin-top: 30px; font-size: 14px; color: #666;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            <a href="${taskUrl}" style="color: #2563eb; word-break: break-all;">${taskUrl}</a>
+          </p>
+        </body>
+        </html>
       `,
     });
   }
