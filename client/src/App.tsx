@@ -1,6 +1,6 @@
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,13 +31,32 @@ import { AdminRoute } from "@/lib/admin-route";
 import { useEffect, useState } from "react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
+  // Fetch app name
+  const { data: appNameSetting } = useQuery({
+    queryKey: ["/api/app-settings/app-name"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/app-settings/app-name");
+        if (res.status === 404) {
+          return { value: "Task Management System" }; // Default name
+        }
+        if (!res.ok) throw new Error("Failed to fetch app name");
+        return res.json();
+      } catch (error) {
+        return { value: "Task Management System" }; // Default name
+      }
+    }
+  });
+
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />
       <div className="flex flex-col w-0 flex-1">
         <header className="h-16 flex items-center justify-between px-6 border-b border-gray-200 bg-white/60 backdrop-blur-sm z-10">
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold gradient-heading">Task Management System</h1>
+            <h1 className="text-xl font-semibold gradient-heading">
+              {appNameSetting?.value || "Task Management System"}
+            </h1>
           </div>
           <div className="flex items-center gap-4">
             <Button variant="outline" size="sm" className="rounded-full hover:bg-primary/10 shadow-sm">
