@@ -26,7 +26,8 @@ export function useNotifications() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -53,7 +54,8 @@ export function useNotifications() {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -84,7 +86,8 @@ export function useNotifications() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -111,7 +114,8 @@ export function useNotifications() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json"
-        }
+        },
+        body: JSON.stringify({})
       });
       if (!response.ok) {
         const errorData = await response.json();
