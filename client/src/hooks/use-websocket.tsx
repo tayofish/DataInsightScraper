@@ -166,7 +166,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               );
             }
           } else if (data.type === 'new_channel_message' && data.message) {
-            console.log('[WebSocket] Received channel message');
+            console.log('[WebSocket] Received new channel message:', data.message);
+            console.log('[WebSocket] Current user ID:', user?.id);
+            console.log('[WebSocket] Message user ID:', data.message.userId);
             
             // Update channel messages queries
             if (data.message.channelId) {
