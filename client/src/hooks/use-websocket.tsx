@@ -131,6 +131,20 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // Debug: Check user authentication state
           console.log('[WebSocket] Current user:', user ? user.id : 'not authenticated');
           
+          // CRITICAL: Process channel messages even without user context for UI updates
+          if (data.type === 'new_channel_message' && data.message) {
+            console.log('[WebSocket] *** PROCESSING CHANNEL MESSAGE - FORCED ***');
+            console.log('[WebSocket] Message data:', data.message);
+            
+            // Force immediate UI update
+            if (data.message.channelId) {
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
+              console.log('[WebSocket] Forced query invalidation for channel:', data.message.channelId);
+            }
+            setLastMessage(data);
+            return; // Skip the rest and process this immediately
+          }
+          
           // Check for database connection errors and handle them gracefully
           if (data.type === 'error' && data.errorType === 'database_rate_limit') {
             console.warn('[WebSocket] Database rate limit error:', data.message);
