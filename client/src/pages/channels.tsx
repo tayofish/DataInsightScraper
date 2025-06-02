@@ -460,6 +460,31 @@ export default function ChannelsPage() {
     }
   };
 
+  // Utility function to format date for headers
+  const formatDateHeader = (date: Date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const messageDate = new Date(date);
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    if (messageDate.getTime() === today.getTime()) {
+      return "Today";
+    } else if (messageDate.getTime() === yesterday.getTime()) {
+      return "Yesterday";
+    } else {
+      return messageDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+  };
+
   // Combine server messages with optimistic ones
   const combinedMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
@@ -487,6 +512,37 @@ export default function ChannelsPage() {
       return dateA - dateB; // ascending order (oldest first, newest last)
     });
   }, [messagesQuery.data, messages]);
+
+  // Group messages by date for rendering with date separators
+  const groupedMessages = useMemo(() => {
+    const groups: { date: string; messages: any[] }[] = [];
+    let currentDate = '';
+    let currentGroup: any[] = [];
+
+    combinedMessages.forEach(message => {
+      const messageDate = new Date(message.createdAt).toDateString();
+      
+      if (messageDate !== currentDate) {
+        // Save previous group if it exists
+        if (currentGroup.length > 0) {
+          groups.push({ date: currentDate, messages: currentGroup });
+        }
+        
+        // Start new group
+        currentDate = messageDate;
+        currentGroup = [message];
+      } else {
+        currentGroup.push(message);
+      }
+    });
+
+    // Don't forget the last group
+    if (currentGroup.length > 0) {
+      groups.push({ date: currentDate, messages: currentGroup });
+    }
+
+    return groups;
+  }, [combinedMessages]);
   
   // Get channel details
   const channelQuery = useQuery({
@@ -1726,13 +1782,28 @@ export default function ChannelsPage() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {combinedMessages.map(message => {
-                    const isOptimistic = message.isOptimistic;
-                    const isOffline = message.offlineMode;
-                    const hasError = message.error;
-                    
-                    return (
-                      <div key={message.id} className="flex gap-3 group">
+                  {groupedMessages.map((group, groupIndex) => (
+                    <div key={groupIndex}>
+                      {/* Date separator */}
+                      <div className="flex items-center justify-center my-6">
+                        <div className="flex-1 border-t border-border"></div>
+                        <div className="px-4 py-2 bg-muted rounded-full">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            {formatDateHeader(new Date(group.date))}
+                          </span>
+                        </div>
+                        <div className="flex-1 border-t border-border"></div>
+                      </div>
+                      
+                      {/* Messages for this date */}
+                      <div className="space-y-4">
+                        {group.messages.map(message => {
+                          const isOptimistic = message.isOptimistic;
+                          const isOffline = message.offlineMode;
+                          const hasError = message.error;
+                          
+                          return (
+                            <div key={message.id} className="flex gap-3 group">
                         <Avatar className="h-10 w-10 rounded-full">
                           <AvatarImage src={message.user?.avatar || undefined} alt={message.user?.name || message.user?.username} />
                           <AvatarFallback>{message.user?.name?.[0] || message.user?.username?.[0] || '?'}</AvatarFallback>
@@ -1853,6 +1924,9 @@ export default function ChannelsPage() {
                       </div>
                     );
                   })}
+                        </div>
+                      </div>
+                    ))}
                   <div ref={messagesEndRef} />
                 </div>
               )}
