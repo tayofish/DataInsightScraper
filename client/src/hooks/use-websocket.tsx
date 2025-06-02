@@ -113,6 +113,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
       // Message received
       socketRef.current.onmessage = (event) => {
+        console.log('[WebSocket] Raw message handler called');
         try {
           // Validate message format
           if (typeof event.data !== 'string' || !event.data.trim()) {
