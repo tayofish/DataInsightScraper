@@ -672,9 +672,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === USER ROUTES ===
   app.get("/api/users", async (req, res) => {
+    // Require authentication
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    
     try {
       const users = await storage.getAllUsers();
-      return res.status(200).json(users);
+      // Remove sensitive data from response
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        departmentId: user.departmentId
+      }));
+      return res.status(200).json(safeUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       return res.status(500).json({ message: "Failed to fetch users" });
@@ -683,6 +697,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Get user by ID
   app.get("/api/users/:id", async (req, res) => {
+    // Require authentication
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -694,7 +713,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      return res.status(200).json(user);
+      // Remove sensitive data from response
+      const safeUser = {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        departmentId: user.departmentId
+      };
+
+      return res.status(200).json(safeUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       return res.status(500).json({ message: "Failed to fetch user" });
