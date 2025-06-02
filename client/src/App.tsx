@@ -59,12 +59,6 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" className="rounded-full hover:bg-primary/10 shadow-sm">
-              <span className="mr-2">🎯</span> Quick Add
-            </Button>
-            <div className="bg-primary/10 rounded-full px-3 py-1.5 flex items-center text-xs font-medium shadow-inner text-primary">
-              <span className="mr-1">✨</span> Modern UI activated
-            </div>
             <NotificationDropdown />
           </div>
         </header>
