@@ -99,6 +99,12 @@ function Router() {
         </AppLayout>
       )} />
       
+      <ProtectedRoute path="/tasks/:id" component={() => (
+        <AppLayout>
+          <Tasks />
+        </AppLayout>
+      )} />
+      
       <ProtectedRoute path="/projects" component={() => (
         <AppLayout>
           <Projects />

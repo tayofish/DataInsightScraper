@@ -12,11 +12,16 @@ interface TasksProps {
 
 export default function Tasks({ showNewTaskForm = false }: TasksProps) {
   const [isTaskFormOpen, setIsTaskFormOpen] = React.useState(showNewTaskForm);
+  const [selectedTaskId, setSelectedTaskId] = React.useState<number | null>(null);
   const [location] = useLocation();
   
-  // Get URL query params
+  // Get URL query params and route params
   const searchParams = new URLSearchParams(window.location.search);
   const projectIdParam = searchParams.get('projectId');
+  
+  // Check if we're on a task detail route (/tasks/:id)
+  const taskIdMatch = location.match(/^\/tasks\/(\d+)$/);
+  const taskIdFromRoute = taskIdMatch ? parseInt(taskIdMatch[1], 10) : null;
   
   const [filters, setFilters] = React.useState<TaskFilterValues>({
     assigneeId: -2,
@@ -29,12 +34,15 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
     sortBy: 'dueDate',
   });
   
-  // Open task form if showNewTaskForm prop is true
+  // Open task form if showNewTaskForm prop is true or if accessing a task detail route
   useEffect(() => {
     if (showNewTaskForm) {
       setIsTaskFormOpen(true);
+    } else if (taskIdFromRoute) {
+      setSelectedTaskId(taskIdFromRoute);
+      setIsTaskFormOpen(true);
     }
-  }, [showNewTaskForm]);
+  }, [showNewTaskForm, taskIdFromRoute]);
 
   const handleFilterChange = (newFilters: TaskFilterValues) => {
     setFilters(newFilters);
@@ -78,8 +86,12 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
       {/* Task Form Dialog */}
       <TaskForm
         isOpen={isTaskFormOpen}
-        onClose={() => setIsTaskFormOpen(false)}
+        onClose={() => {
+          setIsTaskFormOpen(false);
+          setSelectedTaskId(null);
+        }}
         task={null}
+        taskId={selectedTaskId}
       />
     </div>
   );

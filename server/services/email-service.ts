@@ -198,7 +198,7 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
     return;
   }
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
   console.log('Sending task creation notification for task:', {
     taskId: task.id,
     title: task.title,
@@ -343,7 +343,7 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
     assignedById: assignedBy?.id
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
   const assigneeName = assignee.name || assignee.username || 'User';
   const assignerName = assignedBy?.name || assignedBy?.username || 'Admin';
   
