@@ -111,6 +111,7 @@ type ChannelFormValues = z.infer<typeof channelFormSchema>;
 export default function ChannelsPage() {
   const { user } = useAuth();
   const { sendMessage, status: wsStatus } = useWebSocket();
+  const queryClient = useQueryClient();
   const [channels, setChannels] = useState<any[]>([]);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<any>(null);
@@ -840,9 +841,6 @@ export default function ChannelsPage() {
       setMentionDropdownOpen(false);
     }
   }, [messageText, cursorPosition, users]);
-  
-  // Query client for react-query
-  const queryClient = useQueryClient();
   
   // Add members to channel
   const addMembersToChannel = async (userIds: number[]) => {
