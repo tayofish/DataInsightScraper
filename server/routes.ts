@@ -4715,10 +4715,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [newMessage] = await db.insert(directMessages).values(messageData).returning();
       console.log("Direct message file upload - DB inserted message:", JSON.stringify(newMessage));
       
-      // Add user data to the message for the response
+      // Add sanitized user data to the message for the response
       const fullMessage = {
         ...newMessage,
-        sender: req.user
+        sender: {
+          id: req.user!.id,
+          username: req.user!.username,
+          name: req.user!.name,
+          email: req.user!.email,
+          avatar: req.user!.avatar,
+          isAdmin: req.user!.isAdmin
+        }
       };
       
       console.log("Direct message file upload - fullMessage:", JSON.stringify(fullMessage));
@@ -4908,11 +4915,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      // Create sanitized message without password hashes
+      const sanitizedMessage = completeMessage ? {
+        ...completeMessage,
+        sender: {
+          id: completeMessage.sender.id,
+          username: completeMessage.sender.username,
+          name: completeMessage.sender.name,
+          email: completeMessage.sender.email,
+          avatar: completeMessage.sender.avatar,
+          isAdmin: completeMessage.sender.isAdmin
+        },
+        receiver: {
+          id: completeMessage.receiver.id,
+          username: completeMessage.receiver.username,
+          name: completeMessage.receiver.name,
+          email: completeMessage.receiver.email,
+          avatar: completeMessage.receiver.avatar,
+          isAdmin: completeMessage.receiver.isAdmin
+        }
+      } : null;
+      
       // REAL-TIME BROADCASTING: Send WebSocket notifications to both users
       try {
         const wss = getWebSocketServer();
-        if (wss && completeMessage) {
-          console.log("Broadcasting real-time message via HTTP route:", completeMessage.id);
+        if (wss && sanitizedMessage) {
+          console.log("Broadcasting real-time message via HTTP route:", sanitizedMessage.id);
           
           wss.clients.forEach((client: ExtendedWebSocket) => {
             if (client.readyState === WebSocket.OPEN) {
@@ -4920,7 +4948,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (client.userId === receiverId) {
                 client.send(JSON.stringify({
                   type: 'new_direct_message',
-                  message: completeMessage
+                  message: sanitizedMessage
                 }));
                 console.log("Sent new message notification to receiver:", receiverId);
               }
@@ -4928,7 +4956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               else if (client.userId === req.user!.id) {
                 client.send(JSON.stringify({
                   type: 'direct_message_sent',
-                  message: completeMessage
+                  message: sanitizedMessage
                 }));
                 console.log("Sent confirmation to sender:", req.user!.id);
               }
@@ -4940,7 +4968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue - don't fail the HTTP request if WebSocket fails
       }
       
-      return res.status(201).json(completeMessage);
+      return res.status(201).json(sanitizedMessage);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid message data", errors: error.errors });
