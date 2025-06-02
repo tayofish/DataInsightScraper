@@ -179,11 +179,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.log('[WebSocket] Current user ID:', user?.id);
             console.log('[WebSocket] Message user ID:', data.message.userId);
             
-            // Update channel messages queries
+            // Update channel messages queries immediately
             if (data.message.channelId) {
               console.log('[WebSocket] Updating messages for channel:', data.message.channelId);
               
-              // First update the cache directly for immediate UI updates
+              // Force immediate UI update by invalidating queries
+              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
+              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
+              
+              // Also update the cache directly for instant updates
               queryClient.setQueryData(
                 [`/api/channels/${data.message.channelId}/messages`], 
                 (oldData: any[] = []) => {
@@ -198,13 +202,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   
                   // Add the new message if it doesn't already exist
                   const exists = filteredData.some(msg => msg.id === data.message.id);
-                  return exists ? filteredData : [...filteredData, data.message];
+                  const result = exists ? filteredData : [...filteredData, data.message];
+                  console.log('[WebSocket] Updated message cache, new count:', result.length);
+                  return result;
                 }
               );
-              
-              // Then invalidate the queries to ensure consistency
-              queryClient.invalidateQueries({ queryKey: [`/api/channels/${data.message.channelId}/messages`] });
-              queryClient.invalidateQueries({ queryKey: [`/api/channels`] });
             }
           } else if ((data.type === 'message_updated' || data.type === 'channel_message_updated') && data.message) {
             console.log('[WebSocket] Received updated channel message:', data);
