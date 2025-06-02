@@ -397,7 +397,7 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
     mentionContent: comment.substring(0, 30) + (comment.length > 30 ? '...' : '')
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
   const userName = mentionedUser.name || mentionedUser.username || 'User';
   const mentionerName = mentionedBy?.name || mentionedBy?.username || 'Admin';
   
@@ -463,7 +463,7 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
     commentPreview: comment.substring(0, 20) + (comment.length > 20 ? '...' : '')
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
   const commenterName = commentBy?.name || commentBy?.username || 'Admin';
   let emailsSent = 0;
   let notificationsSent = 0;
@@ -654,7 +654,7 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
     role
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks?id=${task.id}`;
+  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
   const userName = user.name || user.username || 'User';
   const inviterName = inviter?.name || inviter?.username || 'Administrator';
   
