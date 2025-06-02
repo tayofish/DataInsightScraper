@@ -121,7 +121,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           }
 
           const data = JSON.parse(event.data);
-          console.log('[WebSocket] Message received:', data);
+          console.log('[WebSocket] Message received:', data.type, data);
+          
+          // Debug: Log the exact type we're checking
+          if (data.type && data.type.includes('channel')) {
+            console.log('[WebSocket] Channel-related message detected:', data.type);
+          }
           
           // Check for database connection errors and handle them gracefully
           if (data.type === 'error' && data.errorType === 'database_rate_limit') {
