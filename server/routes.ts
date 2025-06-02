@@ -5286,9 +5286,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   // For public channels, send to everyone
                   // For private channels, check if user is a member
                   if (channel.type === 'public' || 
-                      channel.members.some(m => m.userId === parseInt(userId))) {
+                      channel.members.some(m => m.userId === userId)) {
                     connection.send(JSON.stringify(broadcastMessage));
                     broadcastCount++;
+                    console.log(`Sent channel message to user ${userId}`);
                   }
                 }
               } catch (connectionError) {
