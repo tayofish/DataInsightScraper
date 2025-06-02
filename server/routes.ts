@@ -4218,19 +4218,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Validate and create message
-      console.log('Request body for message validation:', req.body);
-      console.log('Full message data being validated:', {
-        ...req.body,
+      // Prepare message data with proper mentions handling
+      const messagePayload = {
+        content: req.body.content,
         channelId,
-        userId: req.user!.id
-      });
+        userId: req.user!.id,
+        type: req.body.type || 'text',
+        parentId: req.body.parentId || null,
+        // Convert mentions array to JSON string if provided
+        mentions: req.body.mentions && Array.isArray(req.body.mentions) && req.body.mentions.length > 0 
+          ? JSON.stringify(req.body.mentions) 
+          : null
+      };
       
-      const messageData = messageInsertSchema.parse({
-        ...req.body,
-        channelId,
-        userId: req.user!.id
-      });
+      const messageData = messageInsertSchema.parse(messagePayload);
       
       const [newMessage] = await db.insert(messages).values(messageData).returning();
       
