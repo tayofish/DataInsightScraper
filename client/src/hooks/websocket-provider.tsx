@@ -179,6 +179,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               });
               window.dispatchEvent(directMessageEvent);
             }
+            
+            // Handle channel message events and dispatch custom events
+            if (data.type === 'new_channel_message') {
+              console.log('*** WEBSOCKET-PROVIDER: Processing channel message ***');
+              console.log('Channel message data:', data);
+              const channelMessageEvent = new CustomEvent('channel-message-received', {
+                detail: data
+              });
+              window.dispatchEvent(channelMessageEvent);
+            }
           } catch (error) {
             console.error('Error handling WebSocket message:', error);
           }

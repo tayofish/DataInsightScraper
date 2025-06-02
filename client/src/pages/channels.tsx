@@ -670,6 +670,40 @@ export default function ChannelsPage() {
     }
   }, [channelQuery.data, settingsForm]);
   
+  // Listen for real-time channel messages
+  useEffect(() => {
+    const handleChannelMessage = (event: CustomEvent) => {
+      console.log('*** CHANNELS PAGE: Received channel message event ***');
+      const { detail } = event;
+      
+      if (detail && detail.message && detail.message.channelId === selectedChannelId) {
+        console.log('Processing channel message for current channel:', detail.message);
+        
+        // Add message to local state immediately for real-time updates
+        setMessages(prevMessages => {
+          const messageExists = prevMessages.some(msg => msg.id === detail.message.id);
+          if (!messageExists) {
+            return [...prevMessages, detail.message].sort((a, b) => 
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+            );
+          }
+          return prevMessages;
+        });
+        
+        // Also invalidate queries to keep cache in sync
+        queryClient.invalidateQueries({ queryKey: [`/api/channels/${detail.message.channelId}/messages`] });
+      }
+    };
+    
+    // Add event listener for channel messages
+    window.addEventListener('channel-message-received', handleChannelMessage as EventListener);
+    
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('channel-message-received', handleChannelMessage as EventListener);
+    };
+  }, [selectedChannelId, queryClient]);
+
   // Send typing indicator when user is typing
   useEffect(() => {
     let typingTimeout: NodeJS.Timeout | null = null;
