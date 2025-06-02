@@ -3361,6 +3361,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get favicon
+  app.get("/api/app-settings/favicon", async (req, res) => {
+    try {
+      // Get the favicon setting from the database
+      const faviconSetting = await storage.getAppSettingByKey("favicon");
+      
+      if (!faviconSetting) {
+        return res.status(404).json({ message: "Favicon not found" });
+      }
+      
+      return res.status(200).json(faviconSetting);
+    } catch (error) {
+      console.error("Error fetching favicon:", error);
+      return res.status(500).json({ message: "Failed to fetch favicon" });
+    }
+  });
+  
+  // Upload favicon (admin only)
+  app.post("/api/app-settings/favicon", isAdmin, upload.single("favicon"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No favicon file uploaded" });
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        // Delete the uploaded file if it's not valid
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "Invalid file type. Only PNG and ICO files are allowed." });
+      }
+      
+      // Validate file size (1MB max)
+      if (req.file.size > 1 * 1024 * 1024) {
+        // Delete the uploaded file if it's too large
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "File size too large. Maximum size is 1MB." });
+      }
+      
+      // Create the favicon URL path
+      const faviconUrl = `/uploads/${req.file.filename}`;
+      
+      // Get current favicon to potentially clean up old file
+      const currentFavicon = await storage.getAppSettingByKey("favicon");
+      
+      // Save or update the favicon setting in the database
+      let faviconSetting;
+      if (currentFavicon) {
+        // Update existing setting
+        faviconSetting = await storage.updateAppSetting(currentFavicon.id, {
+          value: faviconUrl,
+          updatedAt: new Date()
+        });
+      } else {
+        // Create new setting
+        faviconSetting = await storage.createAppSetting({
+          key: "favicon",
+          value: faviconUrl,
+          description: "Favicon used in browser tabs and bookmarks"
+        });
+      }
+      
+      // Clean up old favicon file if it exists and is different from new one
+      if (currentFavicon?.value && currentFavicon.value !== faviconUrl) {
+        const oldFaviconPath = path.join(process.cwd(), currentFavicon.value);
+        try {
+          if (fs.existsSync(oldFaviconPath)) {
+            fs.unlinkSync(oldFaviconPath);
+          }
+        } catch (cleanupError) {
+          console.error("Error cleaning up old favicon:", cleanupError);
+          // Don't fail the request if cleanup fails
+        }
+      }
+      
+      return res.status(200).json(faviconSetting);
+    } catch (error) {
+      console.error("Error uploading favicon:", error);
+      
+      // Clean up uploaded file if there was an error
+      if (req.file && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up file after error:", cleanupError);
+        }
+      }
+      
+      return res.status(500).json({ message: "Failed to upload favicon" });
+    }
+  });
+
   // === COLLABORATION FEATURES API ROUTES ===
   
   // === CHANNELS ===

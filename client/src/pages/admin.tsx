@@ -28,6 +28,7 @@ import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as
 import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
 import SmtpConfigForm from "@/components/smtp-config-form";
 import LogoUpload from "@/components/logo-upload";
+import FaviconUpload from "@/components/favicon-upload";
 
 // User management form schema
 const userFormSchema = z.object({
@@ -1009,7 +1010,10 @@ export default function AdminPage() {
           </TabsComponentList>
           
           <TabsComponentContent value="branding" className="mt-6">
-            <LogoUpload />
+            <div className="space-y-6">
+              <LogoUpload />
+              <FaviconUpload />
+            </div>
           </TabsComponentContent>
           
           <TabsComponentContent value="smtp" className="mt-6">
