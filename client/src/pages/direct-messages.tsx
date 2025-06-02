@@ -966,8 +966,8 @@ const DirectMessagesPage: FC = () => {
                         </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{convo.user.name || convo.user.username}</div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="font-medium truncate text-left">{convo.user.name || convo.user.username}</div>
                     </div>
                   </div>
                 </Button>
