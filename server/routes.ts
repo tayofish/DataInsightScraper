@@ -4591,9 +4591,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ? lastMessage.receiver 
             : lastMessage.sender;
           
+          // Sanitize user data to remove password hashes
+          const sanitizedUser = {
+            id: otherUser.id,
+            username: otherUser.username,
+            name: otherUser.name,
+            email: otherUser.email,
+            avatar: otherUser.avatar,
+            isAdmin: otherUser.isAdmin
+          };
+          
+          // Sanitize last message to remove password hashes
+          const sanitizedLastMessage = {
+            ...lastMessage,
+            sender: {
+              id: lastMessage.sender.id,
+              username: lastMessage.sender.username,
+              name: lastMessage.sender.name,
+              email: lastMessage.sender.email,
+              avatar: lastMessage.sender.avatar,
+              isAdmin: lastMessage.sender.isAdmin
+            },
+            receiver: {
+              id: lastMessage.receiver.id,
+              username: lastMessage.receiver.username,
+              name: lastMessage.receiver.name,
+              email: lastMessage.receiver.email,
+              avatar: lastMessage.receiver.avatar,
+              isAdmin: lastMessage.receiver.isAdmin
+            }
+          };
+          
           conversations.push({
-            user: otherUser,
-            lastMessage,
+            user: sanitizedUser,
+            lastMessage: sanitizedLastMessage,
             unreadCount: unreadCount[0]?.count || 0
           });
         }
@@ -4668,7 +4699,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
       
-      return res.status(200).json(messages);
+      // Sanitize messages to remove password hashes
+      const sanitizedMessages = messages.map(message => ({
+        ...message,
+        sender: {
+          id: message.sender.id,
+          username: message.sender.username,
+          name: message.sender.name,
+          email: message.sender.email,
+          avatar: message.sender.avatar,
+          isAdmin: message.sender.isAdmin
+        },
+        receiver: {
+          id: message.receiver.id,
+          username: message.receiver.username,
+          name: message.receiver.name,
+          email: message.receiver.email,
+          avatar: message.receiver.avatar,
+          isAdmin: message.receiver.isAdmin
+        }
+      }));
+      
+      return res.status(200).json(sanitizedMessages);
     } catch (error) {
       console.error("Error fetching direct messages:", error);
       return res.status(500).json({ message: "Failed to fetch direct messages" });
