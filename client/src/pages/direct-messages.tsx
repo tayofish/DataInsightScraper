@@ -968,11 +968,6 @@ const DirectMessagesPage: FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{convo.user.name || convo.user.username}</div>
-                      {convo.user.email && (
-                        <div className="text-xs text-muted-foreground truncate">
-                          {convo.user.email}
-                        </div>
-                      )}
                     </div>
                   </div>
                 </Button>
