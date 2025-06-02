@@ -79,6 +79,31 @@ const DirectMessagesPage: FC = () => {
   // Flag to control markdown visibility in text input
   const [textFormattingEnabled, setTextFormattingEnabled] = useState(true);
   
+  // Utility function to format date for headers
+  const formatDateHeader = (date: Date) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const messageDate = new Date(date);
+    messageDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+    
+    if (messageDate.getTime() === today.getTime()) {
+      return "Today";
+    } else if (messageDate.getTime() === yesterday.getTime()) {
+      return "Yesterday";
+    } else {
+      return messageDate.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    }
+  };
+  
   // This will modify the displayed text in the text area (hiding/showing markdown symbols)
   const displayText = useMemo(() => {
     if (textFormattingEnabled) {
@@ -1030,10 +1055,55 @@ const DirectMessagesPage: FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Sort messages chronologically - oldest at the top, newest at the bottom */}
-                  {[...messages || []].sort((a, b) => 
-                    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-                  ).map((msg: any) => {
+                  {/* Sort messages chronologically and group by date */}
+                  {(() => {
+                    const sortedMessages = [...messages || []].sort((a, b) => 
+                      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+                    );
+                    
+                    // Group messages by date
+                    const groups: { date: string; messages: any[] }[] = [];
+                    let currentDate = '';
+                    let currentGroup: any[] = [];
+
+                    sortedMessages.forEach(message => {
+                      const messageDate = new Date(message.createdAt).toDateString();
+                      
+                      if (messageDate !== currentDate) {
+                        // Save previous group if it exists
+                        if (currentGroup.length > 0) {
+                          groups.push({ date: currentDate, messages: currentGroup });
+                        }
+                        
+                        // Start new group
+                        currentDate = messageDate;
+                        currentGroup = [message];
+                      } else {
+                        currentGroup.push(message);
+                      }
+                    });
+
+                    // Don't forget the last group
+                    if (currentGroup.length > 0) {
+                      groups.push({ date: currentDate, messages: currentGroup });
+                    }
+
+                    return groups.map((group, groupIndex) => (
+                      <div key={groupIndex}>
+                        {/* Date separator */}
+                        <div className="flex items-center justify-center my-6">
+                          <div className="flex-1 border-t border-border"></div>
+                          <div className="px-4 py-2 bg-muted rounded-full">
+                            <span className="text-sm font-medium text-muted-foreground">
+                              {formatDateHeader(new Date(group.date))}
+                            </span>
+                          </div>
+                          <div className="flex-1 border-t border-border"></div>
+                        </div>
+                        
+                        {/* Messages for this date */}
+                        <div className="space-y-4">
+                          {group.messages.map((msg: any) => {
                     const isCurrentUser = msg.senderId === user.id;
                     return (
                       <div key={msg.id} className={`flex items-start space-x-3 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
@@ -1122,6 +1192,10 @@ const DirectMessagesPage: FC = () => {
                       </div>
                     );
                   })}
+                        </div>
+                      </div>
+                    ));
+                  })()}
                   <div ref={messagesEndRef} />
                 </div>
               )}
