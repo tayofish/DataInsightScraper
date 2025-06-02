@@ -214,8 +214,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         taskId: task.id,
         updateType: 'Comment',
         comment,
-        field: null,
-        oldValue: null,
+        previousValue: null,
         newValue: null,
       };
       
@@ -760,73 +759,111 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                       onChange={handleCommentInput}
                     />
                     
-                    {showMentions && (
-                      <Popover open={showMentions} onOpenChange={setShowMentions}>
-                        <PopoverContent 
-                          className="w-64 p-0" 
-                          align="start"
-                          style={{
-                            position: 'absolute',
-                            top: `${mentionPosition.top}px`,
-                            left: `${mentionPosition.left}px`,
-                          }}
-                        >
-                          <ScrollArea className="h-64">
-                            <div className="p-2">
-                              {users
-                                .filter((user: User) => {
-                                  if (mentionQuery === '') return true;
-                                  const query = mentionQuery.toLowerCase();
-                                  const username = user.username.toLowerCase();
-                                  const name = user.name?.toLowerCase() || '';
+                    {showMentions && users.length > 0 && (
+                      <div 
+                        className="absolute z-50 w-80 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl"
+                        style={{
+                          top: `${mentionPosition.top}px`,
+                          left: `${mentionPosition.left}px`,
+                        }}
+                      >
+                        <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 font-medium">
+                            {mentionQuery ? `Search results for "${mentionQuery}"` : 'Mention a user'}
+                          </p>
+                        </div>
+                        <ScrollArea className="max-h-48">
+                          <div className="p-1">
+                            {(() => {
+                              const filteredUsers = users.filter((user: User) => {
+                                if (mentionQuery === '') return true;
+                                const query = mentionQuery.toLowerCase().trim();
+                                if (query === '') return true;
+                                
+                                const username = user.username.toLowerCase();
+                                const name = user.name?.toLowerCase() || '';
+                                
+                                // Enhanced search: exact match, starts with, or contains
+                                return username === query || 
+                                       name === query ||
+                                       username.startsWith(query) || 
+                                       name.startsWith(query) ||
+                                       username.includes(query) || 
+                                       name.includes(query);
+                              })
+                              .sort((a: User, b: User) => {
+                                if (mentionQuery === '') {
+                                  return (a.name || a.username).localeCompare(b.name || b.username);
+                                }
+                                
+                                const query = mentionQuery.toLowerCase().trim();
+                                const aUsername = a.username.toLowerCase();
+                                const bUsername = b.username.toLowerCase();
+                                const aName = a.name?.toLowerCase() || '';
+                                const bName = b.name?.toLowerCase() || '';
+                                
+                                // Scoring system for better relevance
+                                const scoreUser = (user: User) => {
+                                  const uname = user.username.toLowerCase();
+                                  const fname = user.name?.toLowerCase() || '';
                                   
-                                  // Prioritize matches that start with the query
-                                  return username.startsWith(query) || 
-                                         name.startsWith(query) ||
-                                         username.includes(query) || 
-                                         name.includes(query);
-                                })
-                                .sort((a: User, b: User) => {
-                                  if (mentionQuery === '') return 0;
-                                  const query = mentionQuery.toLowerCase();
-                                  
-                                  // Sort by relevance: exact starts first, then contains
-                                  const aUsernameStarts = a.username.toLowerCase().startsWith(query);
-                                  const bUsernameStarts = b.username.toLowerCase().startsWith(query);
-                                  const aNameStarts = a.name?.toLowerCase().startsWith(query) || false;
-                                  const bNameStarts = b.name?.toLowerCase().startsWith(query) || false;
-                                  
-                                  if ((aUsernameStarts || aNameStarts) && !(bUsernameStarts || bNameStarts)) return -1;
-                                  if (!(aUsernameStarts || aNameStarts) && (bUsernameStarts || bNameStarts)) return 1;
-                                  
-                                  return a.name?.localeCompare(b.name || '') || 0;
-                                })
-                                .map((user: User) => (
-                                  <div 
-                                    key={user.id}
-                                    className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer"
-                                    onClick={() => insertMention(user.username)}
-                                  >
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
-                                      <AvatarFallback>
-                                        {user.name 
-                                          ? `${user.name.split(' ')[0][0]}${user.name.split(' ')[1]?.[0] || ''}`
-                                          : user.username.substring(0, 2)
-                                        }
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                      <p className="text-sm font-medium">{user.name || user.username}</p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">@{user.username}</p>
-                                    </div>
+                                  if (uname === query || fname === query) return 100; // Exact match
+                                  if (uname.startsWith(query) || fname.startsWith(query)) return 50; // Starts with
+                                  if (uname.includes(query) || fname.includes(query)) return 10; // Contains
+                                  return 0;
+                                };
+                                
+                                return scoreUser(b) - scoreUser(a);
+                              })
+                              .slice(0, 8); // Limit results
+                              
+                              if (filteredUsers.length === 0) {
+                                return (
+                                  <div className="p-3 text-center text-sm text-gray-500 dark:text-gray-400">
+                                    No users found matching "{mentionQuery}"
                                   </div>
-                                ))
+                                );
                               }
-                            </div>
-                          </ScrollArea>
-                        </PopoverContent>
-                      </Popover>
+                              
+                              return filteredUsers.map((user: User, index: number) => (
+                                <div 
+                                  key={user.id}
+                                  className="flex items-center gap-3 p-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md cursor-pointer transition-all duration-150 border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
+                                  onClick={() => insertMention(user.username)}
+                                >
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
+                                    <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-semibold">
+                                      {user.name 
+                                        ? `${user.name.split(' ')[0][0]}${user.name.split(' ')[1]?.[0] || ''}`
+                                        : user.username.substring(0, 2).toUpperCase()
+                                      }
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                      {user.name || user.username}
+                                    </p>
+                                    <p className="text-xs text-blue-600 dark:text-blue-400 truncate font-medium">
+                                      @{user.username}
+                                    </p>
+                                  </div>
+                                  {index === 0 && (
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                                      ↵
+                                    </div>
+                                  )}
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </ScrollArea>
+                        <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Type to search • Press ↵ to select • ESC to close
+                          </p>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="flex justify-end mt-2">
