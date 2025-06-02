@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
@@ -40,6 +40,9 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("profile");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Profile form
   const profileForm = useForm<ProfileValues>({
@@ -108,6 +111,36 @@ export default function Settings() {
     },
   });
 
+  // Avatar upload mutation
+  const avatarUploadMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch(`/api/users/${user?.id}/avatar`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) {
+        throw new Error("Failed to upload avatar");
+      }
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setSelectedFile(null);
+      setPreviewUrl(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle profile form submission
   const onProfileSubmit = (values: ProfileValues) => {
     profileMutation.mutate(values);
@@ -116,6 +149,52 @@ export default function Settings() {
   // Handle password form submission
   const onPasswordSubmit = (values: PasswordValues) => {
     passwordMutation.mutate(values);
+  };
+
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image smaller than 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
+  // Handle avatar upload
+  const handleAvatarUpload = () => {
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append('avatar', selectedFile);
+      avatarUploadMutation.mutate(formData);
+    }
+  };
+
+  // Trigger file input
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -150,22 +229,69 @@ export default function Settings() {
                     {/* Avatar */}
                     <div className="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
                       <Avatar className="h-24 w-24">
-                        <AvatarImage src={user?.avatar || undefined} alt={user?.name || "User"} />
-                        <AvatarFallback className="text-lg">{user?.name?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                        <AvatarImage 
+                          src={previewUrl || user?.avatar || undefined} 
+                          alt={user?.name || "User"} 
+                        />
+                        <AvatarFallback className="text-lg">
+                          {user?.name?.substring(0, 2).toUpperCase() || "U"}
+                        </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col space-y-2">
                         <h3 className="text-lg font-medium">Profile Picture</h3>
                         <p className="text-sm text-muted-foreground">
-                          Upload a new avatar or update your display information
+                          Upload a new avatar. JPG, PNG, or GIF (max 5MB)
                         </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-2 w-full sm:w-auto"
-                        >
-                          Upload
-                        </Button>
+                        
+                        {/* Hidden file input */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        
+                        {/* Upload Controls */}
+                        <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={triggerFileInput}
+                            disabled={avatarUploadMutation.isPending}
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            Choose File
+                          </Button>
+                          
+                          {selectedFile && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={handleAvatarUpload}
+                              disabled={avatarUploadMutation.isPending}
+                            >
+                              {avatarUploadMutation.isPending ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                        
+                        {selectedFile && (
+                          <p className="text-xs text-muted-foreground">
+                            Selected: {selectedFile.name}
+                          </p>
+                        )}
                       </div>
                     </div>
 
