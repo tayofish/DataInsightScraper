@@ -128,6 +128,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             console.log('[WebSocket] Channel-related message detected:', data.type);
           }
           
+          // Debug: Check user authentication state
+          console.log('[WebSocket] Current user:', user ? user.id : 'not authenticated');
+          
           // Check for database connection errors and handle them gracefully
           if (data.type === 'error' && data.errorType === 'database_rate_limit') {
             console.warn('[WebSocket] Database rate limit error:', data.message);
