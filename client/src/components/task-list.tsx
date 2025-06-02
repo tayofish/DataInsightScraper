@@ -343,16 +343,28 @@ export default function TaskList({ filters }: TaskListProps) {
                     shadow hover:shadow-lg
                     my-2 first:mt-0 last:mb-0
                     rounded-md
+                    cursor-pointer
                   `}
+                  onClick={(e) => {
+                    // Don't trigger if clicking on interactive elements
+                    if ((e.target as HTMLElement).closest('button') || 
+                        (e.target as HTMLElement).closest('[role="checkbox"]') ||
+                        (e.target as HTMLElement).closest('.checkbox-wrapper')) {
+                      return;
+                    }
+                    handleEditTask(task);
+                  }}
                 >
                   <div className="px-4 py-4 flex items-center sm:px-6">
                     <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
                       <div className="flex items-center">
-                        <Checkbox
-                          checked={isCompleted}
-                          onCheckedChange={() => toggleTaskMutation.mutate(task)}
-                          className="h-5 w-5 text-blue-600 mr-3 cursor-pointer rounded-full border-2 transition-all"
-                        />
+                        <div className="checkbox-wrapper">
+                          <Checkbox
+                            checked={isCompleted}
+                            onCheckedChange={() => toggleTaskMutation.mutate(task)}
+                            className="h-5 w-5 text-blue-600 mr-3 cursor-pointer rounded-full border-2 transition-all"
+                          />
+                        </div>
                         <div>
                           <p className={`text-base font-medium ${isCompleted ? 'text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'} truncate`}>
                             {task.title}
