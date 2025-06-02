@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { useQuery } from '@tanstack/react-query';
 
 interface NavItemProps {
   href: string;
@@ -69,6 +70,23 @@ export function Sidebar() {
 
   const [logoUrl, setLogoUrl] = React.useState<string | null>(null);
 
+  // Fetch app name
+  const { data: appNameSetting } = useQuery({
+    queryKey: ["/api/app-settings/app-name"],
+    queryFn: async () => {
+      try {
+        const res = await fetch("/api/app-settings/app-name");
+        if (res.status === 404) {
+          return { value: "Task Management System" }; // Default name
+        }
+        if (!res.ok) throw new Error("Failed to fetch app name");
+        return res.json();
+      } catch (error) {
+        return { value: "Task Management System" }; // Default name
+      }
+    }
+  });
+
   React.useEffect(() => {
     // Fetch the logo URL from the server
     async function fetchLogo() {
@@ -98,7 +116,9 @@ export function Sidebar() {
             className="h-10 w-auto object-contain" 
           />
         ) : (
-          <span className="text-2xl font-bold gradient-heading">Promellon</span>
+          <span className="text-2xl font-bold gradient-heading">
+            {appNameSetting?.value || "Task Management System"}
+          </span>
         )}
       </div>
       <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">
