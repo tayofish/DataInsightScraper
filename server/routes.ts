@@ -4219,6 +4219,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate and create message
+      console.log('Request body for message validation:', req.body);
+      console.log('Full message data being validated:', {
+        ...req.body,
+        channelId,
+        userId: req.user!.id
+      });
+      
       const messageData = messageInsertSchema.parse({
         ...req.body,
         channelId,
