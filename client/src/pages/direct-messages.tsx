@@ -79,6 +79,9 @@ const DirectMessagesPage: FC = () => {
   // Flag to control markdown visibility in text input
   const [textFormattingEnabled, setTextFormattingEnabled] = useState(true);
   
+  // Search state
+  const [conversationSearchQuery, setConversationSearchQuery] = useState("");
+  
   // Utility function to format date for headers
   const formatDateHeader = (date: Date) => {
     const today = new Date();
@@ -917,7 +920,12 @@ const DirectMessagesPage: FC = () => {
         <div className="p-2">
           <div className="relative">
             <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search conversations" className="pl-8" />
+            <Input 
+              placeholder="Search conversations" 
+              className="pl-8" 
+              value={conversationSearchQuery}
+              onChange={(e) => setConversationSearchQuery(e.target.value)}
+            />
           </div>
         </div>
         <ScrollArea className="flex-grow">
@@ -943,7 +951,11 @@ const DirectMessagesPage: FC = () => {
             </div>
           ) : (
             <div className="space-y-1 p-2">
-              {conversations?.map((convo: any) => (
+              {conversations?.filter((convo: any) => {
+                const searchTerm = conversationSearchQuery.toLowerCase();
+                const userName = (convo.user.name || convo.user.username).toLowerCase();
+                return userName.includes(searchTerm);
+              }).map((convo: any) => (
                 <Button
                   key={convo.user.id}
                   variant={selectedUserId === convo.user.id ? "secondary" : "ghost"}

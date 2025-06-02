@@ -165,6 +165,9 @@ export default function ChannelsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   
+  // Search state
+  const [channelSearchQuery, setChannelSearchQuery] = useState("");
+  
   // Get all users
   const { data: users } = useQuery({
     queryKey: ["/api/users"],
@@ -1452,6 +1455,8 @@ export default function ChannelsPage() {
               type="text" 
               placeholder="Search channels" 
               className="bg-transparent border-none outline-none w-full placeholder:text-muted-foreground text-sm"
+              value={channelSearchQuery}
+              onChange={(e) => setChannelSearchQuery(e.target.value)}
             />
           </div>
         </div>
@@ -1474,7 +1479,13 @@ export default function ChannelsPage() {
                 <div className="space-y-1">
                   <p className="px-2 text-xs font-medium text-muted-foreground pb-1">PUBLIC CHANNELS</p>
                   {channels
-                    .filter(channel => channel.type === "public")
+                    .filter(channel => {
+                      const matchesType = channel.type === "public";
+                      const matchesSearch = channelSearchQuery === "" || 
+                        channel.name.toLowerCase().includes(channelSearchQuery.toLowerCase()) ||
+                        (channel.description && channel.description.toLowerCase().includes(channelSearchQuery.toLowerCase()));
+                      return matchesType && matchesSearch;
+                    })
                     .map(channel => {
                       const isSelected = selectedChannelId === channel.id;
                       const hasUnread = channel.unreadCount && channel.unreadCount > 0;
@@ -1504,11 +1515,23 @@ export default function ChannelsPage() {
             )}
             
             {/* Private Channels */}
-            {channels.filter(channel => channel.type === "private").length > 0 && (
+            {channels.filter(channel => {
+              const matchesType = channel.type === "private";
+              const matchesSearch = channelSearchQuery === "" || 
+                channel.name.toLowerCase().includes(channelSearchQuery.toLowerCase()) ||
+                (channel.description && channel.description.toLowerCase().includes(channelSearchQuery.toLowerCase()));
+              return matchesType && matchesSearch;
+            }).length > 0 && (
               <div className="pt-4 space-y-1">
                 <p className="px-2 text-xs font-medium text-muted-foreground pb-1">PRIVATE CHANNELS</p>
                 {channels
-                  .filter(channel => channel.type === "private")
+                  .filter(channel => {
+                    const matchesType = channel.type === "private";
+                    const matchesSearch = channelSearchQuery === "" || 
+                      channel.name.toLowerCase().includes(channelSearchQuery.toLowerCase()) ||
+                      (channel.description && channel.description.toLowerCase().includes(channelSearchQuery.toLowerCase()));
+                    return matchesType && matchesSearch;
+                  })
                   .map(channel => {
                     const isSelected = selectedChannelId === channel.id;
                     const hasUnread = channel.unreadCount && channel.unreadCount > 0;
