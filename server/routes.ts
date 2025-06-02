@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from "uuid";
 import * as emailService from "./services/email-service";
 import nodemailer from "nodemailer";
 import { eq, and, or, desc, asc, sql, isNull, isNotNull } from "drizzle-orm";
+import { getWebSocketServer, type ExtendedWebSocket } from "./websocket-helper";
 
 // Add a global store for cached data when database is unavailable
 const fallbackCache = {
@@ -4363,6 +4364,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user: true
         }
       });
+
+      // Broadcast message to all channel members via WebSocket for real-time updates
+      try {
+        const wss = getWebSocketServer();
+        if (wss && completeMessage) {
+          console.log("Broadcasting new channel message via HTTP route:", completeMessage.id);
+          
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN) {
+              // Send to all users in public channels, or channel members for private channels
+              if (channel.type === 'public' || 
+                  channel.members.some(m => m.userId === client.userId)) {
+                client.send(JSON.stringify({
+                  type: 'new_channel_message',
+                  message: completeMessage
+                }));
+              }
+            }
+          });
+          
+          console.log("Broadcasted message to all connected channel members");
+        }
+      } catch (error) {
+        console.error('Error broadcasting new channel message:', error);
+      }
       
       return res.status(201).json(completeMessage);
     } catch (error) {
