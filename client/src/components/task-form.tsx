@@ -126,6 +126,22 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     staleTime: 0, // Consider data always stale to force refetch
   });
 
+  // Helper function to format date for HTML date input
+  const formatDateForInput = (date: Date | string | null | undefined): string => {
+    if (!date) return '';
+    
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (dateObj instanceof Date && !isNaN(dateObj.getTime())) {
+        return dateObj.toISOString().split('T')[0];
+      }
+    } catch {
+      // If date parsing fails, return empty string
+    }
+    
+    return '';
+  };
+
   // Form setup
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -134,8 +150,8 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       description: task?.description || '',
       priority: task?.priority || 'medium',
       status: task?.status || 'todo',
-      startDate: task?.startDate || '',
-      dueDate: task?.dueDate || '',
+      startDate: formatDateForInput(task?.startDate),
+      dueDate: formatDateForInput(task?.dueDate),
       projectId: task?.projectId || null,
       assigneeId: task?.assigneeId || null,
       categoryId: task?.categoryId || null,
@@ -151,8 +167,8 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         description: task.description || '',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
-        startDate: task.startDate || '',
-        dueDate: task.dueDate || '',
+        startDate: formatDateForInput(task.startDate),
+        dueDate: formatDateForInput(task.dueDate),
         projectId: task.projectId || null,
         assigneeId: task.assigneeId || null,
         categoryId: task.categoryId || null,
