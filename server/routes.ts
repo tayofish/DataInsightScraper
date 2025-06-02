@@ -813,6 +813,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to change password" });
     }
   });
+
+  // Avatar upload endpoint
+  app.post("/api/users/:id/avatar", upload.single('avatar'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Check if the authenticated user is updating their own avatar
+      if (!req.isAuthenticated() || req.user?.id !== id) {
+        return res.status(403).json({ message: "Not authorized to update this user's avatar" });
+      }
+      
+      // Check if file was uploaded
+      if (!req.file) {
+        return res.status(400).json({ message: "No avatar file uploaded" });
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!allowedTypes.includes(req.file.mimetype)) {
+        // Delete the uploaded file if it's not a valid image
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "Invalid file type. Only JPG, PNG, and GIF are allowed." });
+      }
+      
+      // Validate file size (5MB max)
+      if (req.file.size > 5 * 1024 * 1024) {
+        // Delete the uploaded file if it's too large
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ message: "File size too large. Maximum size is 5MB." });
+      }
+      
+      // Create the avatar URL path
+      const avatarUrl = `/uploads/${req.file.filename}`;
+      
+      // Get current user to potentially clean up old avatar
+      const currentUser = await storage.getUserById(id);
+      
+      // Update user's avatar in database
+      const updatedUser = await storage.updateUser(id, { avatar: avatarUrl });
+      
+      if (!updatedUser) {
+        // Delete uploaded file if user update failed
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Clean up old avatar file if it exists and is different from new one
+      if (currentUser?.avatar && currentUser.avatar !== avatarUrl) {
+        const oldAvatarPath = path.join(process.cwd(), currentUser.avatar);
+        try {
+          if (fs.existsSync(oldAvatarPath)) {
+            fs.unlinkSync(oldAvatarPath);
+          }
+        } catch (cleanupError) {
+          console.error("Error cleaning up old avatar:", cleanupError);
+          // Don't fail the request if cleanup fails
+        }
+      }
+      
+      return res.status(200).json({ 
+        message: "Avatar updated successfully",
+        avatar: avatarUrl,
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          name: updatedUser.name,
+          avatar: updatedUser.avatar
+        }
+      });
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+      
+      // Clean up uploaded file if there was an error
+      if (req.file && fs.existsSync(req.file.path)) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error("Error cleaning up file after error:", cleanupError);
+        }
+      }
+      
+      return res.status(500).json({ message: "Failed to update avatar" });
+    }
+  });
   
   // === ADMIN ROUTES ===
   // Admin middleware to check if user is an admin
