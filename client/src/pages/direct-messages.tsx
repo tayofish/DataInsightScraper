@@ -687,6 +687,33 @@ const DirectMessagesPage: FC = () => {
     }, 10000); // 10 seconds timeout
   };
 
+  // Handle navigation from search results
+  useEffect(() => {
+    const targetMessage = localStorage.getItem('targetMessage');
+    
+    if (targetMessage && messages && messages.length > 0) {
+      const messageId = parseInt(targetMessage);
+      
+      // Wait for the DOM to update
+      setTimeout(() => {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Highlight the message briefly
+          messageElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800');
+          setTimeout(() => {
+            messageElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800');
+          }, 3000);
+        }
+        localStorage.removeItem('targetMessage');
+      }, 500);
+    }
+  }, [messages]);
+
   // Scroll to bottom of messages when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -1109,7 +1136,7 @@ const DirectMessagesPage: FC = () => {
                           {group.messages.map((msg: any) => {
                     const isCurrentUser = msg.senderId === user.id;
                     return (
-                      <div key={msg.id} className={`flex items-start space-x-3 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                      <div key={msg.id} data-message-id={msg.id} className={`flex items-start space-x-3 transition-colors duration-300 ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
                         <Avatar>
                           <AvatarImage src={isCurrentUser ? user.avatar : msg.sender?.avatar} />
                           <AvatarFallback>
