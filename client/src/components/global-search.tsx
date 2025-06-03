@@ -115,16 +115,30 @@ export function GlobalSearch() {
     
     switch (result.type) {
       case 'task':
-        setLocation(`/tasks?id=${result.id}`);
+        // Navigate to tasks page, the task list will auto-open the task details
+        setLocation(`/tasks`);
+        // Use a timeout to allow the page to load, then trigger task opening
+        setTimeout(() => {
+          const taskRow = document.querySelector(`[data-task-id="${result.id}"]`);
+          if (taskRow) {
+            (taskRow as HTMLElement).click();
+          }
+        }, 500);
         break;
       case 'channel_message':
         if (result.channel) {
-          setLocation(`/messages?channel=${result.channel.id}&message=${result.id}`);
+          setLocation(`/messages`);
+          // Use localStorage to store the target message and channel
+          localStorage.setItem('targetChannel', result.channel.id.toString());
+          localStorage.setItem('targetMessage', result.id.toString());
         }
         break;
       case 'direct_message':
         if (result.user) {
-          setLocation(`/direct-messages/${result.user.id}?message=${result.id}`);
+          // Navigate to direct messages with the specific user
+          setLocation(`/direct-messages/${result.user.id}`);
+          // Store target message for highlighting
+          localStorage.setItem('targetMessage', result.id.toString());
         }
         break;
     }

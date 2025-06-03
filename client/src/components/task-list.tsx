@@ -328,7 +328,8 @@ export default function TaskList({ filters }: TaskListProps) {
               
               return (
                 <li 
-                  key={task.id} 
+                  key={task.id}
+                  data-task-id={task.id}
                   className={`
                     ${isOverdue ? 'bg-red-50' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} 
                     relative 

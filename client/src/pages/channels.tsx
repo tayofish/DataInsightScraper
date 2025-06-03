@@ -255,6 +255,50 @@ export default function ChannelsPage() {
       }
     }
   }, [channelsQuery.data, selectedChannelId]);
+
+  // Handle navigation from search results
+  useEffect(() => {
+    const targetChannel = localStorage.getItem('targetChannel');
+    const targetMessage = localStorage.getItem('targetMessage');
+    
+    if (targetChannel && channels.length > 0) {
+      const channelId = parseInt(targetChannel);
+      const channel = channels.find(c => c.id === channelId);
+      
+      if (channel) {
+        setSelectedChannelId(channelId);
+        setSelectedChannel(channel);
+        localStorage.removeItem('targetChannel');
+      }
+    }
+  }, [channels]);
+
+  // Scroll to target message when messages load
+  useEffect(() => {
+    const targetMessage = localStorage.getItem('targetMessage');
+    
+    if (targetMessage && messagesQuery.data && messagesQuery.data.length > 0) {
+      const messageId = parseInt(targetMessage);
+      
+      // Wait for the DOM to update
+      setTimeout(() => {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Highlight the message briefly
+          messageElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800');
+          setTimeout(() => {
+            messageElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800');
+          }, 3000);
+        }
+        localStorage.removeItem('targetMessage');
+      }, 500);
+    }
+  }, [messagesQuery.data]);
   
   // Query for messages with offline resilience
   const messagesQuery = useQuery({
@@ -1826,7 +1870,7 @@ export default function ChannelsPage() {
                           const hasError = message.error;
                           
                           return (
-                            <div key={message.id} className="flex gap-3 group">
+                            <div key={message.id} data-message-id={message.id} className="flex gap-3 group transition-colors duration-300">
                         <Avatar className="h-10 w-10 rounded-full">
                           <AvatarImage src={message.user?.avatar || undefined} alt={message.user?.name || message.user?.username} />
                           <AvatarFallback>{message.user?.name?.[0] || message.user?.username?.[0] || '?'}</AvatarFallback>
