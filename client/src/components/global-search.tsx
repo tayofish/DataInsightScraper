@@ -9,6 +9,7 @@ import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useAuth } from '@/hooks/use-auth';
 
 interface SearchResult {
   id: number;
@@ -26,6 +27,18 @@ interface SearchResult {
   channel?: {
     id: number;
     name: string;
+  };
+  sender?: {
+    id: number;
+    name: string;
+    username: string;
+    avatar?: string;
+  };
+  receiver?: {
+    id: number;
+    name: string;
+    username: string;
+    avatar?: string;
   };
   priority?: string;
   status?: string;
@@ -134,9 +147,14 @@ export function GlobalSearch() {
         }
         break;
       case 'direct_message':
-        if (result.user) {
-          // Navigate to direct messages with the specific user
-          setLocation(`/direct-messages/${result.user.id}`);
+        if (result.sender && result.receiver) {
+          // Determine which user to navigate to (the other participant in the conversation)
+          // We need to get the current user context to determine this
+          const currentUserId = user?.id;
+          const otherUserId = result.sender.id === currentUserId ? result.receiver.id : result.sender.id;
+          
+          // Navigate to direct messages with the other user
+          setLocation(`/direct-messages/${otherUserId}`);
           // Store target message for highlighting
           localStorage.setItem('targetMessage', result.id.toString());
         }

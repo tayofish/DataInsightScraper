@@ -262,7 +262,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             content: message.content,
             snippet: message.content.length > 150 ? message.content.substring(0, 150) + '...' : message.content,
             createdAt: message.createdAt,
-            user: message.sender
+            user: message.sender,
+            sender: message.sender,
+            receiver: message.receiver
           });
         });
       } catch (error) {
