@@ -22,7 +22,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import * as emailService from "./services/email-service";
 import nodemailer from "nodemailer";
-import { eq, and, or, desc, asc, sql, isNull, isNotNull } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql, isNull, isNotNull, ilike } from "drizzle-orm";
 import { getWebSocketServer, type ExtendedWebSocket } from "./websocket-helper";
 
 // Add a global store for cached data when database is unavailable
@@ -134,6 +134,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         error: error instanceof Error ? error.message : 'Unknown error'
       });
+    }
+  });
+
+  // Global search endpoint
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q: query } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Query parameter is required" });
+      }
+      
+      const searchTerm = query.trim();
+      if (searchTerm.length < 2) {
+        return res.json([]);
+      }
+
+      const results = [];
+
+      // Search tasks
+      try {
+        const tasks = await db.query.tasks.findMany({
+          where: or(
+            ilike(tasks.title, `%${searchTerm}%`),
+            ilike(tasks.description, `%${searchTerm}%`)
+          ),
+          with: {
+            assignee: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+                avatar: true
+              }
+            }
+          },
+          limit: 20
+        });
+
+        tasks.forEach(task => {
+          results.push({
+            id: task.id,
+            type: 'task',
+            title: task.title,
+            content: task.description || '',
+            snippet: task.description ? task.description.substring(0, 150) + '...' : 'No description',
+            createdAt: task.createdAt,
+            user: task.assignee,
+            priority: task.priority,
+            status: task.status
+          });
+        });
+      } catch (error) {
+        console.error('Error searching tasks:', error);
+      }
+
+      // Search channel messages
+      try {
+        const channelMessages = await db.query.messages.findMany({
+          where: ilike(messages.content, `%${searchTerm}%`),
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+                avatar: true
+              }
+            },
+            channel: {
+              columns: {
+                id: true,
+                name: true
+              }
+            }
+          },
+          limit: 15
+        });
+
+        channelMessages.forEach(message => {
+          results.push({
+            id: message.id,
+            type: 'channel_message',
+            title: `Message in #${message.channel?.name || 'channel'}`,
+            content: message.content,
+            snippet: message.content.length > 150 ? message.content.substring(0, 150) + '...' : message.content,
+            createdAt: message.createdAt,
+            user: message.user,
+            channel: message.channel
+          });
+        });
+      } catch (error) {
+        console.error('Error searching channel messages:', error);
+      }
+
+      // Search direct messages
+      try {
+        const directMessages = await db.query.directMessages.findMany({
+          where: ilike(directMessages.content, `%${searchTerm}%`),
+          with: {
+            sender: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+                avatar: true
+              }
+            },
+            receiver: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+                avatar: true
+              }
+            }
+          },
+          limit: 10
+        });
+
+        directMessages.forEach(message => {
+          results.push({
+            id: message.id,
+            type: 'direct_message',
+            title: `Direct message with ${message.receiver?.name || message.receiver?.username}`,
+            content: message.content,
+            snippet: message.content.length > 150 ? message.content.substring(0, 150) + '...' : message.content,
+            createdAt: message.createdAt,
+            user: message.sender
+          });
+        });
+      } catch (error) {
+        console.error('Error searching direct messages:', error);
+      }
+
+      // Sort results by relevance and date
+      results.sort((a, b) => {
+        // Prioritize exact title matches
+        const aExactTitle = a.title.toLowerCase().includes(searchTerm.toLowerCase());
+        const bExactTitle = b.title.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        if (aExactTitle && !bExactTitle) return -1;
+        if (!aExactTitle && bExactTitle) return 1;
+        
+        // Then sort by date (newest first)
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      // Limit total results
+      const limitedResults = results.slice(0, 50);
+
+      res.json(limitedResults);
+    } catch (error) {
+      console.error("Error in global search:", error);
+      res.status(500).json({ message: "Search failed" });
     }
   });
   

@@ -23,6 +23,7 @@ import DirectMessagesPage from "@/pages/direct-messages";
 import DatabaseErrorPage from "@/pages/database-error";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
+import { GlobalSearch } from "@/components/global-search";
 import { OfflineModeIndicator } from "@/components/offline-mode-indicator";
 import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/websocket-provider";
@@ -59,6 +60,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             </h1>
           </div>
           <div className="flex items-center gap-4">
+            <GlobalSearch />
             <NotificationDropdown />
           </div>
         </header>
