@@ -127,7 +127,7 @@ export function GlobalSearch() {
         break;
       case 'channel_message':
         if (result.channel) {
-          setLocation(`/messages`);
+          setLocation(`/channels`);
           // Use localStorage to store the target message and channel
           localStorage.setItem('targetChannel', result.channel.id.toString());
           localStorage.setItem('targetMessage', result.id.toString());
