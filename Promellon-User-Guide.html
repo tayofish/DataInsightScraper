@@ -1,0 +1,293 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promellon Task Management System - User Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #ffffff;
+            padding: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            margin-bottom: 80px;
+            padding: 100px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            margin: -40px -40px 80px -40px;
+            padding: 120px 40px;
+        }
+        
+        .cover-page h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .cover-page p {
+            font-size: 1.3em;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        
+        .cover-date {
+            position: absolute;
+            bottom: 40px;
+            width: 100%;
+            text-align: center;
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+        
+        h1 {
+            color: #1e40af;
+            font-size: 2.5em;
+            margin: 40px 0 30px 0;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        h2 {
+            color: #1e40af;
+            font-size: 1.8em;
+            margin: 35px 0 20px 0;
+            padding-left: 15px;
+            border-left: 5px solid #3b82f6;
+            font-weight: 600;
+        }
+        
+        h3 {
+            color: #1e3a8a;
+            font-size: 1.4em;
+            margin: 30px 0 15px 0;
+            font-weight: 600;
+        }
+        
+        h4 {
+            color: #374151;
+            font-size: 1.2em;
+            margin: 25px 0 12px 0;
+            font-weight: 600;
+        }
+        
+        p {
+            margin-bottom: 16px;
+            text-align: justify;
+            font-size: 1em;
+        }
+        
+        ul, ol {
+            margin: 16px 0 16px 30px;
+        }
+        
+        li {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        code {
+            background: #f3f4f6;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .toc {
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 40px 0;
+            page-break-inside: avoid;
+        }
+        
+        .toc h2 {
+            margin-top: 0;
+            color: #1f2937;
+            text-align: center;
+            border: none;
+            padding: 0;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin: 20px 0;
+            padding: 0;
+        }
+        
+        .toc li {
+            margin: 12px 0;
+            padding: 8px 0;
+            border-bottom: 1px dotted #d1d5db;
+        }
+        
+        .toc a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.05em;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .feature-box {
+            background: #ecfdf5;
+            border: 2px solid #10b981;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+            page-break-inside: avoid;
+        }
+        
+        .feature-box h3 {
+            color: #047857;
+            margin-top: 0;
+        }
+        
+        .note {
+            background: #fef3c7;
+            border-left: 5px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+        
+        .note strong {
+            color: #92400e;
+        }
+        
+        .warning {
+            background: #fef2f2;
+            border-left: 5px solid #ef4444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+        
+        .step-section {
+            background: #f0f9ff;
+            border: 2px solid #0284c7;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 25px 0;
+            page-break-inside: avoid;
+        }
+        
+        .step-section h4 {
+            color: #0c4a6e;
+            margin-top: 0;
+        }
+        
+        .screenshot-placeholder {
+            background: #f3f4f6;
+            border: 2px dashed #9ca3af;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin: 25px 0;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        .section-divider {
+            border-top: 3px solid #e5e7eb;
+            margin: 50px 0;
+        }
+        
+        @media print {
+            body {
+                font-size: 11pt;
+                line-height: 1.4;
+                padding: 20px;
+            }
+            
+            .cover-page {
+                margin: -20px -20px 40px -20px;
+                padding: 80px 20px;
+            }
+            
+            h1 { font-size: 18pt; }
+            h2 { font-size: 14pt; }
+            h3 { font-size: 12pt; }
+            
+            .page-break {
+                page-break-before: always;
+            }
+            
+            .feature-box, .note, .warning, .step-section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cover-page">
+        <h1>📋 Promellon</h1>
+        <p>Task Management System</p>
+        <p><strong>Complete User Guide</strong></p>
+        <div class="cover-date">
+            Generated on June 3, 2025
+        </div>
+    </div>
+    
+    <h1>Promellon Task Management System - User Guide</h1><div class="toc"><div class="section-divider"></div><h2>📑 Table of Contents</h2><ul><ul><li><a href="#getting-started">Getting Started</a></li><li><a href="#login-and-authentication">Login and Authentication</a></li><li><a href="#dashboard-overview">Dashboard Overview</a></li><li><a href="#task-management">Task Management</a></li><li><a href="#project-management">Project Management</a></li><li><a href="#team-communication">Team Communication</a></li><li><a href="#direct-messages">Direct Messages</a></li><li><a href="#notifications">Notifications</a></li><li><a href="#file-management">File Management</a></li><li><a href="#admin-features">Admin Features</a></li><li><a href="#troubleshooting">Troubleshooting</a></li></ul></ul></div><div class="section-divider"></div><h2>Getting Started</h2><p>Welcome to Promellon, a comprehensive task management and team collaboration platform designed to streamline your workflow and enhance productivity.</p><h3>System Requirements</h3><br><ul><li>Modern web browser (Chrome, Firefox, Safari, Edge)</li><li>Internet connection</li><li>JavaScript enabled</li></ul><div class="feature-box"></div><h3>🌟 Key Features</h3><br><ul><li>Real-time task management</li><li>Team collaboration tools</li><li>Direct messaging system</li><li>File sharing and uploads</li><li>Project organization</li><li>Department-based access control</li><li>Advanced notification system</li><li>Microsoft Entra ID integration</li></ul><p>---</p><div class="section-divider"></div><h2>Login and Authentication</h2><div class="screenshot-placeholder">📸 Screenshot: Login and Authentication Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><h3>Accessing the Application</h3><br><ul><li>Navigate to your Promellon application URL</li><li>You'll see the login screen with the Promellon logo and branding</li></ul><h3>Login Methods</h3><p>#### Local Authentication<br><ul><li>Enter your username in the "Username" field</li><li>Enter your password in the "Password" field</li><li>Click the "Sign In" button</li></ul><p>#### Microsoft Authentication<br><ul><li>Click the "Sign in with Microsoft" button</li><li>You'll be redirected to Microsoft's authentication page</li><li>Enter your Microsoft credentials</li><li>Grant necessary permissions when prompted</li><li>You'll be redirected back to Promellon</li></ul><h3>First Time Login</h3><br><ul><li>Contact your administrator for initial login credentials</li><li>You may be prompted to change your password on first login</li><li>Ensure you're assigned to the appropriate department</li></ul><p>---</p><div class="section-divider"></div><h2>Dashboard Overview</h2><div class="screenshot-placeholder">📸 Screenshot: Dashboard Overview Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><p>After successful login, you'll access the main dashboard which provides:</p><h3>Header Navigation</h3><br><ul><li><strong>Application Logo</strong>: Returns to dashboard when clicked</li><li><strong>Navigation Menu</strong>: Access different sections (Tasks, Projects, Messages, etc.)</li><li><strong>Notifications Bell</strong>: Shows unread notifications count</li><li><strong>User Profile</strong>: Access profile settings and logout</li></ul><h3>Main Dashboard Widgets</h3><br><ul><li><strong>Task Statistics</strong>: Overview of total, completed, and pending tasks</li><li><strong>Recent Tasks</strong>: Quick access to your most recent tasks</li><li><strong>Project Overview</strong>: Current projects and their status</li><li><strong>Team Activity</strong>: Recent team actions and updates</li></ul><h3>Sidebar Navigation</h3><br><ul><li><strong>Dashboard</strong>: Main overview page</li><li><strong>Tasks</strong>: Task management interface</li><li><strong>Projects</strong>: Project organization</li><li><strong>Messages</strong>: Team communication channels</li><li><strong>Direct Messages</strong>: Private conversations</li><li><strong>Admin</strong>: Administrative functions (admin users only)</li></ul><p>---</p><div class="section-divider"></div><h2>Task Management</h2><div class="screenshot-placeholder">📸 Screenshot: Task Management Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><div class="step-section"><h4>📋 Step 6: Viewing Tasks</h4><br><ul><li>Click "Tasks" in the sidebar navigation</li><li>View all tasks in a organized list format</li><li>Use filters to narrow down tasks:</li></ul><br>   - <strong>Status Filter</strong>: All, To Do, In Progress, Completed<br>   - <strong>Priority Filter</strong>: All, Low, Medium, High, Critical<br>   - <strong>Assignee Filter</strong>: Filter by team member<br>   - <strong>Category Filter</strong>: Filter by task category</p><div class="step-section"><h4>📋 Step 1: Creating a New Task</h4><br><ul><li>Click the "Create Task" button</li><li>Fill in the task details:</li></ul><br>   - <strong>Title</strong>: Descriptive task name<br>   - <strong>Description</strong>: Detailed task information<br>   - <strong>Priority</strong>: Select Low, Medium, High, or Critical<br>   - <strong>Status</strong>: Set initial status<br>   - <strong>Due Date</strong>: Set deadline (optional)<br>   - <strong>Assignee</strong>: Select team member responsible<br>   - <strong>Category</strong>: Choose appropriate category<br>   - <strong>Project</strong>: Associate with a project (optional)</p><ul><li>Click "Create Task" to save</li></ul><div class="step-section"><h4>📋 Step 2: Editing Tasks</h4><br><ul><li>Click on any task in the list to open the task details</li><li>Click "Edit" to modify task information</li><li>Update any field as needed</li><li>Click "Save Changes" to confirm updates</li></ul><div class="step-section"><h4>📋 Step 7: Task Comments and Collaboration</h4><br><ul><li>Open any task to view details</li><li>Scroll to the comments section</li><li>Add comments using the text area</li><li><strong>Mention Team Members</strong>: Type <code>@</code> followed by username to mention colleagues</li></ul><br>   - A dropdown will appear with searchable user suggestions<br>   - Select the user to mention them<br>   - Mentioned users receive notifications<br><ul><li>View comment history with timestamps and user information</li></ul><h3>File Attachments</h3><br><ul><li>In the task details view, find the "Attachments" section</li><li>Click "Upload File" or drag and drop files</li><li>Supported file types include documents, images, and archives</li><li>Files are automatically associated with the task</li><li>Click on any file to download or preview</li></ul><h3>Task Status Updates</h3><br><ul><li>Tasks automatically track status changes</li><li>View update history in the task details</li><li>All changes are logged with user and timestamp information</li></ul><p>---</p><div class="section-divider"></div><h2>Project Management</h2><div class="screenshot-placeholder">📸 Screenshot: Project Management Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><h3>Viewing Projects</h3><br><ul><li>Navigate to "Projects" from the sidebar</li><li>View all projects with their descriptions and status</li><li>See assigned team members for each project</li></ul><div class="step-section"><h4>📋 Step 3: Creating Projects</h4><br><ul><li>Click "Create Project" button</li><li>Enter project details:</li></ul><br>   - <strong>Name</strong>: Project title<br>   - <strong>Description</strong>: Project overview<br>   - <strong>Start Date</strong>: Project begin date<br>   - <strong>End Date</strong>: Project deadline<br><ul><li>Click "Create" to save</li></ul><h3>Project Assignment</h3><br><ul><li>Open any project from the projects list</li><li>Use the assignment feature to add team members</li><li>Set roles for each team member (member, lead, etc.)</li><li>Assignments are immediately saved and team members are notified</li></ul><h3>Project Tasks</h3><br><ul><li>Tasks can be associated with specific projects</li><li>Filter tasks by project to see project-specific work</li><li>Track project progress through task completion rates</li></ul><p>---</p><div class="section-divider"></div><h2>Team Communication</h2><div class="screenshot-placeholder">📸 Screenshot: Team Communication Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><h3>Channel Messages</h3><br><ul><li>Click "Messages" in the sidebar to access team channels</li><li>Select a channel from the available list</li><li>View message history with timestamps and user information</li></ul><h3>Sending Messages</h3><br><ul><li>Type your message in the input field at the bottom</li><li><strong>Mention Team Members</strong>: Use <code>@username</code> to mention colleagues</li><li><strong>File Sharing</strong>: Click the attachment icon to share files</li><li>Press Enter or click Send to post your message</li></ul><h3>Message Features</h3><br><ul><li><strong>Real-time Updates</strong>: Messages appear instantly for all team members</li><li><strong>File Attachments</strong>: Share documents, images, and other files</li><li><strong>User Mentions</strong>: Notify specific team members with @ mentions</li><li><strong>Message History</strong>: Access complete conversation history</li><li><strong>Typing Indicators</strong>: See when others are typing</li></ul><p>---</p><div class="section-divider"></div><h2>Direct Messages</h2><div class="screenshot-placeholder">📸 Screenshot: Direct Messages Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><div class="step-section"><h4>📋 Step 4: Starting Direct Conversations</h4><br><ul><li>Navigate to "Direct Messages" from the sidebar</li><li>Click "New Conversation" or select an existing conversation</li><li>Choose the team member you want to message</li><li>Start typing your message</li></ul><h3>Direct Message Features</h3><br><ul><li><strong>Private Conversations</strong>: One-on-one messaging between team members</li><li><strong>File Sharing</strong>: Send files directly to colleagues</li><li><strong>Real-time Delivery</strong>: Instant message delivery and read receipts</li><li><strong>Message Search</strong>: Find specific messages in conversation history</li><li><strong>Mentions</strong>: Use @username even in direct messages</li></ul><h3>Managing Conversations</h3><br><ul><li>Conversations are automatically organized by most recent activity</li><li>Unread message indicators help track new messages</li><li>Message history is preserved for reference</li></ul><p>---</p><div class="section-divider"></div><h2>Notifications</h2><h3>Notification Types</h3><br><ul><li><strong>Task Assignments</strong>: When you're assigned to a new task</li><li><strong>Task Comments</strong>: When someone comments on your tasks</li><li><strong>Mentions</strong>: When someone mentions you in comments or messages</li><li><strong>Project Updates</strong>: Changes to projects you're involved in</li><li><strong>System Announcements</strong>: Important system-wide updates</li></ul><h3>Viewing Notifications</h3><br><ul><li>Click the bell icon in the header</li><li>View all notifications in the dropdown menu</li><li>Click on any notification to navigate to the relevant item</li><li>Notifications show unread count in the bell icon</li></ul><h3>Managing Notifications</h3><br><ul><li>Mark notifications as read by clicking on them</li><li>Notifications automatically mark as read when you visit the related content</li><li>Email notifications are sent for important updates (when configured)</li></ul><p>---</p><div class="section-divider"></div><h2>File Management</h2><div class="step-section"><h4>📋 Step 5: Uploading Files</h4><br><ul><li><strong>Task Attachments</strong>: Upload files directly to tasks</li><li><strong>Message Attachments</strong>: Share files in team channels or direct messages</li><li><strong>Drag and Drop</strong>: Simply drag files into upload areas</li><li><strong>Browse Upload</strong>: Click upload buttons to select files</li></ul><h3>File Types</h3><br><ul><li><strong>Documents</strong>: PDF, DOC, DOCX, TXT, etc.</li><li><strong>Images</strong>: JPG, PNG, GIF, SVG, etc.</li><li><strong>Archives</strong>: ZIP, RAR, 7Z, etc.</li><li><strong>Spreadsheets</strong>: XLS, XLSX, CSV, etc.</li></ul><h3>File Security</h3><br><ul><li>Files are securely stored and access-controlled</li><li>Only team members with access to tasks/conversations can view files</li><li>File uploads are scanned for security</li></ul><h3>File Management</h3><br><ul><li>Download files by clicking on them</li><li>Preview images directly in the interface</li><li>File names and sizes are displayed</li><li>Upload timestamps track when files were added</li></ul><p>---</p><div class="section-divider"></div><h2>Admin Features</h2><div class="screenshot-placeholder">📸 Screenshot: Admin Features Interface<br><em>(Screenshots can be added by taking browser screenshots of each section)</em></div><p><em>Note: These features are only available to users with </p><div class="warning"><strong>⚠️ Administrator Access Required</strong><p>These features require administrator privileges</p></div><p>.</em></p><h3>User Management</h3><br><ul><li>Navigate to "Admin" from the sidebar</li><li>Access user management tools</li><li>Create, edit, or deactivate user accounts</li><li>Assign users to departments</li><li>Set user roles and permissions</li></ul><h3>Department Management</h3><br><ul><li>Create and manage organizational departments</li><li>Assign users to appropriate departments</li><li>Control access based on department membership</li></ul><h3>System Configuration</h3><br><ul><li><strong>Application Branding</strong>: Upload custom logos and favicons</li><li><strong>Application Name</strong>: Customize the application title</li><li><strong>SMTP Settings</strong>: Configure email notifications</li><li><strong>Authentication Settings</strong>: Manage login methods</li></ul><h3>Branding Customization</h3><br><ul><li>Upload custom logo files</li><li>Set application favicon</li><li>Customize application name and branding</li><li>Changes apply system-wide immediately</li></ul><p>---</p><div class="section-divider"></div><h2>Troubleshooting</h2><h3>Common Issues</h3><p>#### Login Problems<br><ul><li><strong>Incorrect Credentials</strong>: Verify username and password</li><li><strong>Account Locked</strong>: Contact administrator</li><li><strong>Microsoft Auth Issues</strong>: Check Microsoft account status</li></ul><p>#### Performance Issues<br><ul><li><strong>Slow Loading</strong>: Check internet connection</li><li><strong>Browser Compatibility</strong>: Use supported browsers</li><li><strong>Clear Cache</strong>: Clear browser cache and cookies</li></ul><p>#### Notification Issues<br><ul><li><strong>Missing Notifications</strong>: Check notification settings</li><li><strong>Email Notifications</strong>: Verify SMTP configuration with admin</li><li><strong>Browser Permissions</strong>: Allow browser notifications</li></ul><p>#### File Upload Issues<br><ul><li><strong>Large Files</strong>: Check file size limits with administrator</li><li><strong>Unsupported Types</strong>: Verify file type is supported</li><li><strong>Network Issues</strong>: Retry upload with stable connection</li></ul><h3>Getting Help</h3><br><ul><li>Contact your system administrator for technical issues</li><li>Check with team leads for workflow questions</li><li>Refer to this guide for feature explanations</li></ul><h3>Best Practices</h3><br><ul><li><strong>Regular Updates</strong>: Keep tasks updated with current status</li><li><strong>Clear Communication</strong>: Use descriptive titles and comments</li><li><strong>File Organization</strong>: Use meaningful file names</li><li><strong>Mention Etiquette</strong>: Use @ mentions appropriately</li><li><strong>Security</strong>: Don't share login credentials</li></ul><p>---</p><div class="section-divider"></div><h2>Contact and Support</h2><p>For additional support or questions:<br><ul><li>Contact your system administrator</li><li>Refer to internal documentation</li><li>Check application settings for contact information</li></ul><p>---</p><p><em>This guide covers the core functionality of Promellon Task Management System. Features may vary based on your organization's configuration and your user permissions.</em></p>
+    
+    <div class="page-break"></div>
+    <div style="text-align: center; margin-top: 80px; padding: 40px; background: #f8fafc; border-radius: 12px;">
+        <h2 style="color: #374151; margin-bottom: 20px; border: none; padding: 0;">End of User Guide</h2>
+        <p style="color: #6b7280; font-size: 1.1em;">For technical support, contact your system administrator</p>
+        <p style="color: #9ca3af; font-size: 0.9em; margin-top: 20px;">Document version 1.0</p>
+    </div>
+</body>
+</html>
