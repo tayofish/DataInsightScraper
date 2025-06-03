@@ -51,6 +51,7 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   // Search API call with debouncing
   const { data: searchResults = [], isLoading, isFetching } = useQuery({
