@@ -273,33 +273,6 @@ export default function ChannelsPage() {
     }
   }, [channels]);
 
-  // Scroll to target message when messages load
-  useEffect(() => {
-    const targetMessage = localStorage.getItem('targetMessage');
-    
-    if (targetMessage && messagesQuery.data && messagesQuery.data.length > 0) {
-      const messageId = parseInt(targetMessage);
-      
-      // Wait for the DOM to update
-      setTimeout(() => {
-        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-        if (messageElement) {
-          messageElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-          });
-          
-          // Highlight the message briefly
-          messageElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800');
-          setTimeout(() => {
-            messageElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800');
-          }, 3000);
-        }
-        localStorage.removeItem('targetMessage');
-      }, 500);
-    }
-  }, [messagesQuery.data]);
-  
   // Query for messages with offline resilience
   const messagesQuery = useQuery({
     queryKey: [`/api/channels/${selectedChannelId}/messages`],
@@ -334,6 +307,33 @@ export default function ChannelsPage() {
       }
     }
   });
+
+  // Scroll to target message when messages load
+  useEffect(() => {
+    const targetMessage = localStorage.getItem('targetMessage');
+    
+    if (targetMessage && messagesQuery.data && messagesQuery.data.length > 0) {
+      const messageId = parseInt(targetMessage);
+      
+      // Wait for the DOM to update
+      setTimeout(() => {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+          messageElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Highlight the message briefly
+          messageElement.classList.add('bg-yellow-200', 'dark:bg-yellow-800');
+          setTimeout(() => {
+            messageElement.classList.remove('bg-yellow-200', 'dark:bg-yellow-800');
+          }, 3000);
+        }
+        localStorage.removeItem('targetMessage');
+      }, 500);
+    }
+  }, [messagesQuery.data]);
   
   // Effect to remove optimistic messages when they're confirmed by the server
   useEffect(() => {
