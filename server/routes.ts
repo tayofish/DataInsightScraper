@@ -151,14 +151,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
 
-      const results = [];
+      const results: any[] = [];
 
       // Search tasks
       try {
-        const tasks = await db.query.tasks.findMany({
+        const taskResults = await db.query.tasks.findMany({
           where: or(
-            ilike(tasks.title, `%${searchTerm}%`),
-            ilike(tasks.description, `%${searchTerm}%`)
+            sql`${tasks.title} ILIKE ${`%${searchTerm}%`}`,
+            sql`${tasks.description} ILIKE ${`%${searchTerm}%`}`
           ),
           with: {
             assignee: {
@@ -173,7 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           limit: 20
         });
 
-        tasks.forEach(task => {
+        taskResults.forEach((task: any) => {
           results.push({
             id: task.id,
             type: 'task',
@@ -192,8 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Search channel messages
       try {
-        const channelMessages = await db.query.messages.findMany({
-          where: ilike(messages.content, `%${searchTerm}%`),
+        const messageResults = await db.query.messages.findMany({
+          where: sql`${messages.content} ILIKE ${`%${searchTerm}%`}`,
           with: {
             user: {
               columns: {
@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           limit: 15
         });
 
-        channelMessages.forEach(message => {
+        messageResults.forEach((message: any) => {
           results.push({
             id: message.id,
             type: 'channel_message',
@@ -231,8 +231,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Search direct messages
       try {
-        const directMessages = await db.query.directMessages.findMany({
-          where: ilike(directMessages.content, `%${searchTerm}%`),
+        const dmResults = await db.query.directMessages.findMany({
+          where: sql`${directMessages.content} ILIKE ${`%${searchTerm}%`}`,
           with: {
             sender: {
               columns: {
@@ -254,7 +254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           limit: 10
         });
 
-        directMessages.forEach(message => {
+        dmResults.forEach((message: any) => {
           results.push({
             id: message.id,
             type: 'direct_message',
