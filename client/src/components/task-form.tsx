@@ -57,9 +57,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, File, Download, MessageSquare, Upload, Trash2, Loader2 } from 'lucide-react';
+import { CheckCircle, File, Download, MessageSquare, Upload, Trash2, Loader2, Flag, AlertCircle, CheckSquare, FolderOpen, Building, Tag } from 'lucide-react';
 import TaskUpdateHistory from './task-update-history';
 import AvatarField from './avatar-field';
+import SearchableSelect from './searchable-select';
 
 interface TaskFormProps {
   isOpen: boolean;
@@ -514,93 +515,48 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
+                        <SearchableSelect
                           control={form.control}
                           name="priority"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Priority</FormLabel>
-                              <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select priority" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="low">Low</SelectItem>
-                                  <SelectItem value="medium">Medium</SelectItem>
-                                  <SelectItem value="high">High</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          label="Priority"
+                          placeholder="Select priority"
+                          searchPlaceholder="Search priorities..."
+                          options={[
+                            { value: "low", label: "Low", icon: <Flag className="h-4 w-4 text-green-500" /> },
+                            { value: "medium", label: "Medium", icon: <Flag className="h-4 w-4 text-yellow-500" /> },
+                            { value: "high", label: "High", icon: <Flag className="h-4 w-4 text-red-500" /> }
+                          ]}
                         />
                       
-                        <FormField
+                        <SearchableSelect
                           control={form.control}
                           name="status"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Status</FormLabel>
-                              <Select
-                                value={field.value}
-                                onValueChange={field.onChange}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="todo">To Do</SelectItem>
-                                  <SelectItem value="in_progress">In Progress</SelectItem>
-                                  <SelectItem value="completed">Completed</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          label="Status"
+                          placeholder="Select status"
+                          searchPlaceholder="Search status..."
+                          options={[
+                            { value: "todo", label: "To Do", icon: <AlertCircle className="h-4 w-4 text-blue-500" /> },
+                            { value: "in_progress", label: "In Progress", icon: <Loader2 className="h-4 w-4 text-yellow-500" /> },
+                            { value: "completed", label: "Completed", icon: <CheckSquare className="h-4 w-4 text-green-500" /> }
+                          ]}
                         />
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
+                        <SearchableSelect
                           control={form.control}
                           name="projectId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Project</FormLabel>
-                              <Select
-                                value={field.value?.toString() || '-1'}
-                                onValueChange={(value) => {
-                                  if (value === '-1') {
-                                    field.onChange(null);
-                                  } else {
-                                    field.onChange(parseInt(value));
-                                  }
-                                }}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select project" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="-1">No Project</SelectItem>
-                                  {projects.map((project) => (
-                                    <SelectItem key={project.id} value={project.id.toString()}>
-                                      {project.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          label="Project"
+                          placeholder="Select project"
+                          searchPlaceholder="Search projects..."
+                          options={[
+                            { value: "-1", label: "No Project", icon: <FolderOpen className="h-4 w-4 text-gray-400" /> },
+                            ...projects.map((project) => ({
+                              value: project.id.toString(),
+                              label: project.name,
+                              icon: <FolderOpen className="h-4 w-4 text-blue-500" />
+                            }))
+                          ]}
                         />
                         
                         <AvatarField
