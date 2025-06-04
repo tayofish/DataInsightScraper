@@ -18,9 +18,13 @@ app.use(express.urlencoded({ extended: false }));
 
 // Middleware to handle empty request bodies
 app.use((req: Request, res: Response, next: NextFunction) => {
+  // Skip validation for block/unblock endpoints which don't need request bodies
+  const isBlockUnblockPath = req.path.match(/^\/api\/admin\/users\/\d+\/(block|unblock)$/);
+  
   // Only check POST, PUT, PATCH requests that should have JSON content
   if (['POST', 'PUT', 'PATCH'].includes(req.method) && 
-      req.headers['content-type']?.includes('application/json')) {
+      req.headers['content-type']?.includes('application/json') &&
+      !isBlockUnblockPath) {
     
     // Check if body is empty on routes that expect JSON
     const contentLength = parseInt(req.headers['content-length'] || '0');
