@@ -87,6 +87,42 @@ export const storage = {
   },
   
   deleteUser: async (id: number): Promise<boolean> => {
+    // Check if user is admin - prevent deletion of admin users
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id)
+    });
+    
+    if (user?.isAdmin) {
+      throw new Error("Cannot delete admin user");
+    }
+    
+    // Delete all related records first to avoid foreign key constraint violations
+    // Order is critical - delete child records before parent records
+    
+    // 1. Delete notifications for this user (must be first due to user_id foreign key)
+    await db.delete(notifications).where(eq(notifications.userId, id));
+    
+    // 2. Delete task updates by this user
+    await db.delete(taskUpdates).where(eq(taskUpdates.userId, id));
+    
+    // 3. Delete task collaborations by this user (both as user and inviter)
+    await db.delete(taskCollaborators).where(eq(taskCollaborators.userId, id));
+    await db.delete(taskCollaborators).where(eq(taskCollaborators.invitedBy, id));
+    
+    // 4. Delete project assignments for this user
+    await db.delete(projectAssignments).where(eq(projectAssignments.userId, id));
+    
+    // 5. Update tasks assigned to this user (set assigneeId to null)
+    await db.update(tasks)
+      .set({ assigneeId: null })
+      .where(eq(tasks.assigneeId, id));
+    
+    // 6. Update tasks created by this user (set createdBy to null if needed)
+    await db.update(tasks)
+      .set({ createdBy: null })
+      .where(eq(tasks.createdBy, id));
+    
+    // 7. Finally delete the user
     await db.delete(users).where(eq(users.id, id));
     return true;
   },
