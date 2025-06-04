@@ -158,7 +158,7 @@ export default function AdminPage() {
     queryFn: async () => {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json() as Promise<AdminUser[]>;
+      return res.json() as Promise<User[]>;
     }
   });
 
@@ -858,12 +858,12 @@ export default function AdminPage() {
                             </Button>
                           )}
                           <Button
-                            variant={user.isBlocked ? "default" : "outline"}
+                            variant={user.isBlocked === true ? "default" : "outline"}
                             size="sm"
                             onClick={() => handleBlockUser(user.id, !user.isBlocked)}
                             disabled={blockUserMutation.isPending}
                           >
-                            {user.isBlocked ? (
+                            {user.isBlocked === true ? (
                               <>
                                 <UserCheck className="h-4 w-4 mr-1" />
                                 Unblock
