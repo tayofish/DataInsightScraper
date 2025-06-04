@@ -30,7 +30,12 @@ export const storage = {
   
   // User operations
   getAllUsers: async (): Promise<User[]> => {
-    return db.query.users.findMany();
+    console.log("getAllUsers: Starting direct query...");
+    const result = await db.query.users.findMany({
+      orderBy: (users, { asc }) => [asc(users.id)]
+    });
+    console.log("getAllUsers: Found", result.length, "users with IDs:", result.map(u => u.id));
+    return result;
   },
 
   getUserById: async (id: number): Promise<User | undefined> => {

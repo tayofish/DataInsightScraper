@@ -835,7 +835,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      console.log("API /users: Starting request");
       const users = await storage.getAllUsers();
+      console.log("API /users: Storage returned", users.length, "users");
+      console.log("API /users: Raw user data:", users.map(u => ({ id: u.id, username: u.username, name: u.name })));
+      
       // Remove sensitive data from response
       const safeUsers = users.map(user => ({
         id: user.id,
@@ -846,6 +850,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAdmin: user.isAdmin,
         departmentId: user.departmentId
       }));
+      
+      console.log("API /users: Mapped safe users:", safeUsers.length, "users");
+      console.log("API /users: Safe user data:", safeUsers.map(u => ({ id: u.id, username: u.username, name: u.name })));
+      
       return res.status(200).json(safeUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
