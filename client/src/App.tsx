@@ -64,7 +64,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <NotificationDropdown />
           </div>
         </header>
-        <main className="flex-1 relative overflow-auto focus:outline-none">
+        <main className="flex-1 relative overflow-auto focus:outline-none p-6">
           {children}
         </main>
       </div>
