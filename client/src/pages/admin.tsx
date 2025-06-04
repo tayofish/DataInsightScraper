@@ -839,7 +839,7 @@ export default function AdminPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">
+                    <TableCell colSpan={6} className="text-center py-4">
                       No users found.
                     </TableCell>
                   </TableRow>
