@@ -37,13 +37,20 @@ export default function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log(`SearchableSelect ${name} - isOpen changed to:`, isOpen);
+  }, [isOpen, name]);
+
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getSelectedOption = (value: string | null) => {
-    if (!value) return null;
-    return options.find(option => option.value === value);
+  const getSelectedOption = (value: string | number | null) => {
+    if (!value && value !== 0) return null;
+    // Convert value to string for comparison since options have string values
+    const stringValue = value.toString();
+    return options.find(option => option.value === stringValue);
   };
 
   return (
@@ -52,6 +59,9 @@ export default function SearchableSelect({
       name={name}
       render={({ field }) => {
         const selectedOption = getSelectedOption(field.value);
+        
+        // Debug logging
+        console.log(`SearchableSelect ${name} - field.value:`, field.value, 'selectedOption:', selectedOption);
 
         return (
           <FormItem>
@@ -62,6 +72,7 @@ export default function SearchableSelect({
                   type="button"
                   className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   onClick={(e) => {
+                    console.log(`SearchableSelect ${name} button clicked - current isOpen:`, isOpen);
                     e.preventDefault();
                     e.stopPropagation();
                     setIsOpen(!isOpen);
