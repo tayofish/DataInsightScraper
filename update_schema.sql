@@ -282,6 +282,23 @@ BEGIN
     END IF;
 END$$;
 
+-- Add is_approved column to users table for Microsoft authentication approval system
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'users') THEN
+        -- Add is_approved column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'users' AND column_name = 'is_approved') THEN
+            ALTER TABLE "users" ADD COLUMN "is_approved" BOOLEAN DEFAULT true;
+            RAISE NOTICE 'Added is_approved column to users table';
+        ELSE
+            RAISE NOTICE 'is_approved column already exists in users table';
+        END IF;
+    ELSE
+        RAISE NOTICE 'users table does not exist - skipping is_approved column addition';
+    END IF;
+END$$;
+
 -- Add Microsoft approval requirement setting to app_settings table
 DO $$
 BEGIN
