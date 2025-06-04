@@ -1185,6 +1185,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Admin: Get pending users awaiting approval
+  app.get("/api/admin/users/pending", isAdmin, async (req, res) => {
+    try {
+      const pendingUsers = await storage.getPendingUsers();
+      return res.status(200).json(pendingUsers);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+      return res.status(500).json({ message: "Failed to fetch pending users" });
+    }
+  });
+
+  // Admin: Approve user
+  app.post("/api/admin/users/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const approvedUser = await storage.approveUser(id);
+      if (!approvedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Send approval notification to the user
+      try {
+        await storage.createNotification({
+          userId: id,
+          title: 'Account Approved',
+          message: 'Your account has been approved by an administrator. You can now access the system.',
+          type: 'user_approved'
+        });
+      } catch (notificationError) {
+        console.error('Error creating approval notification:', notificationError);
+      }
+
+      return res.status(200).json({ message: "User approved successfully", user: approvedUser });
+    } catch (error) {
+      console.error("Error approving user:", error);
+      return res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
   // Admin: Delete user
   app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
     try {

@@ -91,6 +91,27 @@ export const storage = {
     return true;
   },
 
+  getAdminUsers: async (): Promise<User[]> => {
+    return db.query.users.findMany({
+      where: eq(users.isAdmin, true)
+    });
+  },
+
+  approveUser: async (id: number): Promise<User | undefined> => {
+    const [updatedUser] = await db.update(users)
+      .set({ isApproved: true })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  },
+
+  getPendingUsers: async (): Promise<User[]> => {
+    return db.query.users.findMany({
+      where: eq(users.isApproved, false),
+      orderBy: (users, { desc }) => [desc(users.id)]
+    });
+  },
+
   // Project operations
   getAllProjects: async (): Promise<Project[]> => {
     return db.query.projects.findMany();

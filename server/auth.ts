@@ -153,15 +153,40 @@ export function setupAuth(app: Express) {
         const email = profile._json.preferred_username || profile._json.email;
         let user = await storage.getUserByUsername(email);
         
-        // User doesn't exist, create a new one
+        // User doesn't exist, create a new one (pending approval)
         if (!user) {
           const displayName = profile._json.name || email.split('@')[0];
           user = await storage.createUser({
             username: email,
             name: displayName,
             password: await hashPassword(randomBytes(16).toString('hex')), // Generate random password for OAuth users
-            avatar: null
+            avatar: null,
+            isApproved: false // New Microsoft auth users require admin approval
           });
+          
+          // Notify admins about new user pending approval
+          try {
+            const admins = await storage.getAdminUsers();
+            for (const admin of admins) {
+              await storage.createNotification({
+                userId: admin.id,
+                title: 'New User Pending Approval',
+                message: `${displayName} (${email}) has registered via Microsoft authentication and is awaiting approval.`,
+                type: 'user_approval'
+              });
+            }
+          } catch (error) {
+            console.error('Error creating admin notifications:', error);
+          }
+        }
+        
+        // Check if user is approved (only for OAuth users)
+        if (!user.isApproved) {
+          // Return a special error that indicates the user needs approval
+          const error = new Error('User account pending approval');
+          (error as any).code = 'APPROVAL_PENDING';
+          (error as any).user = user;
+          return done(error);
         }
         
         return done(null, user);
