@@ -48,12 +48,18 @@ export default function AvatarField({
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Fetch users and invalidate cache to force fresh data
-  const { data: users = [] } = useQuery<User[]>({
+  // Fetch users and log what we receive
+  const { data: users = [], isLoading, error } = useQuery<User[]>({
     queryKey: ['/api/users'],
     staleTime: 0,
     refetchOnMount: true,
   });
+
+  // Log what data we receive from the API
+  React.useEffect(() => {
+    console.log("AvatarField: Received users data:", users.length, "users");
+    console.log("AvatarField: User details:", users.map(u => ({ id: u.id, username: u.username, name: u.name })));
+  }, [users]);
 
   // Force cache invalidation on component mount to get fresh user data
   React.useEffect(() => {
