@@ -294,8 +294,17 @@ BEGIN
         ELSE
             RAISE NOTICE 'is_approved column already exists in users table';
         END IF;
+        
+        -- Add is_blocked column if it doesn't exist
+        IF NOT EXISTS (SELECT FROM information_schema.columns 
+                      WHERE table_name = 'users' AND column_name = 'is_blocked') THEN
+            ALTER TABLE "users" ADD COLUMN "is_blocked" BOOLEAN DEFAULT false;
+            RAISE NOTICE 'Added is_blocked column to users table';
+        ELSE
+            RAISE NOTICE 'is_blocked column already exists in users table';
+        END IF;
     ELSE
-        RAISE NOTICE 'users table does not exist - skipping is_approved column addition';
+        RAISE NOTICE 'users table does not exist - skipping user columns addition';
     END IF;
 END$$;
 
