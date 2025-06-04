@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FormControl,
   FormField,
@@ -46,10 +46,14 @@ export default function AvatarField({
   includeUnassigned = false 
 }: AvatarFieldProps) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
   
-  // Fetch users
+  // Fetch users with staleTime to force fresh data
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ['/api/users'],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const getSelectedUser = (value: number | null) => {
