@@ -117,12 +117,7 @@ export const storage = {
       .set({ assigneeId: null })
       .where(eq(tasks.assigneeId, id));
     
-    // 6. Update tasks created by this user (set createdBy to null if needed)
-    await db.update(tasks)
-      .set({ createdBy: null })
-      .where(eq(tasks.createdBy, id));
-    
-    // 7. Finally delete the user
+    // 6. Finally delete the user
     await db.delete(users).where(eq(users.id, id));
     return true;
   },

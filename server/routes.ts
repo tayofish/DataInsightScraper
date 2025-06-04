@@ -1236,23 +1236,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      // Don't allow deleting the admin user
-      if (id === 4) {
-        return res.status(400).json({ message: "Cannot delete the admin user" });
-      }
-      
       // Check if user exists
       const user = await storage.getUserById(id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Delete the user
+      // Delete the user (admin protection is handled in storage layer)
       await storage.deleteUser(id);
       
       return res.status(200).json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Error deleting user:", error);
+      
+      // Handle specific error cases
+      if (error instanceof Error && error.message === "Cannot delete admin user") {
+        return res.status(400).json({ message: "Cannot delete admin user" });
+      }
+      
       return res.status(500).json({ message: "Failed to delete user" });
     }
   });
