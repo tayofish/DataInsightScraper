@@ -148,8 +148,8 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             </div>
           </div>
 
-          {/* Primary Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
+          {/* First Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 Assignee
@@ -268,39 +268,9 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 onValueChange={(value) => form.setValue("priority", value || "all")}
               />
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Sort By
-              </label>
-              <SearchableSelect
-                options={[
-                  {
-                    value: "dueDate",
-                    label: "Due Date",
-                    icon: <div className="w-4 h-4 text-slate-500">📅</div>
-                  },
-                  {
-                    value: "priority",
-                    label: "Priority",
-                    icon: <div className="w-4 h-4 text-slate-500">⭐</div>
-                  },
-                  {
-                    value: "updatedAt",
-                    label: "Recently Updated",
-                    icon: <div className="w-4 h-4 text-slate-500">🕒</div>
-                  }
-                ]}
-                value={form.watch("sortBy")}
-                placeholder="Sort by..."
-                searchPlaceholder="Search sort options..."
-                emptyText="No sort option found."
-                onValueChange={(value) => form.setValue("sortBy", value || "dueDate")}
-              />
-            </div>
           </div>
 
-          {/* Secondary Filters */}
+          {/* Second Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -369,6 +339,36 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                 searchPlaceholder="Search departments..."
                 emptyText="No departments found."
                 onValueChange={(value) => form.setValue("department", value || "all")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Sort By
+              </label>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "dueDate",
+                    label: "Due Date",
+                    icon: <div className="w-4 h-4 text-slate-500">📅</div>
+                  },
+                  {
+                    value: "priority",
+                    label: "Priority",
+                    icon: <div className="w-4 h-4 text-slate-500">⭐</div>
+                  },
+                  {
+                    value: "updatedAt",
+                    label: "Recently Updated",
+                    icon: <div className="w-4 h-4 text-slate-500">🕒</div>
+                  }
+                ]}
+                value={form.watch("sortBy")}
+                placeholder="Sort by..."
+                searchPlaceholder="Search sort options..."
+                emptyText="No sort option found."
+                onValueChange={(value) => form.setValue("sortBy", value || "dueDate")}
               />
             </div>
           </div>
