@@ -282,6 +282,22 @@ BEGIN
     END IF;
 END$$;
 
+-- Add Microsoft approval requirement setting to app_settings table
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE tablename = 'app_settings') THEN
+        -- Insert Microsoft approval requirement setting
+        INSERT INTO app_settings (key, value, description) 
+        VALUES ('microsoft_approval_required', 'true', 'Authentication setting for microsoft_approval_required')
+        ON CONFLICT (key) DO UPDATE SET 
+          value = EXCLUDED.value,
+          description = EXCLUDED.description;
+        RAISE NOTICE 'Added/updated Microsoft approval requirement setting';
+    ELSE
+        RAISE NOTICE 'app_settings table does not exist - skipping Microsoft approval setting';
+    END IF;
+END$$;
+
 -- Final success message
 DO $$
 BEGIN

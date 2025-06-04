@@ -197,7 +197,8 @@ export function setupAuth(app: Express) {
         }
         
         // Check if approval is required for Microsoft authentication users
-        if (authSettings.microsoftApprovalRequired && !user.isApproved) {
+        const finalAuthSettings = await getAuthSettings();
+        if (finalAuthSettings.microsoftApprovalRequired && !user.isApproved) {
           // Return a special error that indicates the user needs approval
           const error = new Error('User account pending approval');
           (error as any).code = 'APPROVAL_PENDING';
