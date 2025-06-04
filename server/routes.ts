@@ -849,6 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatar: user.avatar,
         isAdmin: user.isAdmin,
         isApproved: user.isApproved,
+        isBlocked: user.isBlocked || false, // Default to false if field doesn't exist yet
         departmentId: user.departmentId
       }));
       

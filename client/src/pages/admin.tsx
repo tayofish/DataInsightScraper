@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
   Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail, ImageIcon,
-  Settings, Loader2, Check
+  Settings, Loader2, Check, Ban, UserCheck
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -405,6 +405,28 @@ export default function AdminPage() {
     },
   });
 
+  // Block/Unblock user mutation
+  const blockUserMutation = useMutation({
+    mutationFn: async ({ userId, block }: { userId: number; block: boolean }) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/${block ? 'block' : 'unblock'}`);
+      return await res.json();
+    },
+    onSuccess: (_, { block }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: block ? "User blocked" : "User unblocked",
+        description: `The user has been ${block ? 'blocked' : 'unblocked'} successfully.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update user status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle user form submission
   const onUserSubmit = (values: UserFormValues) => {
     if (userToEdit) {
@@ -424,6 +446,11 @@ export default function AdminPage() {
   // Handle user approval
   const handleApproveUser = (userId: number) => {
     approveMutation.mutate(userId);
+  };
+
+  // Handle user blocking/unblocking
+  const handleBlockUser = (userId: number, block: boolean) => {
+    blockUserMutation.mutate({ userId, block });
   };
   
   // Reset assignment form
@@ -819,6 +846,24 @@ export default function AdminPage() {
                               Approve
                             </Button>
                           )}
+                          <Button
+                            variant={user.isBlocked ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleBlockUser(user.id, !user.isBlocked)}
+                            disabled={blockUserMutation.isPending}
+                          >
+                            {user.isBlocked ? (
+                              <>
+                                <UserCheck className="h-4 w-4 mr-1" />
+                                Unblock
+                              </>
+                            ) : (
+                              <>
+                                <Ban className="h-4 w-4 mr-1" />
+                                Block
+                              </>
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
