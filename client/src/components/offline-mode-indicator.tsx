@@ -7,10 +7,15 @@ import { useWebSocket } from '@/hooks/websocket-provider';
 import { useAuth } from '@/hooks/use-auth';
 
 export function OfflineModeIndicator() {
+  const { user } = useAuth();
+  
+  // Don't show any notifications if user is not authenticated
+  // This check must be done before any hooks to avoid Rules of Hooks violation
+  if (!user) return null;
+  
   const [isOffline, setIsOffline] = useState(false);
   const [offlineSince, setOfflineSince] = useState<Date | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
   
   // Use our WebSocket context with all available properties
   const { 
@@ -20,9 +25,6 @@ export function OfflineModeIndicator() {
     lastConnectionAttempt,
     forceSyncNow
   } = useWebSocket();
-  
-  // Don't show any notifications if user is not authenticated
-  if (!user) return null;
   
   // Track offline status based on both network status and database status
   useEffect(() => {
