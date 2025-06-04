@@ -26,6 +26,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as TabsComponentList, TabsTrigger as TabsComponentTrigger } from "@/components/ui/tabs";
 import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
+
+// Extended User type for admin functionality
+interface AdminUser extends User {
+  isBlocked?: boolean;
+}
 import SmtpConfigForm from "@/components/smtp-config-form";
 import LogoUpload from "@/components/logo-upload";
 import FaviconUpload from "@/components/favicon-upload";
@@ -156,7 +161,7 @@ export default function AdminPage() {
     queryFn: async () => {
       const res = await fetch("/api/users");
       if (!res.ok) throw new Error("Failed to fetch users");
-      return res.json() as Promise<User[]>;
+      return res.json() as Promise<AdminUser[]>;
     }
   });
 
