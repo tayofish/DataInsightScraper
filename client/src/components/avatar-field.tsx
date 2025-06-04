@@ -36,6 +36,7 @@ interface AvatarFieldProps {
   label: string;
   placeholder: string;
   includeUnassigned?: boolean;
+  includeAll?: boolean;
 }
 
 export default function AvatarField({ 
@@ -43,28 +44,17 @@ export default function AvatarField({
   name, 
   label, 
   placeholder, 
-  includeUnassigned = false 
+  includeUnassigned = false,
+  includeAll = false 
 }: AvatarFieldProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Fetch users and log what we receive
+  // Fetch users data
   const { data: users = [], isLoading, error } = useQuery<User[]>({
     queryKey: ['/api/users'],
-    staleTime: 0,
-    refetchOnMount: true,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
-
-  // Log what data we receive from the API
-  React.useEffect(() => {
-    console.log("AvatarField: Received users data:", users.length, "users");
-    console.log("AvatarField: User details:", users.map(u => ({ id: u.id, username: u.username, name: u.name })));
-  }, [users]);
-
-  // Force cache invalidation on component mount to get fresh user data
-  React.useEffect(() => {
-    queryClient.invalidateQueries({ queryKey: ['/api/users'] });
-  }, [queryClient]);
 
   const getSelectedUser = (value: number | null) => {
     if (!value) return null;
@@ -89,6 +79,7 @@ export default function AvatarField({
                     role="combobox"
                     aria-expanded={open}
                     className="justify-between"
+                    disabled={isLoading}
                   >
                     {selectedUser ? (
                       <div className="flex items-center gap-2">
@@ -115,6 +106,27 @@ export default function AvatarField({
                   <CommandInput placeholder="Search users..." />
                   <CommandEmpty>No user found.</CommandEmpty>
                   <CommandGroup>
+                    {includeAll && (
+                      <CommandItem
+                        value="all_users"
+                        onSelect={() => {
+                          field.onChange(-1);
+                          setOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <UserX className="h-5 w-5 text-gray-400" />
+                          <span>All Users</span>
+                        </div>
+                        <Check
+                          className={cn(
+                            "ml-auto h-4 w-4",
+                            field.value === -1 ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                      </CommandItem>
+                    )}
+                    
                     {includeUnassigned && (
                       <CommandItem
                         value="unassigned"
