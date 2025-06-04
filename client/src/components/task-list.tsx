@@ -119,8 +119,13 @@ export default function TaskList({ filters }: TaskListProps) {
       });
     }
     
-    // Sort tasks
+    // Sort tasks - completed tasks always at the end
     return filteredTasks.sort((a, b) => {
+      // First priority: completed status (completed tasks go to end)
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      
+      // Then apply the selected sort criteria for tasks of the same completion status
       if (filters.sortBy === 'dueDate') {
         if (!a.dueDate) return 1;
         if (!b.dueDate) return -1;
@@ -137,7 +142,8 @@ export default function TaskList({ filters }: TaskListProps) {
         return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
       }
       
-      return 0;
+      // Default sort by creation date (newest first) for tasks with same completion status
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
   }, [tasks, filters.sortBy, filters.customFilter]);
   
