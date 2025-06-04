@@ -849,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatar: user.avatar,
         isAdmin: user.isAdmin,
         isApproved: user.isApproved,
-        isBlocked: false, // Default to false until column is added
+        isBlocked: user.isBlocked || false,
         departmentId: user.departmentId
       }));
       

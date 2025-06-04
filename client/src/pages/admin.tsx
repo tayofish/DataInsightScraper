@@ -29,7 +29,7 @@ import type { User, Project, Category, Department, ProjectAssignment } from "@sh
 
 // Extended User type for admin functionality
 interface AdminUser extends User {
-  isBlocked?: boolean;
+  isBlocked?: boolean | null;
 }
 import SmtpConfigForm from "@/components/smtp-config-form";
 import LogoUpload from "@/components/logo-upload";

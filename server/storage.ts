@@ -143,6 +143,22 @@ export const storage = {
     });
   },
 
+  blockUser: async (id: number): Promise<User | undefined> => {
+    const [updatedUser] = await db.update(users)
+      .set({ isBlocked: true })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  },
+
+  unblockUser: async (id: number): Promise<User | undefined> => {
+    const [updatedUser] = await db.update(users)
+      .set({ isBlocked: false })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  },
+
   // Project operations
   getAllProjects: async (): Promise<Project[]> => {
     return db.query.projects.findMany();

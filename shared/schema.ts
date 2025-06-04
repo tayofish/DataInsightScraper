@@ -19,6 +19,7 @@ export const users = pgTable("users", {
   avatar: text("avatar"),
   isAdmin: boolean("is_admin").default(false),
   isApproved: boolean("is_approved").default(true), // Default true for existing users, false for new OAuth users
+  isBlocked: boolean("is_blocked").default(false), // Default false for all users
   departmentId: integer("department_id").references(() => departments.id),
 });
 
