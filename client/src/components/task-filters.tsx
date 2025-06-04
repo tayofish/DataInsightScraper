@@ -1,5 +1,6 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { AvatarField } from '@/components/ui/avatar-field';
 import { Input } from '@/components/ui/input';
 import { useQuery } from '@tanstack/react-query';
@@ -9,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { RotateCcw, Search, Filter, SlidersHorizontal, X } from 'lucide-react';
+import { RotateCcw, Search, Filter, SlidersHorizontal, X, FolderOpen } from 'lucide-react';
 
 interface TaskFiltersProps {
   onFilterChange: (filters: TaskFilterValues) => void;
@@ -167,30 +168,35 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Project
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "-2",
+                    label: "All Projects",
+                    icon: <FolderOpen className="h-4 w-4 text-blue-500" />
+                  },
+                  ...projects.map((project) => ({
+                    value: project.id.toString(),
+                    label: project.name,
+                    icon: <FolderOpen className="h-4 w-4 text-slate-500" />
+                  }))
+                ]}
                 value={form.watch("projectId")?.toString() || "-2"}
+                placeholder="All Projects"
+                searchPlaceholder="Search projects..."
+                emptyText="No projects found."
                 onValueChange={(value) => {
                   if (value === "-2") {
                     form.setValue("projectId", -2);
                   } else if (value === "-1") {
                     form.setValue("projectId", -1);
+                  } else if (value === "") {
+                    form.setValue("projectId", -2);
                   } else {
                     form.setValue("projectId", parseInt(value));
                   }
                 }}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Projects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="-2">All Projects</SelectItem>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id.toString()}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
             
             <div className="space-y-2">
