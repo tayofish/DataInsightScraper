@@ -110,9 +110,15 @@ export function setupAuth(app: Express) {
         const user = await storage.getUserByUsername(username);
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false);
-        } else {
-          return done(null, user);
         }
+        
+        // Check if user is blocked
+        if (user.isBlocked) {
+          console.log(`Login denied for blocked user: ${username}`);
+          return done(null, false, { message: 'Your account has been blocked. Please contact an administrator.' });
+        }
+        
+        return done(null, user);
       } catch (err) {
         return done(err);
       }
@@ -194,6 +200,14 @@ export function setupAuth(app: Express) {
               console.error('Error creating admin notifications:', error);
             }
           }
+        }
+        
+        // Check if user is blocked
+        if (user.isBlocked) {
+          console.log(`Microsoft login denied for blocked user: ${email}`);
+          const error = new Error('Your account has been blocked. Please contact an administrator.');
+          (error as any).code = 'USER_BLOCKED';
+          return done(error);
         }
         
         // Check if approval is required for Microsoft authentication users
