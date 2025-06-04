@@ -70,7 +70,8 @@ export default function AdminPage() {
   const [authSettings, setAuthSettings] = useState({
     localAuth: true,
     microsoftAuth: true,
-    userRegistration: false
+    userRegistration: false,
+    microsoftApprovalRequired: true
   });
   
   // Backup and restore state and handlers
@@ -206,20 +207,23 @@ export default function AdminPage() {
         const responses = await Promise.all([
           fetch("/api/app-settings/local_auth"),
           fetch("/api/app-settings/microsoft_auth"),
-          fetch("/api/app-settings/allow_registration")
+          fetch("/api/app-settings/allow_registration"),
+          fetch("/api/app-settings/microsoft_approval_required")
         ]);
         
         const localAuth = responses[0].ok ? (await responses[0].json()).value === "true" : true;
         const microsoftAuth = responses[1].ok ? (await responses[1].json()).value === "true" : true;
         const userRegistration = responses[2].ok ? (await responses[2].json()).value === "true" : false;
+        const microsoftApprovalRequired = responses[3].ok ? (await responses[3].json()).value === "true" : true;
         
         setAuthSettings({
           localAuth,
           microsoftAuth,
-          userRegistration
+          userRegistration,
+          microsoftApprovalRequired
         });
         
-        return { localAuth, microsoftAuth, userRegistration };
+        return { localAuth, microsoftAuth, userRegistration, microsoftApprovalRequired };
       } catch (error) {
         console.error("Failed to fetch authentication settings:", error);
         return null;
@@ -1171,6 +1175,25 @@ export default function AdminPage() {
                     </Badge>
                   </div>
                 </div>
+                
+                {authSettings.microsoftAuth && (
+                  <div className="flex items-center justify-between pl-6 border-l-2 border-muted">
+                    <div>
+                      <h4 className="font-medium">Microsoft User Approval Required</h4>
+                      <p className="text-sm text-muted-foreground">Require admin approval for new Microsoft authentication users</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="microsoft-approval" 
+                        checked={authSettings.microsoftApprovalRequired}
+                        onCheckedChange={() => handleAuthToggle('microsoftApprovalRequired')}
+                      />
+                      <Badge variant={authSettings.microsoftApprovalRequired ? "default" : "outline"}>
+                        {authSettings.microsoftApprovalRequired ? "Required" : "Not Required"}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
                 
                 <Separator />
                 

@@ -3445,7 +3445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = {
         localAuth: true,
         microsoftAuth: true,
-        userRegistration: false
+        userRegistration: false,
+        microsoftApprovalRequired: true
       };
       
       try {
@@ -3473,6 +3474,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error("Error fetching allow_registration setting:", error);
+      }
+      
+      try {
+        const microsoftApprovalSetting = await storage.getAppSettingByKey("microsoft_approval_required");
+        if (microsoftApprovalSetting) {
+          settings.microsoftApprovalRequired = microsoftApprovalSetting.value === "true";
+        }
+      } catch (error) {
+        console.error("Error fetching microsoft_approval_required setting:", error);
       }
       
       return res.status(200).json(settings);
