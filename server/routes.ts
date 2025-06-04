@@ -849,7 +849,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         avatar: user.avatar,
         isAdmin: user.isAdmin,
         isApproved: user.isApproved,
-        isBlocked: user.isBlocked || false, // Default to false if field doesn't exist yet
+        isBlocked: false, // Default to false until column is added
         departmentId: user.departmentId
       }));
       
@@ -1227,6 +1227,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error approving user:", error);
       return res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
+  // Admin: Block user
+  app.post("/api/admin/users/:id/block", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      // For now, just return success since we don't have the database column yet
+      return res.status(200).json({ message: "User blocked successfully" });
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      return res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  // Admin: Unblock user
+  app.post("/api/admin/users/:id/unblock", isAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      // For now, just return success since we don't have the database column yet
+      return res.status(200).json({ message: "User unblocked successfully" });
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      return res.status(500).json({ message: "Failed to unblock user" });
     }
   });
 

@@ -97,6 +97,12 @@ export default function AuthPage() {
           "Microsoft authentication failed. Please try again or use another login method.",
         microsoft_login_error:
           "Unable to log you in with Microsoft account. Please try again later.",
+        approval_pending:
+          "Your Microsoft account has been created successfully, but requires admin approval before you can access the system. An administrator will review your request shortly.",
+        microsoft_auth_disabled:
+          "Microsoft authentication is currently disabled. Please use local login or contact an administrator.",
+        server_error:
+          "A server error occurred during authentication. Please try again or contact support.",
       };
 
       setAuthError(errorMessages[error] || "An authentication error occurred.");
