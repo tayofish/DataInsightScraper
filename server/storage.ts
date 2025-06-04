@@ -235,8 +235,8 @@ export const storage = {
         
         console.log("Storage.unblockUser: ORM update successful:", updatedUser);
         return updatedUser;
-      } catch (ormError) {
-        console.log("Storage.unblockUser: ORM failed, trying raw SQL...", ormError.message);
+      } catch (ormError: any) {
+        console.log("Storage.unblockUser: ORM failed, trying raw SQL...", ormError?.message);
         
         // Fallback to raw SQL
         const client = await pool.connect();
@@ -262,11 +262,11 @@ export const storage = {
           client.release();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Storage.unblockUser: All methods failed:", {
         error: error,
-        message: error.message,
-        stack: error.stack,
+        message: error?.message,
+        stack: error?.stack,
         userId: id
       });
       throw error;
