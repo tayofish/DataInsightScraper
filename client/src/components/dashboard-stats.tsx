@@ -19,35 +19,31 @@ interface StatCardProps {
 const StatCard = ({ title, value, icon, iconBgColor, iconColor, isLoading = false, onClick }: StatCardProps) => {
   return (
     <Card 
-      className="dashboard-stat-card hover:scale-105 overflow-hidden cursor-pointer relative transition-all duration-200"
+      className="hover:shadow-lg cursor-pointer relative transition-all duration-200 border border-gray-200 bg-white"
       onClick={onClick}
     >
-      <CardContent className="p-6 pb-7">
-        <div className="flex items-center">
-          <div className={`flex-shrink-0 ${iconBgColor} rounded-xl p-3 shadow-sm`}>
-            <div className={iconColor}>{icon}</div>
-          </div>
-          <div className="ml-5 w-0 flex-1">
-            <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
-              <dd>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-20 mt-1" />
-                ) : (
-                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
-                )}
-              </dd>
-            </dl>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className={`flex-shrink-0 ${iconBgColor} rounded-lg p-3`}>
+              <div className={iconColor}>{icon}</div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-500 truncate">{title}</p>
+              {isLoading ? (
+                <Skeleton className="h-8 w-20 mt-1" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+              )}
+            </div>
           </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 w-full h-1.5" style={{ 
-          background: `linear-gradient(to right, ${iconColor.includes('blue') ? '#3b82f6' : 
-                                             iconColor.includes('green') ? '#10b981' : 
-                                             iconColor.includes('amber') ? '#f59e0b' : 
-                                             '#ef4444'}, transparent)`,
-          borderBottomLeftRadius: '0.5rem',
-          borderBottomRightRadius: '0.5rem'
-        }}></div>
+        <div className={`absolute bottom-0 left-0 right-0 w-full h-1.5 rounded-b-lg ${
+          iconColor.includes('blue') ? 'bg-gradient-to-r from-blue-500 to-transparent' : 
+          iconColor.includes('green') ? 'bg-gradient-to-r from-green-500 to-transparent' : 
+          iconColor.includes('amber') ? 'bg-gradient-to-r from-amber-500 to-transparent' : 
+          'bg-gradient-to-r from-red-500 to-transparent'
+        }`}></div>
       </CardContent>
     </Card>
   );
@@ -105,7 +101,7 @@ export default function DashboardStats({ onFilterChange }: DashboardStatsProps) 
   };
 
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <StatCard
         title="Total Tasks"
         value={statistics.total}
@@ -113,7 +109,7 @@ export default function DashboardStats({ onFilterChange }: DashboardStatsProps) 
         iconBgColor="bg-blue-100"
         iconColor="text-blue-600"
         isLoading={isLoading}
-        onClick={() => resetAndApplyFilter({})} // Reset to show all tasks
+        onClick={() => resetAndApplyFilter({})}
       />
       
       <StatCard
