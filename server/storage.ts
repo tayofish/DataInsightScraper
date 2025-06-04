@@ -144,19 +144,71 @@ export const storage = {
   },
 
   blockUser: async (id: number): Promise<User | undefined> => {
-    const [updatedUser] = await db.update(users)
-      .set({ isBlocked: true })
-      .where(eq(users.id, id))
-      .returning();
-    return updatedUser;
+    try {
+      console.log("Storage.blockUser: Starting with user ID:", id);
+      
+      // First, check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.id, id)
+      });
+      console.log("Storage.blockUser: Existing user found:", existingUser);
+      
+      if (!existingUser) {
+        console.log("Storage.blockUser: User not found in database");
+        return undefined;
+      }
+      
+      console.log("Storage.blockUser: Attempting database update...");
+      const [updatedUser] = await db.update(users)
+        .set({ isBlocked: true })
+        .where(eq(users.id, id))
+        .returning();
+      
+      console.log("Storage.blockUser: Database update successful:", updatedUser);
+      return updatedUser;
+    } catch (error) {
+      console.error("Storage.blockUser: Database error:", {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        userId: id
+      });
+      throw error;
+    }
   },
 
   unblockUser: async (id: number): Promise<User | undefined> => {
-    const [updatedUser] = await db.update(users)
-      .set({ isBlocked: false })
-      .where(eq(users.id, id))
-      .returning();
-    return updatedUser;
+    try {
+      console.log("Storage.unblockUser: Starting with user ID:", id);
+      
+      // First, check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.id, id)
+      });
+      console.log("Storage.unblockUser: Existing user found:", existingUser);
+      
+      if (!existingUser) {
+        console.log("Storage.unblockUser: User not found in database");
+        return undefined;
+      }
+      
+      console.log("Storage.unblockUser: Attempting database update...");
+      const [updatedUser] = await db.update(users)
+        .set({ isBlocked: false })
+        .where(eq(users.id, id))
+        .returning();
+      
+      console.log("Storage.unblockUser: Database update successful:", updatedUser);
+      return updatedUser;
+    } catch (error) {
+      console.error("Storage.unblockUser: Database error:", {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        userId: id
+      });
+      throw error;
+    }
   },
 
   // Project operations

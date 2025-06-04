@@ -3530,48 +3530,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin endpoints for user management
   app.patch("/api/admin/users/:id/block", async (req, res) => {
+    console.log("Block user request received:", {
+      params: req.params,
+      isAuthenticated: req.isAuthenticated(),
+      userIsAdmin: req.user?.isAdmin,
+      userId: req.user?.id
+    });
+
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      console.log("Block user denied: Admin access required");
       return res.status(403).json({ message: "Admin access required" });
     }
 
     try {
       const id = parseInt(req.params.id);
+      console.log("Attempting to block user ID:", id);
+      
       if (isNaN(id)) {
+        console.log("Block user failed: Invalid ID");
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
+      console.log("Calling storage.blockUser with ID:", id);
       const updatedUser = await storage.blockUser(id);
+      console.log("Storage.blockUser result:", updatedUser);
+      
       if (!updatedUser) {
+        console.log("Block user failed: User not found");
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log("User blocked successfully:", updatedUser);
       return res.status(200).json(updatedUser);
     } catch (error) {
-      console.error("Error blocking user:", error);
-      return res.status(500).json({ message: "Failed to block user" });
+      console.error("Error blocking user - Full error details:", {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      return res.status(500).json({ 
+        message: "Failed to block user",
+        error: error.message 
+      });
     }
   });
 
   app.patch("/api/admin/users/:id/unblock", async (req, res) => {
+    console.log("Unblock user request received:", {
+      params: req.params,
+      isAuthenticated: req.isAuthenticated(),
+      userIsAdmin: req.user?.isAdmin,
+      userId: req.user?.id
+    });
+
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      console.log("Unblock user denied: Admin access required");
       return res.status(403).json({ message: "Admin access required" });
     }
 
     try {
       const id = parseInt(req.params.id);
+      console.log("Attempting to unblock user ID:", id);
+      
       if (isNaN(id)) {
+        console.log("Unblock user failed: Invalid ID");
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
+      console.log("Calling storage.unblockUser with ID:", id);
       const updatedUser = await storage.unblockUser(id);
+      console.log("Storage.unblockUser result:", updatedUser);
+      
       if (!updatedUser) {
+        console.log("Unblock user failed: User not found");
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log("User unblocked successfully:", updatedUser);
       return res.status(200).json(updatedUser);
     } catch (error) {
-      console.error("Error unblocking user:", error);
-      return res.status(500).json({ message: "Failed to unblock user" });
+      console.error("Error unblocking user - Full error details:", {
+        error: error,
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      return res.status(500).json({ 
+        message: "Failed to unblock user",
+        error: error.message 
+      });
     }
   });
 
