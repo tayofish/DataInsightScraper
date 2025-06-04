@@ -213,6 +213,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       
       const commentData: InsertTaskUpdate = {
         taskId: task.id,
+        userId: user!.id,
         updateType: 'Comment',
         comment,
         previousValue: null,
