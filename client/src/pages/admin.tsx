@@ -413,7 +413,16 @@ export default function AdminPage() {
   // Block/Unblock user mutation
   const blockUserMutation = useMutation({
     mutationFn: async ({ userId, block }: { userId: number; block: boolean }) => {
-      const res = await apiRequest("POST", `/api/admin/users/${userId}/${block ? 'block' : 'unblock'}`);
+      const endpoint = `/api/admin/users/${userId}/${block ? 'block' : 'unblock'}`;
+      const res = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to ${block ? 'block' : 'unblock'} user`);
+      }
       return await res.json();
     },
     onSuccess: (_, { block }) => {
