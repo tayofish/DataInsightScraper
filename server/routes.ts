@@ -3558,6 +3558,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoints for user management
+  app.patch("/api/admin/users/:id/block", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const updatedUser = await storage.blockUser(id);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      return res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id/unblock", async (req, res) => {
+    if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const updatedUser = await storage.unblockUser(id);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      return res.status(200).json(updatedUser);
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      return res.status(500).json({ message: "Failed to unblock user" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // === APP SETTINGS ROUTES ===
