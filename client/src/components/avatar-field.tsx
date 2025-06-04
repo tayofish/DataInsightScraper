@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Control } from 'react-hook-form';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Search } from 'lucide-react';
 import {
   FormControl,
   FormField,
@@ -30,6 +30,7 @@ export default function AvatarField({
   includeAll = false 
 }: AvatarFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
 
   // Clear cache on mount to handle deleted users
@@ -66,6 +67,12 @@ export default function AvatarField({
     
     return foundUser;
   };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <FormField
@@ -119,8 +126,24 @@ export default function AvatarField({
                 </button>
                 
                 {isOpen && (
-                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {includeAll && (
+                  <div className="absolute top-full left-0 right-0 z-[9999] mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-hidden">
+                    {/* Search Input */}
+                    <div className="sticky top-0 bg-white border-b border-gray-100 p-2">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-48 overflow-auto">
+                      {includeAll && (
                       <button
                         type="button"
                         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
@@ -154,38 +177,41 @@ export default function AvatarField({
                       </button>
                     )}
                     
-                    {users.map((user) => (
-                      <button
-                        key={user.id}
-                        type="button"
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
-                        onClick={() => {
-                          field.onChange(user.id);
-                          setIsOpen(false);
-                        }}
-                      >
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
-                          <AvatarFallback className="text-xs">
-                            {user.name 
-                              ? `${user.name.split(' ')[0][0]}${user.name.split(' ')[1]?.[0] || ''}`
-                              : user.username.substring(0, 2)
-                            }
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-sm">{user.name || user.username}</span>
-                          {user.name && (
-                            <span className="text-xs text-gray-500">@{user.username}</span>
-                          )}
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
+                            onClick={() => {
+                              field.onChange(user.id);
+                              setIsOpen(false);
+                              setSearchTerm('');
+                            }}
+                          >
+                            <Avatar className="h-5 w-5">
+                              <AvatarImage src={user.avatar || undefined} alt={user.name || user.username} />
+                              <AvatarFallback className="text-xs">
+                                {user.name 
+                                  ? `${user.name.split(' ')[0][0]}${user.name.split(' ')[1]?.[0] || ''}`
+                                  : user.username.substring(0, 2)
+                                }
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{user.name || user.username}</span>
+                              {user.name && (
+                                <span className="text-xs text-gray-500">@{user.username}</span>
+                              )}
+                            </div>
+                            {field.value === user.id && <Check className="ml-auto h-4 w-4 text-blue-600" />}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 text-sm">
+                          {searchTerm ? 'No users match your search' : 'No users found'}
                         </div>
-                        {field.value === user.id && <Check className="ml-auto h-4 w-4 text-blue-600" />}
-                      </button>
-                    ))}
-                    
-                    {users.length === 0 && !isLoading && (
-                      <div className="px-3 py-2 text-gray-500 text-sm">No users found</div>
-                    )}
+                      )}
                   </div>
                 )}
               </div>
