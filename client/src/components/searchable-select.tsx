@@ -59,9 +59,6 @@ export default function SearchableSelect({
       name={name}
       render={({ field }) => {
         const selectedOption = getSelectedOption(field.value);
-        
-        // Debug logging
-        console.log(`SearchableSelect ${name} - field.value:`, field.value, 'selectedOption:', selectedOption);
 
         return (
           <FormItem>
@@ -92,8 +89,8 @@ export default function SearchableSelect({
                 </button>
                 
                 {isOpen && (
-                  <div className="absolute top-full left-0 right-0 z-[9999] mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-hidden">
-                    <div className="p-2 border-b border-gray-200">
+                  <div className="absolute top-full left-0 right-0 z-[9999] mt-2 bg-white border border-gray-200 rounded-lg shadow-xl backdrop-blur-sm max-h-64 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200">
+                    <div className="p-3 border-b border-gray-100 bg-gray-50/50">
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <input
@@ -101,17 +98,17 @@ export default function SearchableSelect({
                           placeholder={searchPlaceholder}
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
                         />
                       </div>
                     </div>
-                    <div className="max-h-48 overflow-auto">
+                    <div className="max-h-48 overflow-auto py-1">
                       {filteredOptions.length > 0 ? (
                         filteredOptions.map((option) => (
                           <button
                             key={option.value}
                             type="button"
-                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-50 hover:text-blue-900 text-left transition-all duration-150 group border-l-2 border-l-transparent hover:border-l-blue-500"
                             onClick={() => {
                               // Handle numeric conversion for ID fields
                               if (name === 'projectId' || name === 'categoryId' || name === 'departmentId') {
@@ -127,19 +124,24 @@ export default function SearchableSelect({
                               setSearchTerm('');
                             }}
                           >
-                            {option.icon}
-                            <span className="text-sm">{option.label}</span>
+                            <div className="flex-shrink-0">
+                              {option.icon}
+                            </div>
+                            <span className="text-sm font-medium flex-grow">{option.label}</span>
                             {(name === 'projectId' || name === 'categoryId' || name === 'departmentId' ? 
                               (field.value === null && option.value === '-1') || 
                               (field.value?.toString() === option.value) :
                               field.value === option.value
                             ) && (
-                              <Check className="ml-auto h-4 w-4 text-blue-600" />
+                              <Check className="h-4 w-4 text-blue-600 flex-shrink-0" />
                             )}
                           </button>
                         ))
                       ) : (
-                        <div className="px-3 py-2 text-gray-500 text-sm">{emptyText}</div>
+                        <div className="px-4 py-6 text-gray-500 text-sm text-center">
+                          <div className="text-gray-400 mb-1">No results found</div>
+                          <div className="text-xs text-gray-400">{emptyText}</div>
+                        </div>
                       )}
                     </div>
                   </div>
