@@ -118,7 +118,7 @@ export default function SearchableSelect({
                           >
                             {option.icon}
                             <span className="text-sm">{option.label}</span>
-                            {(name === 'projectId' ? 
+                            {(name === 'projectId' || name === 'categoryId' || name === 'departmentId' ? 
                               (field.value === null && option.value === '-1') || 
                               (field.value?.toString() === option.value) :
                               field.value === option.value
