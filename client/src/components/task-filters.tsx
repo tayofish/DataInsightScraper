@@ -10,7 +10,7 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { RotateCcw, Search, Filter, SlidersHorizontal, X, FolderOpen } from 'lucide-react';
+import { RotateCcw, Search, Filter, SlidersHorizontal, X, FolderOpen, Building2 } from 'lucide-react';
 
 interface TaskFiltersProps {
   onFilterChange: (filters: TaskFilterValues) => void;
@@ -203,89 +203,100 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Status
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Statuses",
+                    icon: <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "todo",
+                    label: "To Do",
+                    icon: <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  },
+                  {
+                    value: "in_progress",
+                    label: "In Progress",
+                    icon: <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  },
+                  {
+                    value: "completed",
+                    label: "Completed",
+                    icon: <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  }
+                ]}
                 value={form.watch("status")}
-                onValueChange={(value) => form.setValue("status", value)}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="todo">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                      To Do
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="in_progress">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                      In Progress
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="completed">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      Completed
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                emptyText="No status found."
+                onValueChange={(value) => form.setValue("status", value || "all")}
+              />
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Priority
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Priorities",
+                    icon: <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "high",
+                    label: "High",
+                    icon: <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  },
+                  {
+                    value: "medium",
+                    label: "Medium",
+                    icon: <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                  },
+                  {
+                    value: "low",
+                    label: "Low",
+                    icon: <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  }
+                ]}
                 value={form.watch("priority")}
-                onValueChange={(value) => form.setValue("priority", value)}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Priorities" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Priorities</SelectItem>
-                  <SelectItem value="high">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                      High
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="medium">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      Medium
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="low">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      Low
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="All Priorities"
+                searchPlaceholder="Search priority..."
+                emptyText="No priority found."
+                onValueChange={(value) => form.setValue("priority", value || "all")}
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Sort By
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "dueDate",
+                    label: "Due Date",
+                    icon: <div className="w-4 h-4 text-slate-500">📅</div>
+                  },
+                  {
+                    value: "priority",
+                    label: "Priority",
+                    icon: <div className="w-4 h-4 text-slate-500">⭐</div>
+                  },
+                  {
+                    value: "updatedAt",
+                    label: "Recently Updated",
+                    icon: <div className="w-4 h-4 text-slate-500">🕒</div>
+                  }
+                ]}
                 value={form.watch("sortBy")}
-                onValueChange={(value) => form.setValue("sortBy", value)}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="Sort by..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dueDate">Due Date</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="updatedAt">Recently Updated</SelectItem>
-                </SelectContent>
-              </Select>
+                placeholder="Sort by..."
+                searchPlaceholder="Search sort options..."
+                emptyText="No sort option found."
+                onValueChange={(value) => form.setValue("sortBy", value || "dueDate")}
+              />
             </div>
           </div>
 
@@ -295,85 +306,70 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Category
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "-2",
+                    label: "All Categories",
+                    icon: <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "-1",
+                    label: "Uncategorized",
+                    icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                  },
+                  ...categories.map((category) => ({
+                    value: category.id.toString(),
+                    label: category.name,
+                    icon: (
+                      <div 
+                        className="w-3 h-3 rounded-full border border-slate-200 dark:border-slate-600" 
+                        style={{ backgroundColor: category.color }}
+                      />
+                    )
+                  }))
+                ]}
                 value={form.watch("categoryId")?.toString() || "-2"}
+                placeholder="All Categories"
+                searchPlaceholder="Search categories..."
+                emptyText="No categories found."
                 onValueChange={(value) => {
                   if (value === "-2") {
                     form.setValue("categoryId", -2);
                   } else if (value === "-1") {
                     form.setValue("categoryId", -1);
+                  } else if (value === "") {
+                    form.setValue("categoryId", -2);
                   } else {
                     form.setValue("categoryId", parseInt(value));
                   }
                 }}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="-2">All Categories</SelectItem>
-                  <SelectItem value="-1">Uncategorized</SelectItem>
-                  
-                  {/* Group categories by department */}
-                  {(() => {
-                    const departmentMap: Record<string, Category[]> = {};
-                    const departmentsById: Record<number, string> = {};
-                    
-                    departmentsData.forEach(dept => {
-                      departmentsById[dept.id] = dept.name;
-                    });
-                    
-                    categories.forEach(category => {
-                      const deptName = category.departmentId ? (departmentsById[category.departmentId] || 'Unknown') : 'General';
-                      if (!departmentMap[deptName]) {
-                        departmentMap[deptName] = [];
-                      }
-                      departmentMap[deptName].push(category);
-                    });
-                    
-                    return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                      <div key={department}>
-                        <SelectItem value={`dept_${department}`} disabled className="text-xs font-semibold uppercase text-slate-500 py-2 bg-slate-50 dark:bg-slate-800">
-                          {department}
-                        </SelectItem>
-                        {deptCategories.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full border border-slate-200 dark:border-slate-600" 
-                                style={{ backgroundColor: category.color }}
-                              />
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </div>
-                    ));
-                  })()}
-                </SelectContent>
-              </Select>
+              />
             </div>
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 Department
               </label>
-              <Select
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Departments",
+                    icon: <Building2 className="h-4 w-4 text-slate-500" />
+                  },
+                  ...departmentsData.map((department) => ({
+                    value: department.id.toString(),
+                    label: department.name,
+                    icon: <Building2 className="h-4 w-4 text-slate-500" />
+                  }))
+                ]}
                 value={form.watch("department")}
-                onValueChange={(value) => form.setValue("department", value)}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departmentsData.map((department) => (
-                    <SelectItem key={department.id} value={department.id.toString()}>
-                      {department.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="All Departments"
+                searchPlaceholder="Search departments..."
+                emptyText="No departments found."
+                onValueChange={(value) => form.setValue("department", value || "all")}
+              />
             </div>
           </div>
         </Form>
