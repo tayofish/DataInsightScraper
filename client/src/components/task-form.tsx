@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { 
@@ -77,6 +78,7 @@ interface TaskFile {
 
 export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [comment, setComment] = useState('');
   const [mentionQuery, setMentionQuery] = useState('');
