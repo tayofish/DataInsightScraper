@@ -27,10 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs as TabsComponent, TabsContent as TabsComponentContent, TabsList as TabsComponentList, TabsTrigger as TabsComponentTrigger } from "@/components/ui/tabs";
 import type { User, Project, Category, Department, ProjectAssignment } from "@shared/schema";
 
-// Extended User type for admin functionality
-interface AdminUser extends User {
-  isBlocked?: boolean | null;
-}
+// Use User type directly as it already includes isBlocked
 import SmtpConfigForm from "@/components/smtp-config-form";
 import LogoUpload from "@/components/logo-upload";
 import FaviconUpload from "@/components/favicon-upload";
