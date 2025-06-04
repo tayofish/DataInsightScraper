@@ -301,6 +301,10 @@ export function setupAuth(app: Express) {
         failureFlash: false
       }, (err: any, user: any) => {
         if (err) {
+          // Check if this is an approval pending error
+          if (err.code === 'APPROVAL_PENDING') {
+            return res.redirect('/auth?error=approval_pending&user=' + encodeURIComponent(err.user.name));
+          }
           console.error('Microsoft Entra authentication error:', err);
           return res.redirect('/auth?error=microsoft_auth_error');
         }
