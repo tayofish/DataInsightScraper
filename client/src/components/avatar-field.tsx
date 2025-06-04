@@ -49,11 +49,17 @@ export default function AvatarField({
 }: AvatarFieldProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  // Clear cache on mount to handle deleted users
+  React.useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+  }, [queryClient]);
   
-  // Fetch users data
+  // Fetch users data - force fresh data to handle deleted users
   const { data: users = [], isLoading, error } = useQuery<User[]>({
     queryKey: ['/api/users'],
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
   });
 
   // Debug logging
@@ -62,13 +68,22 @@ export default function AvatarField({
       isLoading,
       usersCount: users.length,
       error: error?.message,
-      hasUsers: users.length > 0
+      hasUsers: users.length > 0,
+      fieldValue: name
     });
-  }, [isLoading, users.length, error]);
+  }, [isLoading, users.length, error, name]);
 
   const getSelectedUser = (value: number | null) => {
     if (!value) return null;
-    return users.find(user => user.id === value);
+    const foundUser = users.find(user => user.id === value);
+    
+    // If user was deleted but still referenced, clear the field
+    if (!foundUser && value) {
+      console.log("User with ID", value, "not found. Clearing field value.");
+      return null;
+    }
+    
+    return foundUser;
   };
 
   return (
@@ -77,6 +92,14 @@ export default function AvatarField({
       name={name}
       render={({ field }) => {
         const selectedUser = getSelectedUser(field.value);
+        
+        // Auto-clear field if referenced user was deleted
+        React.useEffect(() => {
+          if (field.value && !selectedUser && users.length > 0) {
+            console.log("Clearing orphaned user reference:", field.value);
+            field.onChange(null);
+          }
+        }, [field.value, selectedUser, users.length, field]);
         
         return (
           <FormItem className="flex flex-col">
