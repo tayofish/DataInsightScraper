@@ -131,7 +131,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   // Setup WebSocket connection
   useEffect(() => {
-    if (!user) return;
+    // Only setup WebSocket if user is authenticated
+    if (!user) {
+      // Clear any existing connection and set status to disconnected without logging
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+      setStatus('disconnected');
+      return;
+    }
     
     const setupWebSocket = () => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -195,32 +204,41 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         };
         
         ws.onclose = () => {
-          console.log('WebSocket disconnected');
-          setStatus('disconnected');
-          
-          // Try to reconnect after delay
-          setTimeout(() => {
-            if (socketRef.current !== ws) return; // Another connection was already made
-            setupWebSocket();
-          }, 5000);
+          // Only log disconnection and attempt reconnection if user is still authenticated
+          if (user) {
+            console.log('WebSocket disconnected');
+            setStatus('disconnected');
+            
+            // Try to reconnect after delay only if user is still authenticated
+            setTimeout(() => {
+              if (socketRef.current !== ws || !user) return; // Another connection was already made or user logged out
+              setupWebSocket();
+            }, 5000);
+          }
         };
         
         ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          setStatus('error');
+          // Only log errors if user is authenticated
+          if (user) {
+            console.error('WebSocket error:', error);
+            setStatus('error');
+          }
         };
       } catch (error) {
-        console.error('Error setting up WebSocket:', error);
-        setStatus('error');
-        
-        // Try again after delay
-        setTimeout(setupWebSocket, 5000);
+        // Only log errors and retry if user is authenticated
+        if (user) {
+          console.error('Error setting up WebSocket:', error);
+          setStatus('error');
+          
+          // Try again after delay
+          setTimeout(setupWebSocket, 5000);
+        }
       }
     };
     
     setupWebSocket();
     
-    // Cleanup on unmount
+    // Cleanup on unmount or user logout
     return () => {
       if (socketRef.current) {
         socketRef.current.close();
