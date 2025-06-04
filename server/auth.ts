@@ -27,7 +27,8 @@ async function getAuthSettings() {
   const defaults = {
     localAuth: true,
     microsoftAuth: true,
-    userRegistration: false
+    userRegistration: false,
+    microsoftApprovalRequired: true
   };
   
   try {
@@ -58,6 +59,16 @@ async function getAuthSettings() {
     }
   } catch (error) {
     console.error("Error fetching allow_registration setting:", error);
+  }
+  
+  try {
+    // Try to get Microsoft approval requirement setting
+    const microsoftApprovalSetting = await storage.getAppSettingByKey("microsoft_approval_required");
+    if (microsoftApprovalSetting) {
+      defaults.microsoftApprovalRequired = microsoftApprovalSetting.value === "true";
+    }
+  } catch (error) {
+    console.error("Error fetching microsoft_approval_required setting:", error);
   }
   
   return defaults;
@@ -153,35 +164,40 @@ export function setupAuth(app: Express) {
         const email = profile._json.preferred_username || profile._json.email;
         let user = await storage.getUserByUsername(email);
         
-        // User doesn't exist, create a new one (pending approval)
+        // User doesn't exist, create a new one
         if (!user) {
+          // Check if approval is required for new Microsoft users
+          const authSettings = await getAuthSettings();
           const displayName = profile._json.name || email.split('@')[0];
+          
           user = await storage.createUser({
             username: email,
             name: displayName,
             password: await hashPassword(randomBytes(16).toString('hex')), // Generate random password for OAuth users
             avatar: null,
-            isApproved: false // New Microsoft auth users require admin approval
+            isApproved: !authSettings.microsoftApprovalRequired // Only require approval if setting is enabled
           });
           
-          // Notify admins about new user pending approval
-          try {
-            const admins = await storage.getAdminUsers();
-            for (const admin of admins) {
-              await storage.createNotification({
-                userId: admin.id,
-                title: 'New User Pending Approval',
-                message: `${displayName} (${email}) has registered via Microsoft authentication and is awaiting approval.`,
-                type: 'user_approval'
-              });
+          // Notify admins about new user pending approval only if approval is required
+          if (authSettings.microsoftApprovalRequired) {
+            try {
+              const admins = await storage.getAdminUsers();
+              for (const admin of admins) {
+                await storage.createNotification({
+                  userId: admin.id,
+                  title: 'New User Pending Approval',
+                  message: `${displayName} (${email}) has registered via Microsoft authentication and is awaiting approval.`,
+                  type: 'user_approval'
+                });
+              }
+            } catch (error) {
+              console.error('Error creating admin notifications:', error);
             }
-          } catch (error) {
-            console.error('Error creating admin notifications:', error);
           }
         }
         
-        // Check if user is approved (only for OAuth users)
-        if (!user.isApproved) {
+        // Check if approval is required for Microsoft authentication users
+        if (authSettings.microsoftApprovalRequired && !user.isApproved) {
           // Return a special error that indicates the user needs approval
           const error = new Error('User account pending approval');
           (error as any).code = 'APPROVAL_PENDING';

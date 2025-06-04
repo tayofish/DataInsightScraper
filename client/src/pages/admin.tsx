@@ -476,14 +476,15 @@ export default function AdminPage() {
   };
   
   // Handle auth toggle changes
-  const handleAuthToggle = (setting: 'localAuth' | 'microsoftAuth' | 'userRegistration') => {
+  const handleAuthToggle = (setting: 'localAuth' | 'microsoftAuth' | 'userRegistration' | 'microsoftApprovalRequired') => {
     const newValue = !authSettings[setting];
     setAuthSettings({ ...authSettings, [setting]: newValue });
     
     const settingKey = 
       setting === 'localAuth' ? 'local_auth' :
       setting === 'microsoftAuth' ? 'microsoft_auth' : 
-      'allow_registration';
+      setting === 'userRegistration' ? 'allow_registration' :
+      'microsoft_approval_required';
       
     updateAuthSettingMutation.mutate({ key: settingKey, value: newValue });
   };
