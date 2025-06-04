@@ -147,27 +147,58 @@ export const storage = {
     try {
       console.log("Storage.blockUser: Starting with user ID:", id);
       
-      // First, check if user exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.id, id)
-      });
-      console.log("Storage.blockUser: Existing user found:", existingUser);
-      
-      if (!existingUser) {
-        console.log("Storage.blockUser: User not found in database");
-        return undefined;
+      // Try ORM first, fall back to raw SQL if needed
+      try {
+        console.log("Storage.blockUser: Trying ORM approach...");
+        
+        // First, check if user exists
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.id, id)
+        });
+        console.log("Storage.blockUser: Existing user found:", existingUser);
+        
+        if (!existingUser) {
+          console.log("Storage.blockUser: User not found in database");
+          return undefined;
+        }
+        
+        console.log("Storage.blockUser: Attempting ORM database update...");
+        const [updatedUser] = await db.update(users)
+          .set({ isBlocked: true })
+          .where(eq(users.id, id))
+          .returning();
+        
+        console.log("Storage.blockUser: ORM update successful:", updatedUser);
+        return updatedUser;
+      } catch (ormError) {
+        console.log("Storage.blockUser: ORM failed, trying raw SQL...", ormError.message);
+        
+        // Fallback to raw SQL
+        const client = await pool.connect();
+        try {
+          // Check if user exists
+          const checkResult = await client.query('SELECT id, username, name, is_blocked FROM users WHERE id = $1', [id]);
+          console.log('Storage.blockUser: Raw SQL user lookup:', checkResult.rows);
+          
+          if (checkResult.rows.length === 0) {
+            console.log('Storage.blockUser: User not found via raw SQL');
+            return undefined;
+          }
+          
+          // Update the user
+          const updateResult = await client.query(
+            'UPDATE users SET is_blocked = true WHERE id = $1 RETURNING id, username, name, email, avatar, is_admin, is_approved, is_blocked, department_id',
+            [id]
+          );
+          
+          console.log('Storage.blockUser: Raw SQL update successful:', updateResult.rows);
+          return updateResult.rows[0];
+        } finally {
+          client.release();
+        }
       }
-      
-      console.log("Storage.blockUser: Attempting database update...");
-      const [updatedUser] = await db.update(users)
-        .set({ isBlocked: true })
-        .where(eq(users.id, id))
-        .returning();
-      
-      console.log("Storage.blockUser: Database update successful:", updatedUser);
-      return updatedUser;
     } catch (error) {
-      console.error("Storage.blockUser: Database error:", {
+      console.error("Storage.blockUser: All methods failed:", {
         error: error,
         message: error.message,
         stack: error.stack,
@@ -181,27 +212,58 @@ export const storage = {
     try {
       console.log("Storage.unblockUser: Starting with user ID:", id);
       
-      // First, check if user exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.id, id)
-      });
-      console.log("Storage.unblockUser: Existing user found:", existingUser);
-      
-      if (!existingUser) {
-        console.log("Storage.unblockUser: User not found in database");
-        return undefined;
+      // Try ORM first, fall back to raw SQL if needed
+      try {
+        console.log("Storage.unblockUser: Trying ORM approach...");
+        
+        // First, check if user exists
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.id, id)
+        });
+        console.log("Storage.unblockUser: Existing user found:", existingUser);
+        
+        if (!existingUser) {
+          console.log("Storage.unblockUser: User not found in database");
+          return undefined;
+        }
+        
+        console.log("Storage.unblockUser: Attempting ORM database update...");
+        const [updatedUser] = await db.update(users)
+          .set({ isBlocked: false })
+          .where(eq(users.id, id))
+          .returning();
+        
+        console.log("Storage.unblockUser: ORM update successful:", updatedUser);
+        return updatedUser;
+      } catch (ormError) {
+        console.log("Storage.unblockUser: ORM failed, trying raw SQL...", ormError.message);
+        
+        // Fallback to raw SQL
+        const client = await pool.connect();
+        try {
+          // Check if user exists
+          const checkResult = await client.query('SELECT id, username, name, is_blocked FROM users WHERE id = $1', [id]);
+          console.log('Storage.unblockUser: Raw SQL user lookup:', checkResult.rows);
+          
+          if (checkResult.rows.length === 0) {
+            console.log('Storage.unblockUser: User not found via raw SQL');
+            return undefined;
+          }
+          
+          // Update the user
+          const updateResult = await client.query(
+            'UPDATE users SET is_blocked = false WHERE id = $1 RETURNING id, username, name, email, avatar, is_admin, is_approved, is_blocked, department_id',
+            [id]
+          );
+          
+          console.log('Storage.unblockUser: Raw SQL update successful:', updateResult.rows);
+          return updateResult.rows[0];
+        } finally {
+          client.release();
+        }
       }
-      
-      console.log("Storage.unblockUser: Attempting database update...");
-      const [updatedUser] = await db.update(users)
-        .set({ isBlocked: false })
-        .where(eq(users.id, id))
-        .returning();
-      
-      console.log("Storage.unblockUser: Database update successful:", updatedUser);
-      return updatedUser;
     } catch (error) {
-      console.error("Storage.unblockUser: Database error:", {
+      console.error("Storage.unblockUser: All methods failed:", {
         error: error,
         message: error.message,
         stack: error.stack,
