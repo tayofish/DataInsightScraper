@@ -56,6 +56,16 @@ export default function AvatarField({
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log("AvatarField Debug:", {
+      isLoading,
+      usersCount: users.length,
+      error: error?.message,
+      hasUsers: users.length > 0
+    });
+  }, [isLoading, users.length, error]);
+
   const getSelectedUser = (value: number | null) => {
     if (!value) return null;
     return users.find(user => user.id === value);
@@ -79,7 +89,6 @@ export default function AvatarField({
                     role="combobox"
                     aria-expanded={open}
                     className="justify-between"
-                    disabled={isLoading}
                   >
                     {selectedUser ? (
                       <div className="flex items-center gap-2">
