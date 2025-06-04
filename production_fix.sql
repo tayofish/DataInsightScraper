@@ -78,4 +78,7 @@ END$$;
 -- Step 5: Update any existing admin users to ensure they are not blocked
 UPDATE users SET is_blocked = false WHERE is_admin = true;
 
-RAISE NOTICE 'Production database update completed successfully';
+DO $$
+BEGIN
+    RAISE NOTICE 'Production database update completed successfully';
+END$$;
