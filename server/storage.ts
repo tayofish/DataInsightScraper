@@ -170,7 +170,7 @@ export const storage = {
         
         console.log("Storage.blockUser: ORM update successful:", updatedUser);
         return updatedUser;
-      } catch (ormError) {
+      } catch (ormError: any) {
         console.log("Storage.blockUser: ORM failed, trying raw SQL...", ormError.message);
         
         // Fallback to raw SQL
@@ -197,11 +197,11 @@ export const storage = {
           client.release();
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Storage.blockUser: All methods failed:", {
         error: error,
-        message: error.message,
-        stack: error.stack,
+        message: error?.message,
+        stack: error?.stack,
         userId: id
       });
       throw error;
