@@ -57,7 +57,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, File, Download, MessageSquare, Upload, Trash2, Loader2, Flag, AlertCircle, CheckSquare, FolderOpen, Building, Tag } from 'lucide-react';
+import { CheckCircle, File, Download, MessageSquare, Upload, Trash2, Loader2, Flag, AlertCircle, CheckSquare, FolderOpen, Building, Tag, Edit3, Plus } from 'lucide-react';
 import TaskUpdateHistory from './task-update-history';
 import AvatarField from './avatar-field';
 import SearchableSelect from './searchable-select';
@@ -421,28 +421,37 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>{task ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-          <DialogDescription>
-            {task ? 'Update task details, add comments, or view history' : 'Fill in the details to create a new task'}
-          </DialogDescription>
+      <DialogContent className="max-w-4xl w-[95vw] sm:w-[90vw] md:w-full max-h-[95vh] overflow-hidden bg-gradient-to-br from-white to-gray-50 border-0 shadow-2xl rounded-2xl">
+        <DialogHeader className="pb-6 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              {task ? <Edit3 className="h-5 w-5 text-blue-600" /> : <Plus className="h-5 w-5 text-blue-600" />}
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-semibold text-gray-900">
+                {task ? 'Edit Task' : 'Create New Task'}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-gray-600 mt-1">
+                {task ? 'Update task details, add comments, or view history' : 'Fill in the details to create a new task'}
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
         
         {task ? (
           <Tabs defaultValue="details" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 mb-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="comments">Comments</TabsTrigger>
-              <TabsTrigger value="files">Files</TabsTrigger>
-              <TabsTrigger value="history">History</TabsTrigger>
+            <TabsList className="grid grid-cols-4 mb-6 bg-gray-100 rounded-xl p-1 h-12">
+              <TabsTrigger value="details" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">Details</TabsTrigger>
+              <TabsTrigger value="comments" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">Comments</TabsTrigger>
+              <TabsTrigger value="files" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">Files</TabsTrigger>
+              <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">History</TabsTrigger>
             </TabsList>
             
             <TabsContent value="details">
-              <div className="py-2 space-y-6">
+              <div className="space-y-6">
                 <Form {...form}>
-                  <ScrollArea className="h-[500px] pr-4">
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                  <ScrollArea className="h-[60vh] max-h-[500px] pr-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-4">
                       <FormField
                         control={form.control}
                         name="title"
@@ -476,18 +485,19 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         )}
                       />
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                         <FormField
                           control={form.control}
                           name="startDate"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Start Date</FormLabel>
+                            <FormItem className="space-y-2">
+                              <FormLabel className="text-sm font-medium text-gray-700">Start Date</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="date" 
                                   {...field} 
                                   value={field.value || ''}
+                                  className="rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -499,13 +509,14 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           control={form.control}
                           name="dueDate"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Due Date</FormLabel>
+                            <FormItem className="space-y-2">
+                              <FormLabel className="text-sm font-medium text-gray-700">Due Date</FormLabel>
                               <FormControl>
                                 <Input 
                                   type="date" 
                                   {...field} 
                                   value={field.value || ''}
+                                  className="rounded-lg border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -514,7 +525,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                         <SearchableSelect
                           control={form.control}
                           name="priority"
@@ -1212,18 +1223,20 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 )}
               />
               
-              <DialogFooter>
+              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-100">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={onClose}
                   disabled={taskMutation.isPending}
+                  className="w-full sm:w-auto h-11 rounded-lg border-gray-200 hover:bg-gray-50"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit"
                   disabled={taskMutation.isPending}
+                  className="w-full sm:w-auto h-11 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
                 >
                   {taskMutation.isPending 
                     ? 'Saving...' 
