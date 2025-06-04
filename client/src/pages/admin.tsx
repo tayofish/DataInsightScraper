@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
   Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail, ImageIcon,
-  Settings, Loader2
+  Settings, Loader2, Check
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -383,6 +383,28 @@ export default function AdminPage() {
     },
   });
 
+  // Approve user mutation
+  const approveMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/approve`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "User approved",
+        description: "The user has been approved successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to approve user",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Handle user form submission
   const onUserSubmit = (values: UserFormValues) => {
     if (userToEdit) {
@@ -397,6 +419,11 @@ export default function AdminPage() {
     if (userToDelete) {
       deleteUserMutation.mutate(userToDelete.id);
     }
+  };
+
+  // Handle user approval
+  const handleApproveUser = (userId: number) => {
+    approveMutation.mutate(userId);
   };
   
   // Reset assignment form
@@ -741,6 +768,7 @@ export default function AdminPage() {
                   <TableHead>User</TableHead>
                   <TableHead>Username</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -748,7 +776,7 @@ export default function AdminPage() {
               <TableBody>
                 {isLoadingUsers ? (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-4">
+                    <TableCell colSpan={6} className="text-center py-4">
                       <RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" />
                     </TableCell>
                   </TableRow>
@@ -769,12 +797,28 @@ export default function AdminPage() {
                       <TableCell>{user.username}</TableCell>
                       <TableCell>{user.email || '-'}</TableCell>
                       <TableCell>
+                        <Badge variant={user.isApproved ? "default" : "destructive"}>
+                          {user.isApproved ? "Approved" : "Pending Approval"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <Badge variant={user.isAdmin ? "default" : "outline"}>
                           {user.isAdmin ? "Admin" : "User"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
+                          {!user.isApproved && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleApproveUser(user.id)}
+                              disabled={approveMutation.isPending}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
