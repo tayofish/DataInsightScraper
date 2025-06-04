@@ -156,7 +156,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
       startDate: formatDateForInput(task?.startDate),
       dueDate: formatDateForInput(task?.dueDate),
       projectId: task?.projectId || null,
-      assigneeId: task?.assigneeId || null,
+      assigneeId: task?.assigneeId || (task ? null : user?.id || null),
       categoryId: task?.categoryId || null,
       departmentId: task?.departmentId || null,
     },
