@@ -87,7 +87,7 @@ export function SearchableSelect({
       </Button>
       
       {open && (
-        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg">
+        <div className="absolute top-full left-0 right-0 z-[9999] mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg">
           <div className="p-2 border-b border-slate-200 dark:border-slate-700">
             <div className="relative">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
