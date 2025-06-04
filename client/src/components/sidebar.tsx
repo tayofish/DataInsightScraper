@@ -108,18 +108,17 @@ export function Sidebar() {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center flex-shrink-0 px-6 py-6">
-        {logoUrl ? (
+      <div className="flex items-center flex-shrink-0 px-6 py-6 gap-3">
+        {logoUrl && (
           <img 
             src={logoUrl} 
             alt="Company Logo" 
-            className="h-10 w-auto object-contain" 
+            className="h-10 w-auto object-contain flex-shrink-0" 
           />
-        ) : (
-          <span className="text-2xl font-bold gradient-heading">
-            {appNameSetting?.value || "Task Management System"}
-          </span>
         )}
+        <span className="text-2xl font-bold gradient-heading truncate">
+          {appNameSetting?.value || "Task Management System"}
+        </span>
       </div>
       <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">
         <NavItem href="/" icon={<LayoutDashboard size={20} />} isActive={location === '/'}>
