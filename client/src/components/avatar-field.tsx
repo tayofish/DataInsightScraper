@@ -8,9 +8,15 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { User } from '@shared/schema';
+} from "@/components/ui/form";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+interface User {
+  id: number;
+  username: string;
+  name?: string;
+  avatar?: string;
+}
 
 interface AvatarFieldProps {
   control: Control<any>;
@@ -70,7 +76,7 @@ export default function AvatarField({
 
   // Filter users based on search term
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -98,9 +104,9 @@ export default function AvatarField({
                   type="button"
                   className="w-full flex items-center justify-between px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   onClick={(e) => {
+                    console.log("Simple button clicked - toggling dropdown");
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log("Simple button clicked - toggling dropdown");
                     setIsOpen(!isOpen);
                   }}
                 >
@@ -144,39 +150,41 @@ export default function AvatarField({
                     
                     <div className="max-h-48 overflow-auto">
                       {includeAll && (
-                      <button
-                        type="button"
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
-                        onClick={() => {
-                          field.onChange(-1);
-                          setIsOpen(false);
-                        }}
-                      >
-                        <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center">
-                          <span className="text-blue-600 text-xs">All</span>
-                        </div>
-                        <span>All Users</span>
-                        {field.value === -1 && <Check className="ml-auto h-4 w-4 text-blue-600" />}
-                      </button>
-                    )}
-                    
-                    {includeUnassigned && (
-                      <button
-                        type="button"
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
-                        onClick={() => {
-                          field.onChange(null);
-                          setIsOpen(false);
-                        }}
-                      >
-                        <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center">
-                          <span className="text-gray-500 text-xs">-</span>
-                        </div>
-                        <span>Unassigned</span>
-                        {!field.value && <Check className="ml-auto h-4 w-4 text-blue-600" />}
-                      </button>
-                    )}
-                    
+                        <button
+                          type="button"
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
+                          onClick={() => {
+                            field.onChange(-1);
+                            setIsOpen(false);
+                            setSearchTerm('');
+                          }}
+                        >
+                          <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-blue-600 text-xs">All</span>
+                          </div>
+                          <span>All Users</span>
+                          {field.value === -1 && <Check className="ml-auto h-4 w-4 text-blue-600" />}
+                        </button>
+                      )}
+                      
+                      {includeUnassigned && (
+                        <button
+                          type="button"
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-100 text-left"
+                          onClick={() => {
+                            field.onChange(null);
+                            setIsOpen(false);
+                            setSearchTerm('');
+                          }}
+                        >
+                          <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-500 text-xs">-</span>
+                          </div>
+                          <span>Unassigned</span>
+                          {!field.value && <Check className="ml-auto h-4 w-4 text-blue-600" />}
+                        </button>
+                      )}
+                      
                       {filteredUsers.length > 0 ? (
                         filteredUsers.map((user) => (
                           <button
@@ -212,6 +220,7 @@ export default function AvatarField({
                           {searchTerm ? 'No users match your search' : 'No users found'}
                         </div>
                       )}
+                    </div>
                   </div>
                 )}
               </div>
