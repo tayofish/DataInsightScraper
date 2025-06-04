@@ -48,13 +48,17 @@ export default function AvatarField({
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Fetch users with staleTime to force fresh data
+  // Fetch users and invalidate cache to force fresh data
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ['/api/users'],
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
   });
+
+  // Force cache invalidation on component mount to get fresh user data
+  React.useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+  }, [queryClient]);
 
   const getSelectedUser = (value: number | null) => {
     if (!value) return null;
