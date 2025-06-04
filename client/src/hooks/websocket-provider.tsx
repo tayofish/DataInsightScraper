@@ -139,6 +139,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         socketRef.current = null;
       }
       setStatus('disconnected');
+      // Don't show errors for unauthenticated users
+      setIsDatabaseDown(false);
       return;
     }
     
