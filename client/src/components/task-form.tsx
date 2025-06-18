@@ -196,7 +196,12 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         title: `Task ${task ? 'updated' : 'created'} successfully`,
         variant: 'default',
       });
+      // Invalidate all task-related queries including filtered ones
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const firstKey = query.queryKey[0];
+        return typeof firstKey === 'string' && firstKey.startsWith('/api/tasks');
+      }});
       onClose();
     },
     onError: (error: Error) => {

@@ -187,6 +187,10 @@ export default function TaskList({ filters }: TaskListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const firstKey = query.queryKey[0];
+        return typeof firstKey === 'string' && firstKey.startsWith('/api/tasks');
+      }});
     },
     onError: (error: any) => {
       console.error(`Failed to update task priority: ${error}`);
@@ -201,6 +205,10 @@ export default function TaskList({ filters }: TaskListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const firstKey = query.queryKey[0];
+        return typeof firstKey === 'string' && firstKey.startsWith('/api/tasks');
+      }});
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/statistics'] });
       toast({
         title: "Task updated",
@@ -223,6 +231,10 @@ export default function TaskList({ filters }: TaskListProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tasks'] });
+      queryClient.invalidateQueries({ predicate: (query) => {
+        const firstKey = query.queryKey[0];
+        return typeof firstKey === 'string' && firstKey.startsWith('/api/tasks');
+      }});
       queryClient.invalidateQueries({ queryKey: ['/api/tasks/statistics'] });
       toast({
         title: "Task deleted",
