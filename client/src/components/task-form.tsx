@@ -1159,7 +1159,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                 name="categoryId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Department</FormLabel>
                     <Select
                       value={field.value?.toString() || '-1'}
                       onValueChange={(value) => {
@@ -1172,11 +1172,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder="Select department" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="-1">No Category</SelectItem>
+                        <SelectItem value="-1">No Department</SelectItem>
                         
                         {(() => {
                           // Create a map of units to departments
