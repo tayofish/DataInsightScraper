@@ -178,28 +178,28 @@ export default function Categories() {
     categoryMutation.mutate(values);
   };
 
-  // Find department name by id
-  const getDepartmentName = (departmentId: number | null): string => {
+  // Find unit name by id
+  const getUnitName = (departmentId: number | null): string => {
     if (!departmentId) return 'General';
     const department = departments.find(d => d.id === departmentId);
     return department ? department.name : 'General';
   };
 
-  // Group categories by department
+  // Group departments by unit
   const categoriesByDepartment = React.useMemo(() => {
     const grouped: Record<string, Category[]> = {};
     
-    // First add the "General" category for null departmentId
+    // First add the "General" departments for null departmentId
     grouped['General'] = categories.filter(c => c.departmentId === null);
     
-    // Then group by department name for other categories
+    // Then group by unit name for other departments
     categories.forEach(category => {
       if (category.departmentId !== null) {
-        const deptName = getDepartmentName(category.departmentId);
-        if (!grouped[deptName]) {
-          grouped[deptName] = [];
+        const unitName = getUnitName(category.departmentId);
+        if (!grouped[unitName]) {
+          grouped[unitName] = [];
         }
-        grouped[deptName].push(category);
+        grouped[unitName].push(category);
       }
     });
     
@@ -209,13 +209,13 @@ export default function Categories() {
       orderedGrouped['General'] = grouped['General'];
     }
     
-    // Add all other departments in alphabetical order
+    // Add all other units in alphabetical order
     Object.keys(grouped)
-      .filter(dept => dept !== 'General')
+      .filter(unit => unit !== 'General')
       .sort()
-      .forEach(dept => {
-        if (grouped[dept].length > 0) {
-          orderedGrouped[dept] = grouped[dept];
+      .forEach(unit => {
+        if (grouped[unit].length > 0) {
+          orderedGrouped[unit] = grouped[unit];
         }
       });
     
