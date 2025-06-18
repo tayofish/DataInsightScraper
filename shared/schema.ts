@@ -79,7 +79,8 @@ export const userDepartments = pgTable("user_departments", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
   departmentId: integer("department_id").references(() => departments.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  isPrimary: boolean("is_primary").default(false),
+  assignedAt: timestamp("assigned_at").defaultNow().notNull(),
 });
 
 // Task updates for tracking changes

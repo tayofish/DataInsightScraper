@@ -273,6 +273,19 @@ export const storage = {
     }
   },
 
+  // User department operations
+  getUserDepartments: async (userId: number): Promise<number[]> => {
+    try {
+      const userDepts = await db.query.userDepartments.findMany({
+        where: eq(userDepartments.userId, userId)
+      });
+      return userDepts.map(ud => ud.departmentId);
+    } catch (error) {
+      console.error('Error fetching user departments:', error);
+      return [];
+    }
+  },
+
   // Project operations
   getAllProjects: async (): Promise<Project[]> => {
     return db.query.projects.findMany();

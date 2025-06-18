@@ -1094,6 +1094,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Get user department assignments
+  app.get("/api/users/:id/departments", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const departmentIds = await storage.getUserDepartments(id);
+      return res.status(200).json(departmentIds);
+    } catch (error) {
+      console.error("Error fetching user departments:", error);
+      return res.status(500).json({ message: "Failed to fetch user departments" });
+    }
+  });
+  
   // === ADMIN ROUTES ===
   // Admin middleware to check if user is an admin
   const isAdmin = (req: any, res: any, next: any) => {
@@ -1227,10 +1243,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add new user department relationships
           if (departmentIds.length > 0) {
-            for (const deptId of departmentIds) {
+            for (let i = 0; i < departmentIds.length; i++) {
+              const deptId = departmentIds[i];
+              
+              // Determine if this should be the primary department
+              // If departmentId is provided, use that as primary, otherwise use the first one
+              const isPrimary = (departmentId && deptId === departmentId) || (!departmentId && i === 0);
+              
               await db.insert(userDepartments).values({
                 userId: id,
-                departmentId: deptId
+                departmentId: deptId,
+                isPrimary: isPrimary,
+                assignedAt: new Date()
               });
             }
           }
