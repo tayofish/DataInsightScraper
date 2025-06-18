@@ -591,9 +591,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           searchPlaceholder="Search units..."
                           options={[
                             { value: "-1", label: "No Unit", icon: <Building className="h-4 w-4 text-gray-400" /> },
-                            ...departments.map((department) => ({
-                              value: department.id.toString(),
-                              label: department.name,
+                            ...units.map((unit) => ({
+                              value: unit.id.toString(),
+                              label: unit.name,
                               icon: <Building className="h-4 w-4 text-purple-500" />
                             }))
                           ]}
@@ -1126,9 +1126,9 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                   searchPlaceholder="Search units..."
                   options={[
                     { value: "-1", label: "No Unit", icon: <Building className="h-4 w-4 text-gray-400" /> },
-                    ...departments.map((department) => ({
-                      value: department.id.toString(),
-                      label: department.name,
+                    ...units.map((unit) => ({
+                      value: unit.id.toString(),
+                      label: unit.name,
                       icon: <Building className="h-4 w-4 text-purple-500" />
                     }))
                   ]}
