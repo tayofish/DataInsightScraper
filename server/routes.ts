@@ -5611,14 +5611,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Create notification for the receiver
-      await db.insert(notifications).values({
-        userId: receiverId,
-        title: "New direct message",
-        message: `${req.user!.name} sent you a message: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
-        type: "direct_message",
-        referenceId: newMessage.id,
-        referenceType: "direct_message"
-      });
+      console.log("Creating notification for receiverId:", receiverId, "messageId:", newMessage.id);
+      try {
+        await db.insert(notifications).values({
+          userId: receiverId,
+          title: "New direct message",
+          message: `${req.user!.name} sent you a message: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+          type: "direct_message",
+          referenceId: newMessage.id,
+          referenceType: "direct_message",
+          isRead: false,
+          createdAt: new Date()
+        });
+        console.log("Notification created successfully for user:", receiverId);
+      } catch (notificationError) {
+        console.error("Error creating notification:", notificationError);
+        console.error("Notification data:", {
+          userId: receiverId,
+          title: "New direct message",
+          message: `${req.user!.name} sent you a message: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+          type: "direct_message",
+          referenceId: newMessage.id,
+          referenceType: "direct_message"
+        });
+        // Don't fail the entire request if notification fails
+      }
       
       // Get complete message with sender and receiver data
       const completeMessage = await db.query.directMessages.findFirst({
