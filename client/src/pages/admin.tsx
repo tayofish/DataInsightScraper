@@ -281,7 +281,8 @@ export default function AdminPage() {
       email: "",
       avatar: null,
       isAdmin: false,
-      departmentId: null
+      departmentId: null,
+      departmentIds: []
     });
     setUserToEdit(null);
   };
@@ -293,8 +294,20 @@ export default function AdminPage() {
   };
 
   // Open user dialog for editing
-  const openUserEditDialog = (user: User) => {
+  const openUserEditDialog = async (user: User) => {
     setUserToEdit(user);
+    
+    // Fetch user department assignments
+    let departmentIds: number[] = [];
+    try {
+      const response = await fetch(`/api/users/${user.id}/departments`);
+      if (response.ok) {
+        departmentIds = await response.json();
+      }
+    } catch (error) {
+      console.error('Failed to fetch user departments:', error);
+    }
+    
     userForm.reset({
       username: user.username,
       password: "", // Don't prefill password
@@ -302,7 +315,8 @@ export default function AdminPage() {
       email: user.email || "",
       avatar: user.avatar,
       isAdmin: user.isAdmin || false,
-      departmentId: user.departmentId || null
+      departmentId: user.departmentId || null,
+      departmentIds: departmentIds
     });
     setIsUserDialogOpen(true);
   };

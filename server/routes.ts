@@ -862,6 +862,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to fetch users" });
     }
   });
+
+  // Get user department assignments
+  app.get("/api/users/:id/departments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    try {
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const { userDepartments } = await import("@shared/schema");
+      const assignments = await db.select({
+        departmentId: userDepartments.departmentId
+      }).from(userDepartments).where(eq(userDepartments.userId, userId));
+
+      const departmentIds = assignments.map(a => a.departmentId);
+      return res.status(200).json(departmentIds);
+    } catch (error) {
+      console.error("Error fetching user departments:", error);
+      return res.status(500).json({ message: "Failed to fetch user departments" });
+    }
+  });
   
   // Get user by ID
   app.get("/api/users/:id", async (req, res) => {
@@ -1098,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin: Create user
   app.post("/api/admin/users", isAdmin, async (req, res) => {
     try {
-      const { username, password, name, avatar, isAdmin } = req.body;
+      const { username, password, name, avatar, isAdmin: isUserAdmin, email, departmentId, departmentIds } = req.body;
       
       // Validate required fields
       if (!username || !password || !name) {
@@ -1120,8 +1145,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username,
         password: hashedPassword,
         name,
-        avatar: avatar || null
+        avatar: avatar || null,
+        email: email || null,
+        isAdmin: isUserAdmin || false,
+        departmentId: departmentId || null
       });
+      
+      // Create userDepartment relationships if departmentIds are provided
+      if (departmentIds && Array.isArray(departmentIds) && departmentIds.length > 0) {
+        try {
+          const { userDepartments } = await import("@shared/schema");
+          for (const deptId of departmentIds) {
+            await db.insert(userDepartments).values({
+              userId: newUser.id,
+              departmentId: deptId
+            });
+          }
+        } catch (error) {
+          console.error('Error creating user department relationships:', error);
+        }
+      }
       
       // Send email notification to the new user with their credentials
       try {
@@ -1146,7 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
-      const { username, password, name, avatar, email, isAdmin } = req.body;
+      const { username, password, name, avatar, email, isAdmin: isUserAdmin, departmentId, departmentIds } = req.body;
       let userData: any = {};
       
       // Only include fields that were provided
@@ -1154,7 +1197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (name !== undefined) userData.name = name;
       if (avatar !== undefined) userData.avatar = avatar;
       if (email !== undefined) userData.email = email;
-      if (isAdmin !== undefined) userData.isAdmin = isAdmin;
+      if (isUserAdmin !== undefined) userData.isAdmin = isUserAdmin;
+      if (departmentId !== undefined) userData.departmentId = departmentId;
       
       // If password was provided and not empty, hash it
       if (password && password.trim() !== '') {
@@ -1170,6 +1214,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } catch (emailError) {
           console.error('Failed to send password reset notification email:', emailError);
           // Continue execution - email failure shouldn't break password update
+        }
+      }
+      
+      // Update user department relationships if departmentIds are provided
+      if (departmentIds !== undefined && Array.isArray(departmentIds)) {
+        try {
+          const { userDepartments } = await import("@shared/schema");
+          
+          // Remove existing user department relationships
+          await db.delete(userDepartments).where(eq(userDepartments.userId, id));
+          
+          // Add new user department relationships
+          if (departmentIds.length > 0) {
+            for (const deptId of departmentIds) {
+              await db.insert(userDepartments).values({
+                userId: id,
+                departmentId: deptId
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error updating user department relationships:', error);
         }
       }
       
