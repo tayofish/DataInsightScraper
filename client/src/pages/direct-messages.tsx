@@ -425,12 +425,29 @@ const DirectMessagesPage: FC = () => {
         },
         body: JSON.stringify({ content: messageData.content }),
       });
+      
       if (!response.ok) {
-        throw new Error("Failed to send message");
+        let errorMessage = "Failed to send message";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (parseError) {
+          // If we can't parse the error response, use the status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
-      return response.json();
+      
+      try {
+        return await response.json();
+      } catch (parseError) {
+        console.error("Error parsing response JSON:", parseError);
+        throw new Error("Message sent but response could not be parsed");
+      }
     },
     onSuccess: (data, variables) => {
+      console.log("Message sent successfully:", data);
+      
       // Remove the optimistic message now that we have confirmation
       setLocalMessages(prev => 
         prev.filter(msg => 
@@ -442,6 +459,15 @@ const DirectMessagesPage: FC = () => {
       queryClient.invalidateQueries({ queryKey: [`/api/direct-messages/conversations`] });
     },
     onError: (error) => {
+      console.error("Error sending message:", error);
+      
+      // Remove the failed optimistic message
+      setLocalMessages(prev => 
+        prev.filter(msg => 
+          !(msg.isOptimistic && msg.content === error.message)
+        )
+      );
+      
       toast({
         title: "Failed to send message",
         description: error.message,
