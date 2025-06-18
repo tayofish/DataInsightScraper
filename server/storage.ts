@@ -1,7 +1,7 @@
 import { db } from "@db";
 import { pool } from "@db";
 import { 
-  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings,
+  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings, userDepartments,
   type User, type Task, type Project, type Category, type Department, 
   type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification, type AppSetting,
   type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment,
@@ -1261,5 +1261,13 @@ export const storage = {
   deleteAppSetting: async (id: number): Promise<boolean> => {
     await db.delete(appSettings).where(eq(appSettings.id, id));
     return true;
+  },
+
+  // User Department operations
+  getUserDepartments: async (userId: number): Promise<{ departmentId: number }[]> => {
+    const userDepts = await db.query.userDepartments.findMany({
+      where: eq(userDepartments.userId, userId)
+    });
+    return userDepts.map(dept => ({ departmentId: dept.departmentId }));
   }
 };

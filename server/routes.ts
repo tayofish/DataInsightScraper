@@ -1692,12 +1692,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Regular users see only their own statistics
         const userDepartmentId = user.departmentId;
+        const additionalDepartments = await storage.getUserDepartments(user.id);
+        const allUserDepartmentIds = [
+          ...(userDepartmentId ? [userDepartmentId] : []),
+          ...additionalDepartments.map(dept => dept.departmentId)
+        ];
+        
         const userProjectAssignments = await storage.getProjectAssignments(undefined, user.id);
         const userProjectIds = userProjectAssignments.map(assignment => assignment.projectId);
         
         statistics = await storage.getUserTaskStatistics(
           user.id,
-          userDepartmentId || null,
+          allUserDepartmentIds,
           userProjectIds
         );
       }
