@@ -83,6 +83,7 @@ const DirectMessagesPage: FC = () => {
   const [conversationSearchQuery, setConversationSearchQuery] = useState("");
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
   const [showMessageSearch, setShowMessageSearch] = useState(false);
+  const [newConversationSearchQuery, setNewConversationSearchQuery] = useState("");
   
   // Utility function to format date for headers
   const formatDateHeader = (date: Date) => {
@@ -382,6 +383,37 @@ const DirectMessagesPage: FC = () => {
       return false;
     });
   }, [allMessages, messageSearchQuery]);
+
+  // Filter users for new conversation search
+  const filteredUsers = useMemo(() => {
+    if (!allUsers) return [];
+    
+    const otherUsers = allUsers.filter((u: any) => u.id !== user?.id);
+    
+    if (!newConversationSearchQuery.trim()) {
+      return otherUsers;
+    }
+    
+    const searchTerm = newConversationSearchQuery.toLowerCase();
+    return otherUsers.filter((otherUser: any) => {
+      // Search in name
+      if (otherUser.name && otherUser.name.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in username
+      if (otherUser.username && otherUser.username.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in email
+      if (otherUser.email && otherUser.email.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      return false;
+    });
+  }, [allUsers, user?.id, newConversationSearchQuery]);
 
   // Send a direct message
   const sendMessageMutation = useMutation({
@@ -902,7 +934,12 @@ const DirectMessagesPage: FC = () => {
       <div className="w-80 bg-background border-r flex flex-col">
         <div className="p-4 border-b flex justify-between items-center">
           <h2 className="text-lg font-semibold">Direct Messages</h2>
-          <Dialog open={newConversationDialogOpen} onOpenChange={setNewConversationDialogOpen}>
+          <Dialog open={newConversationDialogOpen} onOpenChange={(open) => {
+            setNewConversationDialogOpen(open);
+            if (!open) {
+              setNewConversationSearchQuery(""); // Reset search when dialog closes
+            }
+          }}>
             <DialogTrigger asChild>
               <Button variant="ghost" size="icon">
                 <Plus className="h-5 w-5" />
@@ -918,7 +955,12 @@ const DirectMessagesPage: FC = () => {
               <div className="py-4">
                 <div className="relative mb-4">
                   <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search users" className="pl-8" />
+                  <Input 
+                    placeholder="Search users" 
+                    className="pl-8" 
+                    value={newConversationSearchQuery}
+                    onChange={(e) => setNewConversationSearchQuery(e.target.value)}
+                  />
                 </div>
                 <ScrollArea className="h-72">
                   {isLoadingUsers ? (
@@ -939,9 +981,12 @@ const DirectMessagesPage: FC = () => {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      {allUsers
-                        ?.filter((u: any) => u.id !== user.id) // Filter out current user
-                        .map((otherUser: any) => (
+                      {filteredUsers.length === 0 && newConversationSearchQuery.trim() ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          No users found matching "{newConversationSearchQuery}"
+                        </div>
+                      ) : (
+                        filteredUsers.map((otherUser: any) => (
                           <Button
                             key={otherUser.id}
                             variant="ghost"
@@ -965,7 +1010,8 @@ const DirectMessagesPage: FC = () => {
                               </div>
                             </div>
                           </Button>
-                        ))}
+                        ))
+                      )}
                     </div>
                   )}
                 </ScrollArea>
