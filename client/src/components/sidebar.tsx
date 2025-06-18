@@ -157,10 +157,10 @@ export function Sidebar() {
         {user?.isAdmin && (
           <>
             <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
-              Categories
+              Departments
             </NavItem>
             <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
-              Departments
+              Units
             </NavItem>
             <NavItem href="/teams" icon={<Users size={20} />} isActive={location === '/teams'}>
               Teams

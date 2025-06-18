@@ -228,7 +228,7 @@ export default function Categories() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Categories</CardTitle>
+          <CardTitle>Departments</CardTitle>
           <CardDescription>Loading data...</CardDescription>
         </CardHeader>
       </Card>
@@ -240,21 +240,21 @@ export default function Categories() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div>
-            <CardTitle>Categories</CardTitle>
+            <CardTitle>Departments</CardTitle>
             <CardDescription>
-              Manage task categories with optional department grouping
+              Manage task departments with optional unit grouping
             </CardDescription>
           </div>
           <Button onClick={handleOpenNewForm} className="ml-auto">
-            <Plus className="mr-2 h-4 w-4" /> Add Category
+            <Plus className="mr-2 h-4 w-4" /> Add Department
           </Button>
         </CardHeader>
         <CardContent>
           {categories.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <p className="text-center text-gray-500 mb-4">No categories have been created yet.</p>
+              <p className="text-center text-gray-500 mb-4">No departments have been created yet.</p>
               <Button onClick={handleOpenNewForm}>
-                <Plus className="mr-2 h-4 w-4" /> Create Your First Category
+                <Plus className="mr-2 h-4 w-4" /> Create Your First Department
               </Button>
             </div>
           ) : (

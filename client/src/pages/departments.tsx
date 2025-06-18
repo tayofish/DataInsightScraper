@@ -129,28 +129,28 @@ export default function Departments() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Departments</h1>
+        <h1 className="text-2xl font-bold">Units</h1>
         <Button onClick={() => {
           setEditingDepartment(null);
           setIsDialogOpen(true);
         }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Department
+          <Plus className="mr-2 h-4 w-4" /> Add Unit
         </Button>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>All Departments</CardTitle>
+          <CardTitle>All Units</CardTitle>
           <CardDescription>
-            Manage departments that can be assigned to categories
+            Manage units that can be assigned to departments
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center p-4">Loading departments...</div>
+            <div className="flex justify-center p-4">Loading units...</div>
           ) : departments.length === 0 ? (
             <div className="text-center p-4">
-              <p className="text-gray-500">No departments found. Create your first department to get started.</p>
+              <p className="text-gray-500">No units found. Create your first unit to get started.</p>
             </div>
           ) : (
             <Table>
