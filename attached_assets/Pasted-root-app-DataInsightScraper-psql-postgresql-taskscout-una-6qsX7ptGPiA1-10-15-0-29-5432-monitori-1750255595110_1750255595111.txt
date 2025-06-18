@@ -1,0 +1,63 @@
+root@app:~/DataInsightScraper# psql postgresql://taskscout_una:6qsX7ptGPiA1@10.15.0.29:5432/monitoring -f production_schema_update_fixed.sql
+psql:production_schema_update_fixed.sql:17: NOTICE:  relation "userDepartments" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:20: NOTICE:  relation "idx_userDepartments_userId" already exists, skipping
+CREATE INDEX
+psql:production_schema_update_fixed.sql:21: NOTICE:  relation "idx_userDepartments_departmentId" already exists, skipping
+CREATE INDEX
+psql:production_schema_update_fixed.sql:22: NOTICE:  relation "idx_userDepartments_isPrimary" already exists, skipping
+CREATE INDEX
+DO
+DO
+psql:production_schema_update_fixed.sql:54: NOTICE:  relation "idx_users_isBlocked" already exists, skipping
+CREATE INDEX
+DO
+DO
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_departmentId" already exists, skipping
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_assigneeId" already exists, skipping
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_status" already exists, skipping
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_priority" already exists, skipping
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_categoryId" already exists, skipping
+psql:production_schema_update_fixed.sql:150: NOTICE:  relation "idx_tasks_dueDate" already exists, skipping
+DO
+psql:production_schema_update_fixed.sql:159: NOTICE:  relation "categories" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:167: NOTICE:  relation "departments" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:175: NOTICE:  relation "projects" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:185: NOTICE:  relation "projectAssignments" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:197: NOTICE:  relation "taskUpdates" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:207: NOTICE:  relation "taskCollaborators" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:247: ERROR:  column "userId" of relation "notifications" contains null values
+CONTEXT:  SQL statement "ALTER TABLE "notifications" ADD COLUMN "userId" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE"
+PL/pgSQL function inline_code_block line 19 at SQL statement
+psql:production_schema_update_fixed.sql:257: NOTICE:  relation "appSettings" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:267: NOTICE:  relation "reports" already exists, skipping
+CREATE TABLE
+DO
+DO
+DO
+psql:production_schema_update_fixed.sql:340: NOTICE:  relation "directMessages" already exists, skipping
+CREATE TABLE
+psql:production_schema_update_fixed.sql:343: NOTICE:  relation "idx_taskUpdates_taskId" already exists, skipping
+CREATE INDEX
+psql:production_schema_update_fixed.sql:344: NOTICE:  relation "idx_taskCollaborators_taskId" already exists, skipping
+CREATE INDEX
+psql:production_schema_update_fixed.sql:360: NOTICE:  relation "idx_channelMembers_channelId" already exists, skipping
+DO
+psql:production_schema_update_fixed.sql:362: ERROR:  column "channelId" does not exist
+psql:production_schema_update_fixed.sql:363: NOTICE:  relation "idx_directMessages_senderId" already exists, skipping
+CREATE INDEX
+psql:production_schema_update_fixed.sql:364: NOTICE:  relation "idx_directMessages_receiverId" already exists, skipping
+CREATE INDEX
+INSERT 0 0
+INSERT 0 0
+INSERT 0 0
+INSERT 0 0
+INSERT 0 0
+CREATE FUNCTION
