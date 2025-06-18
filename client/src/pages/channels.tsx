@@ -167,12 +167,41 @@ export default function ChannelsPage() {
   
   // Search state
   const [channelSearchQuery, setChannelSearchQuery] = useState("");
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userSearchRef = useRef<HTMLDivElement>(null);
   
   // Get all users
   const { data: users } = useQuery({
     queryKey: ["/api/users"],
     refetchOnWindowFocus: false,
   });
+
+  // Filter available users based on search query
+  const filteredAvailableUsers = useMemo(() => {
+    if (!availableUsers) return [];
+    if (!userSearchQuery.trim()) return availableUsers;
+    
+    const query = userSearchQuery.toLowerCase();
+    return availableUsers.filter(user => 
+      user.name?.toLowerCase().includes(query) || 
+      user.username?.toLowerCase().includes(query)
+    );
+  }, [availableUsers, userSearchQuery]);
+
+  // Handle clicking outside the user search dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userSearchRef.current && !userSearchRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
   // Directly fetch channels data for debugging with offline resilience
   useEffect(() => {
@@ -2171,33 +2200,54 @@ export default function ChannelsPage() {
             <div className="mb-4">
               <Label htmlFor="add-members">Add Members</Label>
               <div className="flex items-center space-x-2 mt-1.5">
-                <Select
-                  onValueChange={(value) => {
-                    const userId = parseInt(value);
-                    if (!selectedUserIds.includes(userId)) {
-                      setSelectedUserIds([...selectedUserIds, userId]);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select users to add" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableUsers.length === 0 ? (
-                      <SelectItem value="no-users" disabled>No users available</SelectItem>
-                    ) : (
-                      availableUsers.map(user => (
-                        <SelectItem 
-                          key={user.id} 
-                          value={user.id.toString()}
-                          disabled={selectedUserIds.some(id => id === user.id)}
-                        >
-                          {user.name || user.username}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+                <div className="relative flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search users to add..."
+                      value={userSearchQuery}
+                      onChange={(e) => {
+                        setUserSearchQuery(e.target.value);
+                        setShowUserDropdown(true);
+                      }}
+                      onFocus={() => setShowUserDropdown(true)}
+                      className="pl-9"
+                    />
+                  </div>
+                  {showUserDropdown && (userSearchQuery.length > 0 || filteredAvailableUsers.length > 0) && (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredAvailableUsers.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          {userSearchQuery.length > 0 ? "No users found" : "No users available"}
+                        </div>
+                      ) : (
+                        filteredAvailableUsers.map(user => (
+                          <div
+                            key={user.id}
+                            className={`p-2 cursor-pointer hover:bg-accent text-sm ${
+                              selectedUserIds.includes(user.id) ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            onClick={() => {
+                              if (!selectedUserIds.includes(user.id)) {
+                                setSelectedUserIds([...selectedUserIds, user.id]);
+                                setUserSearchQuery("");
+                                setShowUserDropdown(false);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <User className="h-4 w-4" />
+                              <span>{user.name || user.username}</span>
+                              {selectedUserIds.includes(user.id) && (
+                                <span className="text-xs text-muted-foreground">(Already selected)</span>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
                 <Button 
                   onClick={() => addMembersToChannel(selectedUserIds)}
                   disabled={selectedUserIds.length === 0}
