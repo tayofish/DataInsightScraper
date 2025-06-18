@@ -1118,112 +1118,37 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
+                <SearchableSelect
                   control={form.control}
                   name="departmentId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <Select
-                        value={field.value?.toString() || '-1'}
-                        onValueChange={(value) => {
-                          if (value === '-1') {
-                            field.onChange(null);
-                          } else {
-                            field.onChange(parseInt(value));
-                          }
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="-1">No Unit</SelectItem>
-                          {units.map((unit) => (
-                            <SelectItem key={unit.id} value={unit.id.toString()}>
-                              {unit.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Unit"
+                  placeholder="Select unit"
+                  searchPlaceholder="Search units..."
+                  options={[
+                    { value: "-1", label: "No Unit", icon: <Building className="h-4 w-4 text-gray-400" /> },
+                    ...departments.map((department) => ({
+                      value: department.id.toString(),
+                      label: department.name,
+                      icon: <Building className="h-4 w-4 text-purple-500" />
+                    }))
+                  ]}
                 />
               </div>
               
-              <FormField
+              <SearchableSelect
                 control={form.control}
                 name="categoryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Department</FormLabel>
-                    <Select
-                      value={field.value?.toString() || '-1'}
-                      onValueChange={(value) => {
-                        if (value === '-1') {
-                          field.onChange(null);
-                        } else {
-                          field.onChange(parseInt(value));
-                        }
-                      }}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select department" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="-1">No Department</SelectItem>
-                        
-                        {(() => {
-                          // Create a map of units to departments
-                          const unitMap: Record<string, typeof departments> = {};
-                          const unitsById: Record<number, string> = {};
-                          
-                          // Create a mapping of unit IDs to names
-                          units.forEach((unit: Department) => {
-                            unitsById[unit.id] = unit.name;
-                          });
-                          
-                          departments.forEach(department => {
-                            const unitName = department.departmentId 
-                              ? (unitsById[department.departmentId] || 'Unknown') 
-                              : 'General';
-                            
-                            if (!unitMap[unitName]) {
-                              unitMap[unitName] = [];
-                            }
-                            unitMap[unitName].push(department);
-                          });
-                          
-                          // Return the grouped departments
-                          return Object.entries(unitMap).map(([unit, unitDepartments]) => (
-                            <React.Fragment key={unit}>
-                              <SelectItem value={`unit_${unit}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
-                                {unit}
-                              </SelectItem>
-                              {unitDepartments.map((department) => (
-                                <SelectItem key={department.id} value={department.id.toString()} className="pl-6">
-                                  <div className="flex items-center">
-                                    <div 
-                                      className="w-3 h-3 rounded-full mr-2" 
-                                      style={{ backgroundColor: department.color || '#6b7280' }}
-                                    />
-                                    {department.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </React.Fragment>
-                          ));
-                        })()}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Department"
+                placeholder="Select department"
+                searchPlaceholder="Search departments..."
+                options={[
+                  { value: "-1", label: "No Department", icon: <Tag className="h-4 w-4 text-gray-400" /> },
+                  ...departments.map((department) => ({
+                    value: department.id.toString(),
+                    label: department.name,
+                    icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: department.color || '#6b7280' }} />
+                  }))
+                ]}
               />
               
               <DialogFooter className="flex flex-col-reverse sm:flex-row gap-3 pt-6 border-t border-gray-100">
