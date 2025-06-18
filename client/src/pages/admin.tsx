@@ -195,6 +195,14 @@ export default function AdminPage() {
       return res.json() as Promise<Department[]>;
     }
   });
+
+  // Filtered departments for search
+  const filteredDepartments = useMemo(() => {
+    if (!departments) return [];
+    return departments.filter(dept => 
+      dept.name.toLowerCase().includes(unitSearchTerm.toLowerCase())
+    );
+  }, [departments, unitSearchTerm]);
   
   // Fetch authentication settings
   useQuery({
@@ -288,6 +296,7 @@ export default function AdminPage() {
       departmentIds: []
     });
     setUserToEdit(null);
+    setUnitSearchTerm(""); // Reset search term
   };
 
   // Open user dialog for creating
@@ -1034,27 +1043,45 @@ export default function AdminPage() {
                     <FormItem>
                       <FormLabel>Additional Units</FormLabel>
                       <div className="space-y-2">
-                        {departments?.map((department) => (
-                          <div key={department.id} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`dept-${department.id}`}
-                              checked={field.value?.includes(department.id) || false}
-                              onChange={(e) => {
-                                const currentIds = field.value || [];
-                                if (e.target.checked) {
-                                  field.onChange([...currentIds, department.id]);
-                                } else {
-                                  field.onChange(currentIds.filter(id => id !== department.id));
-                                }
-                              }}
-                              className="rounded border-gray-300"
-                            />
-                            <label htmlFor={`dept-${department.id}`} className="text-sm">
-                              {department.name}
-                            </label>
-                          </div>
-                        ))}
+                        {/* Search box */}
+                        <div className="relative">
+                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search units..."
+                            value={unitSearchTerm}
+                            onChange={(e) => setUnitSearchTerm(e.target.value)}
+                            className="pl-8"
+                          />
+                        </div>
+                        
+                        {/* Scrollable department list - max 3 rows visible */}
+                        <div className="max-h-[7rem] overflow-y-auto border rounded-md p-2 space-y-2">
+                          {filteredDepartments.length > 0 ? filteredDepartments.map((department) => (
+                            <div key={department.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`dept-${department.id}`}
+                                checked={field.value?.includes(department.id) || false}
+                                onChange={(e) => {
+                                  const currentIds = field.value || [];
+                                  if (e.target.checked) {
+                                    field.onChange([...currentIds, department.id]);
+                                  } else {
+                                    field.onChange(currentIds.filter(id => id !== department.id));
+                                  }
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <label htmlFor={`dept-${department.id}`} className="text-sm">
+                                {department.name}
+                              </label>
+                            </div>
+                          )) : (
+                            <div className="text-sm text-muted-foreground py-2">
+                              {unitSearchTerm ? 'No units found matching search.' : 'No units available.'}
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <FormMessage />
                       <p className="text-xs text-muted-foreground mt-1">
