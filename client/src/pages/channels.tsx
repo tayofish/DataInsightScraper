@@ -2200,7 +2200,7 @@ export default function ChannelsPage() {
             <div className="mb-4">
               <Label htmlFor="add-members">Add Members</Label>
               <div className="flex items-center space-x-2 mt-1.5">
-                <div className="relative flex-1">
+                <div className="relative flex-1" ref={userSearchRef}>
                   <div className="relative">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
