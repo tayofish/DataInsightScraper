@@ -330,11 +330,11 @@ export default function Categories() {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{currentCategory ? 'Edit Category' : 'Create Category'}</DialogTitle>
+            <DialogTitle>{currentCategory ? 'Edit Department' : 'Create Department'}</DialogTitle>
             <DialogDescription>
               {currentCategory
-                ? 'Update the details of this category.'
-                : 'Create a new category for organizing tasks.'}
+                ? 'Update the details of this department.'
+                : 'Create a new department for organizing tasks.'}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -346,7 +346,7 @@ export default function Categories() {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Category name" {...field} />
+                      <Input placeholder="Department name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -359,7 +359,7 @@ export default function Categories() {
                 render={({ field }) => {
                   return (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>Unit</FormLabel>
                       <FormControl>
                         <Select
                           value={field.value?.toString() || "none"}
@@ -368,10 +368,10 @@ export default function Categories() {
                           }}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a department (optional)" />
+                            <SelectValue placeholder="Select a unit (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">General (No Department)</SelectItem>
+                            <SelectItem value="none">General (No Unit)</SelectItem>
                             {departments.map((department) => (
                               <SelectItem key={department.id} value={department.id.toString()}>
                                 {department.name}
@@ -381,7 +381,7 @@ export default function Categories() {
                         </Select>
                       </FormControl>
                       <FormDescription>
-                        Optional: Assign this category to a department
+                        Optional: Assign this department to a unit
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

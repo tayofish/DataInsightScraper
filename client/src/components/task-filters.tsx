@@ -274,13 +274,13 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Category
+                Department
               </label>
               <SearchableSelect
                 options={[
                   {
                     value: "-2",
-                    label: "All Categories",
+                    label: "All Departments",
                     icon: <div className="w-3 h-3 rounded-full bg-slate-400"></div>
                   },
                   {
@@ -300,9 +300,9 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                   }))
                 ]}
                 value={form.watch("categoryId")?.toString() || "-2"}
-                placeholder="All Categories"
-                searchPlaceholder="Search categories..."
-                emptyText="No categories found."
+                placeholder="All Departments"
+                searchPlaceholder="Search departments..."
+                emptyText="No departments found."
                 onValueChange={(value) => {
                   if (value === "-2") {
                     form.setValue("categoryId", -2);
@@ -319,13 +319,13 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
             
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Department
+                Unit
               </label>
               <SearchableSelect
                 options={[
                   {
                     value: "all",
-                    label: "All Departments",
+                    label: "All Units",
                     icon: <Building2 className="h-4 w-4 text-slate-500" />
                   },
                   ...departmentsData.map((department) => ({
@@ -335,9 +335,9 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                   }))
                 ]}
                 value={form.watch("department")}
-                placeholder="All Departments"
-                searchPlaceholder="Search departments..."
-                emptyText="No departments found."
+                placeholder="All Units"
+                searchPlaceholder="Search units..."
+                emptyText="No units found."
                 onValueChange={(value) => form.setValue("department", value || "all")}
               />
             </div>

@@ -586,11 +586,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         <SearchableSelect
                           control={form.control}
                           name="departmentId"
-                          label="Department"
-                          placeholder="Select department"
-                          searchPlaceholder="Search departments..."
+                          label="Unit"
+                          placeholder="Select unit"
+                          searchPlaceholder="Search units..."
                           options={[
-                            { value: "-1", label: "No Department", icon: <Building className="h-4 w-4 text-gray-400" /> },
+                            { value: "-1", label: "No Unit", icon: <Building className="h-4 w-4 text-gray-400" /> },
                             ...departments.map((department) => ({
                               value: department.id.toString(),
                               label: department.name,
@@ -602,11 +602,11 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         <SearchableSelect
                           control={form.control}
                           name="categoryId"
-                          label="Category"
-                          placeholder="Select category"
-                          searchPlaceholder="Search categories..."
+                          label="Department"
+                          placeholder="Select department"
+                          searchPlaceholder="Search departments..."
                           options={[
-                            { value: "-1", label: "No Category", icon: <Tag className="h-4 w-4 text-gray-400" /> },
+                            { value: "-1", label: "No Department", icon: <Tag className="h-4 w-4 text-gray-400" /> },
                             ...categories.map((category) => ({
                               value: category.id.toString(),
                               label: category.name,
