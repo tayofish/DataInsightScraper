@@ -4007,14 +4007,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // Create notification for the added user
-          await db.insert(notifications).values({
-            userId: userIdToAdd,
-            title: "Channel Invitation",
-            message: `You've been added to the ${channel.name} channel`,
-            type: "channel_invitation",
-            isRead: false,
-            createdAt: new Date()
-          });
+          try {
+            await storage.createNotification({
+              userId: userIdToAdd,
+              title: "Channel Invitation",
+              message: `You've been added to the ${channel.name} channel`,
+              type: "channel_invitation",
+              isRead: false
+            });
+          } catch (notificationError) {
+            console.error("Error creating channel invitation notification:", notificationError);
+            // Continue - don't fail the entire request if notification fails
+          }
           
           addedMembers.push({ ...member, user: userRecord });
           
@@ -4791,15 +4795,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Add notification for the added user
-      await db.insert(notifications).values({
-        userId,
-        type: "channel_invitation",
-        title: "Channel invitation",
-        message: `You have been added to the channel: ${channel.name}`,
-        referenceId: channelId,
-        referenceType: "channel",
-        isRead: false
-      });
+      try {
+        await storage.createNotification({
+          userId,
+          type: "channel_invitation",
+          title: "Channel invitation",
+          message: `You have been added to the channel: ${channel.name}`,
+          referenceId: channelId,
+          referenceType: "channel",
+          isRead: false
+        });
+      } catch (notificationError) {
+        console.error("Error creating channel invitation notification:", notificationError);
+        // Continue - don't fail the entire request if notification fails
+      }
       
       return res.status(201).json(newMember);
     } catch (error) {
@@ -4962,14 +4971,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                   
                   // Create notification for being added to channel
-                  await db.insert(notifications).values({
-                    userId: user.id,
-                    title: "Added to channel",
-                    message: `You were mentioned by ${req.user!.username} and added to the channel "${channel.name}"`,
-                    link: `/channels/${channelId}`,
-                    read: false,
-                    createdAt: new Date()
-                  });
+                  try {
+                    await storage.createNotification({
+                      userId: user.id,
+                      title: "Added to channel",
+                      message: `You were mentioned by ${req.user!.username} and added to the channel "${channel.name}"`,
+                      type: "channel_invitation",
+                      referenceId: channelId,
+                      referenceType: "channel",
+                      isRead: false
+                    });
+                  } catch (notificationError) {
+                    console.error("Error creating channel addition notification:", notificationError);
+                    // Continue - don't fail the entire request if notification fails
+                  }
                   
                   // Broadcast member addition to all connected clients
                   try {
@@ -4998,14 +5013,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             // Send notification about mention
-            await db.insert(notifications).values({
-              userId: user.id,
-              title: "Mentioned in channel",
-              message: `${req.user!.username} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
-              link: `/channels/${channelId}`,
-              read: false,
-              createdAt: new Date()
-            });
+            try {
+              await storage.createNotification({
+                userId: user.id,
+                title: "Mentioned in channel",
+                message: `${req.user!.username} mentioned you in ${channel.name}: "${req.body.content.substring(0, 50)}${req.body.content.length > 50 ? '...' : ''}"`,
+                type: "mention",
+                referenceId: channelId,
+                referenceType: "channel",
+                isRead: false
+              });
+            } catch (notificationError) {
+              console.error("Error creating mention notification:", notificationError);
+              // Continue - don't fail the entire request if notification fails
+            }
             
             try {
               // Send email notification for mention
@@ -5445,14 +5466,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Direct message file upload - fullMessage:", JSON.stringify(fullMessage));
       
       // Create notification for the receiver
-      await db.insert(notifications).values({
-        userId: receiverId,
-        title: "New direct message",
-        message: `${req.user!.name || req.user!.username} sent you a file: ${req.file.originalname}`,
-        type: "direct_message",
-        referenceId: newMessage.id,
-        referenceType: "direct_message"
-      });
+      try {
+        await storage.createNotification({
+          userId: receiverId,
+          title: "New direct message",
+          message: `${req.user!.name || req.user!.username} sent you a file: ${req.file.originalname}`,
+          type: "direct_message",
+          referenceId: newMessage.id,
+          referenceType: "direct_message",
+          isRead: false
+        });
+      } catch (notificationError) {
+        console.error("Error creating file message notification:", notificationError);
+        // Continue - don't fail the entire request if notification fails
+      }
       
       // Send real-time notification via WebSocket if the recipient is online
       try {
