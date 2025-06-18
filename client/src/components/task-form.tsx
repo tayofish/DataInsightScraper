@@ -99,12 +99,12 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     queryKey: ['/api/projects'],
   });
 
-  // Fetch departments and categories for category selection
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
+  // Fetch units and departments for selection
+  const { data: units = [], isLoading: unitsLoading } = useQuery<Department[]>({
     queryKey: ['/api/departments'],
   });
 
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
 
@@ -607,10 +607,10 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                           searchPlaceholder="Search departments..."
                           options={[
                             { value: "-1", label: "No Department", icon: <Tag className="h-4 w-4 text-gray-400" /> },
-                            ...categories.map((category) => ({
-                              value: category.id.toString(),
-                              label: category.name,
-                              icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: category.color || '#6b7280' }} />
+                            ...departments.map((department) => ({
+                              value: department.id.toString(),
+                              label: department.name,
+                              icon: <div className="w-3 h-3 rounded-full" style={{ backgroundColor: department.color || '#6b7280' }} />
                             }))
                           ]}
                         />
@@ -1123,7 +1123,7 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                   name="departmentId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>Unit</FormLabel>
                       <Select
                         value={field.value?.toString() || '-1'}
                         onValueChange={(value) => {
@@ -1136,14 +1136,14 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select department" />
+                            <SelectValue placeholder="Select unit" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="-1">No Department</SelectItem>
-                          {departments.map((department) => (
-                            <SelectItem key={department.id} value={department.id.toString()}>
-                              {department.name}
+                          <SelectItem value="-1">No Unit</SelectItem>
+                          {units.map((unit) => (
+                            <SelectItem key={unit.id} value={unit.id.toString()}>
+                              {unit.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1179,40 +1179,40 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
                         <SelectItem value="-1">No Category</SelectItem>
                         
                         {(() => {
-                          // Create a map of departments to categories
-                          const departmentMap: Record<string, typeof categories> = {};
-                          const departmentsById: Record<number, string> = {};
+                          // Create a map of units to departments
+                          const unitMap: Record<string, typeof departments> = {};
+                          const unitsById: Record<number, string> = {};
                           
-                          // Create a mapping of department IDs to names
-                          departments.forEach((dept: Department) => {
-                            departmentsById[dept.id] = dept.name;
+                          // Create a mapping of unit IDs to names
+                          units.forEach((unit: Department) => {
+                            unitsById[unit.id] = unit.name;
                           });
                           
-                          categories.forEach(category => {
-                            const deptName = category.departmentId 
-                              ? (departmentsById[category.departmentId] || 'Unknown') 
+                          departments.forEach(department => {
+                            const unitName = department.departmentId 
+                              ? (unitsById[department.departmentId] || 'Unknown') 
                               : 'General';
                             
-                            if (!departmentMap[deptName]) {
-                              departmentMap[deptName] = [];
+                            if (!unitMap[unitName]) {
+                              unitMap[unitName] = [];
                             }
-                            departmentMap[deptName].push(category);
+                            unitMap[unitName].push(department);
                           });
                           
-                          // Return the grouped categories
-                          return Object.entries(departmentMap).map(([department, deptCategories]) => (
-                            <React.Fragment key={department}>
-                              <SelectItem value={`dept_${department}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
-                                {department}
+                          // Return the grouped departments
+                          return Object.entries(unitMap).map(([unit, unitDepartments]) => (
+                            <React.Fragment key={unit}>
+                              <SelectItem value={`unit_${unit}`} disabled className="text-xs font-bold uppercase text-gray-500 py-1">
+                                {unit}
                               </SelectItem>
-                              {deptCategories.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()} className="pl-6">
+                              {unitDepartments.map((department) => (
+                                <SelectItem key={department.id} value={department.id.toString()} className="pl-6">
                                   <div className="flex items-center">
                                     <div 
                                       className="w-3 h-3 rounded-full mr-2" 
-                                      style={{ backgroundColor: category.color || '#6b7280' }}
+                                      style={{ backgroundColor: department.color || '#6b7280' }}
                                     />
-                                    {category.name}
+                                    {department.name}
                                   </div>
                                 </SelectItem>
                               ))}
