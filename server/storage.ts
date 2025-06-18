@@ -515,7 +515,7 @@ export const storage = {
   // Gets tasks for a non-admin user based on department and project assignments
   getAllTasksForUser: async (
     userId: number,
-    departmentId: number | null,
+    departmentIds: number[],
     projectIds: number[],
     filters?: {
       status?: string,
@@ -605,14 +605,17 @@ export const storage = {
     
     // Build access conditions separately
     // A user can see tasks that match ANY of these conditions:
-    // 1. Task is in the user's department
+    // 1. Task is in any of the user's departments (primary + additional)
     // 2. Task is from a project the user is assigned to
     // 3. Task is directly assigned to the user
     const accessConditions = [];
     
-    // 1. Department condition - if user has a department
-    if (departmentId) {
-      accessConditions.push(eq(tasks.departmentId, departmentId));
+    // 1. Department conditions - if user has departments
+    if (departmentIds && departmentIds.length > 0) {
+      // Add each department ID as a condition
+      departmentIds.forEach(deptId => {
+        accessConditions.push(eq(tasks.departmentId, deptId));
+      });
     }
     
     // 2. Project assignments condition - if user has project assignments
@@ -674,7 +677,7 @@ export const storage = {
   // User-specific task statistics - for regular users
   getUserTaskStatistics: async (
     userId: number,
-    departmentId: number | null,
+    departmentIds: number[],
     projectIds: number[]
   ): Promise<{ 
     total: number, 
@@ -685,9 +688,12 @@ export const storage = {
     // Get tasks accessible to this user (same logic as getAllTasksForUser but without filters)
     const accessConditions = [];
     
-    // 1. Department condition - if user has a department
-    if (departmentId) {
-      accessConditions.push(eq(tasks.departmentId, departmentId));
+    // 1. Department conditions - if user has departments
+    if (departmentIds && departmentIds.length > 0) {
+      // Add each department ID as a condition
+      departmentIds.forEach(deptId => {
+        accessConditions.push(eq(tasks.departmentId, deptId));
+      });
     }
     
     // 2. Project assignments condition - if user has project assignments
