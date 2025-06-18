@@ -1,11 +1,12 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Pencil, Trash2, FolderOpen } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, Pencil, Trash2, Search, FolderOpen } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -40,10 +41,19 @@ export default function Projects() {
   const { toast } = useToast();
   const [isProjectFormOpen, setIsProjectFormOpen] = React.useState(false);
   const [currentProject, setCurrentProject] = React.useState<Project | null>(null);
+  const [searchTerm, setSearchTerm] = React.useState('');
   
   const { data: projects = [], isLoading } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
+
+  const filteredProjects = React.useMemo(() => {
+    if (!searchTerm) return projects;
+    return projects.filter(project => 
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [projects, searchTerm]);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -175,87 +185,110 @@ export default function Projects() {
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Search Bar */}
+      <div className="px-4 sm:px-6 md:px-8 mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      {/* Projects Table */}
       <div className="px-4 sm:px-6 md:px-8">
-        {projects.length === 0 ? (
+        {filteredProjects.length === 0 ? (
           <Card>
             <CardContent className="pt-6 flex flex-col items-center justify-center text-center h-40">
-              <p className="text-muted-foreground mb-4">No projects found</p>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? 'No projects found matching your search' : 'No projects found'}
+              </p>
               <Button onClick={() => openProjectForm()}>Create your first project</Button>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <Card key={project.id} className="flex flex-col justify-between overflow-hidden group cursor-pointer">
-                <div className="flex-1">
-                  <Link href={`/projects/${project.id}`}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="group-hover:text-primary transition-colors">
-                        {project.name}
-                      </CardTitle>
-                      <CardDescription>
-                        {project.description || 'No description provided'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 pb-4">
-                      <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-primary rounded-full" 
-                          style={{ width: `${project.completionPercentage || 0}%` }}
-                        ></div>
-                      </div>
-                    </CardContent>
-                  </Link>
-                </div>
-                <CardFooter className="pt-0 flex justify-end space-x-2 border-t bg-gray-50/50 z-10">
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openProjectForm(project);
-                    }}
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Project Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProjects.map((project) => (
+                  <TableRow 
+                    key={project.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => window.location.href = `/projects/${project.id}`}
                   >
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Project</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this project? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
+                    <TableCell className="font-medium">
+                      <div className="flex items-center space-x-2">
+                        <FolderOpen className="h-4 w-4 text-blue-600" />
+                        <span>{project.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {project.description || 'No description provided'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-1">
+                        <Button 
+                          variant="ghost"
+                          size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteProjectMutation.mutate(project.id);
+                            openProjectForm(project);
                           }}
-                          className="bg-red-600 hover:bg-red-700"
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this project? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteProjectMutation.mutate(project.id);
+                                }}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
         )}
       </div>
 

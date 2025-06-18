@@ -83,6 +83,10 @@ export default function AdminPage() {
   // Unit search functionality
   const [unitSearchTerm, setUnitSearchTerm] = useState("");
   
+  // User pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 15;
+  
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'database' | 'settings') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -814,6 +818,13 @@ export default function AdminPage() {
     );
   };
 
+  // Calculate paginated users
+  const totalUsers = users?.length || 0;
+  const totalPages = Math.ceil(totalUsers / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = users?.slice(startIndex, endIndex) || [];
+
   // Render users tab content
   const renderUsersTab = () => {
     return (
@@ -845,8 +856,8 @@ export default function AdminPage() {
                       <RefreshCw className="h-5 w-5 animate-spin mx-auto text-gray-400" />
                     </TableCell>
                   </TableRow>
-                ) : users && users.length > 0 ? (
-                  users.map((user) => (
+                ) : paginatedUsers && paginatedUsers.length > 0 ? (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
