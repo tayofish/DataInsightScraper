@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { 
   CheckCircle2, CircleAlert, Edit, MoreVertical, Plus, RefreshCw, Trash2, 
   Users, Briefcase, Link, Link2, Link2Off, UserPlus, Mail, ImageIcon,
-  Settings, Loader2, Check, Ban, UserCheck
+  Settings, Loader2, Check, Ban, UserCheck, Search
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -79,6 +79,9 @@ export default function AdminPage() {
   
   // Backup and restore state and handlers
   const [isBackupRestoreLoading, setIsBackupRestoreLoading] = useState<boolean>(false);
+  
+  // Unit search functionality
+  const [unitSearchTerm, setUnitSearchTerm] = useState("");
   
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'database' | 'settings') => {
     const file = e.target.files?.[0];
@@ -922,7 +925,7 @@ export default function AdminPage() {
 
         {/* User Create/Edit Dialog */}
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{userToEdit ? "Edit User" : "Create User"}</DialogTitle>
               <DialogDescription>
