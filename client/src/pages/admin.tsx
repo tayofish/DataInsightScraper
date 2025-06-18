@@ -41,7 +41,8 @@ const userFormSchema = z.object({
   email: z.string().email("Please enter a valid email address").optional().nullable(),
   avatar: z.string().nullable().optional(),
   isAdmin: z.boolean().default(false),
-  departmentId: z.number().nullable().optional()
+  departmentId: z.number().nullable().optional(),
+  departmentIds: z.array(z.number()).optional().default([])
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -985,18 +986,18 @@ export default function AdminPage() {
                   name="departmentId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Unit</FormLabel>
+                      <FormLabel>Primary Unit</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value === "null" ? null : parseInt(value))}
                         value={field.value?.toString() || "null"}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a unit" />
+                            <SelectValue placeholder="Select primary unit" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="null">No Unit</SelectItem>
+                          <SelectItem value="null">No Primary Unit</SelectItem>
                           {departments?.map((department) => (
                             <SelectItem key={department.id} value={department.id.toString()}>
                               {department.name}
@@ -1005,6 +1006,43 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={userForm.control}
+                  name="departmentIds"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Additional Units</FormLabel>
+                      <div className="space-y-2">
+                        {departments?.map((department) => (
+                          <div key={department.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`dept-${department.id}`}
+                              checked={field.value?.includes(department.id) || false}
+                              onChange={(e) => {
+                                const currentIds = field.value || [];
+                                if (e.target.checked) {
+                                  field.onChange([...currentIds, department.id]);
+                                } else {
+                                  field.onChange(currentIds.filter(id => id !== department.id));
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor={`dept-${department.id}`} className="text-sm">
+                              {department.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Select all units this user should have access to.
+                      </p>
                     </FormItem>
                   )}
                 />

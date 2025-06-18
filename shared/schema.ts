@@ -361,6 +361,11 @@ export const projectAssignmentSelectSchema = createSelectSchema(projectAssignmen
 export type ProjectAssignment = z.infer<typeof projectAssignmentSelectSchema>;
 export type InsertProjectAssignment = z.infer<typeof projectAssignmentInsertSchema>;
 
+export const userDepartmentInsertSchema = createInsertSchema(userDepartments);
+export const userDepartmentSelectSchema = createSelectSchema(userDepartments);
+export type UserDepartment = z.infer<typeof userDepartmentSelectSchema>;
+export type InsertUserDepartment = z.infer<typeof userDepartmentInsertSchema>;
+
 export const taskUpdateSelectSchema = createSelectSchema(taskUpdates);
 export type TaskUpdate = z.infer<typeof taskUpdateSelectSchema>;
 export type InsertTaskUpdate = z.infer<typeof taskUpdateInsertSchema>;
