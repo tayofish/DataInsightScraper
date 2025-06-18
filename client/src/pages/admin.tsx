@@ -985,18 +985,18 @@ export default function AdminPage() {
                   name="departmentId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Department</FormLabel>
+                      <FormLabel>Unit</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(value === "null" ? null : parseInt(value))}
                         value={field.value?.toString() || "null"}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a department" />
+                            <SelectValue placeholder="Select a unit" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="null">No Department</SelectItem>
+                          <SelectItem value="null">No Unit</SelectItem>
                           {departments?.map((department) => (
                             <SelectItem key={department.id} value={department.id.toString()}>
                               {department.name}

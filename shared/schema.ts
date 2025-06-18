@@ -74,6 +74,14 @@ export const projectAssignments = pgTable("project_assignments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User-Department (Unit) assignments table for many-to-many relationship
+export const userDepartments = pgTable("user_departments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  departmentId: integer("department_id").references(() => departments.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Task updates for tracking changes
 export const taskUpdates = pgTable("task_updates", {
   id: serial("id").primaryKey(),
@@ -160,6 +168,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
     fields: [users.departmentId],
     references: [departments.id],
   }),
+  userDepartments: many(userDepartments),
   // Collaboration features relations
   channelMemberships: many(channelMembers),
   messages: many(messages),
@@ -176,6 +185,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
 export const departmentsRelations = relations(departments, ({ many }) => ({
   categories: many(categories),
   users: many(users),
+  userDepartments: many(userDepartments),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
@@ -241,6 +251,17 @@ export const projectAssignmentsRelations = relations(projectAssignments, ({ one 
   user: one(users, {
     fields: [projectAssignments.userId],
     references: [users.id],
+  }),
+}));
+
+export const userDepartmentsRelations = relations(userDepartments, ({ one }) => ({
+  user: one(users, {
+    fields: [userDepartments.userId],
+    references: [users.id],
+  }),
+  department: one(departments, {
+    fields: [userDepartments.departmentId],
+    references: [departments.id],
   }),
 }));
 
