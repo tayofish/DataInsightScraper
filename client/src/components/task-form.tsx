@@ -162,9 +162,10 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     },
   });
 
-  // Load task data when the task changes
+  // Load task data when the task changes or when opening dialog
   useEffect(() => {
     if (task) {
+      // Editing existing task
       form.reset({
         title: task.title || '',
         description: task.description || '',
@@ -177,8 +178,22 @@ export default function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
         categoryId: task.categoryId || null,
         departmentId: task.departmentId || null,
       });
+    } else if (isOpen) {
+      // Creating new task - reset to defaults
+      form.reset({
+        title: '',
+        description: '',
+        priority: 'medium',
+        status: 'todo',
+        startDate: '',
+        dueDate: '',
+        projectId: null,
+        assigneeId: user?.id || null,
+        categoryId: null,
+        departmentId: null,
+      });
     }
-  }, [task, form]);
+  }, [task, isOpen, form, user?.id]);
 
   // Task update mutation (for saving the task)
   const taskMutation = useMutation({
