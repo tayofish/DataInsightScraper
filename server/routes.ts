@@ -6040,15 +6040,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Skip self mentions
                 if (user.id === ws.userId) continue;
                 
-                await db.insert(notifications).values({
-                  userId: user.id,
-                  title: "Mentioned in channel",
-                  message: `${sender?.name || sender?.username} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
-                  type: "mention",
-                  referenceId: newMessage.id,
-                  referenceType: "channel_message",
-                  isRead: false
-                });
+                try {
+                  await storage.createNotification({
+                    userId: user.id,
+                    title: "Mentioned in channel",
+                    message: `${sender?.name || sender?.username} mentioned you in ${channel.name}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
+                    type: "mention",
+                    referenceId: newMessage.id,
+                    referenceType: "channel_message",
+                    isRead: false
+                  });
+                } catch (notificationError) {
+                  console.error("Error creating channel mention notification:", notificationError);
+                  // Continue - don't fail the entire request if notification fails
+                }
                 
                 try {
                   // Send email notification for mention
@@ -6209,7 +6214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Send notification to receiver
             try {
-              await db.insert(notifications).values({
+              await storage.createNotification({
                 userId: receiverId,
                 title: "New direct message",
                 message: `${sender.name} sent you a message: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`,
