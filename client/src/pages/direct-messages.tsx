@@ -81,6 +81,8 @@ const DirectMessagesPage: FC = () => {
   
   // Search state
   const [conversationSearchQuery, setConversationSearchQuery] = useState("");
+  const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [showMessageSearch, setShowMessageSearch] = useState(false);
   
   // Utility function to format date for headers
   const formatDateHeader = (date: Date) => {
@@ -311,7 +313,7 @@ const DirectMessagesPage: FC = () => {
   const messagesError = messagesQuery.error;
   
   // Combine server messages with optimistic ones (improved for offline support)
-  const messages = useMemo(() => {
+  const allMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
     
     // Use a more resilient approach to identify and keep optimistic messages
@@ -348,6 +350,38 @@ const DirectMessagesPage: FC = () => {
       return dateA - dateB; // ascending order (oldest first, newest last)
     });
   }, [messagesQuery.data, localMessages, user?.id]);
+
+  // Filter messages based on search query
+  const messages = useMemo(() => {
+    if (!messageSearchQuery.trim()) {
+      return allMessages;
+    }
+    
+    const searchTerm = messageSearchQuery.toLowerCase();
+    return allMessages.filter(message => {
+      // Search in message content
+      if (message.content && message.content.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in sender name
+      if (message.sender?.name && message.sender.name.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in sender username
+      if (message.sender?.username && message.sender.username.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      // Search in file names if it's a file message
+      if (message.fileName && message.fileName.toLowerCase().includes(searchTerm)) {
+        return true;
+      }
+      
+      return false;
+    });
+  }, [allMessages, messageSearchQuery]);
 
   // Send a direct message
   const sendMessageMutation = useMutation({
@@ -1042,6 +1076,13 @@ const DirectMessagesPage: FC = () => {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setShowMessageSearch(!showMessageSearch)}
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
                 <Button variant="outline" size="icon">
                   <Phone className="h-4 w-4" />
                 </Button>
@@ -1060,6 +1101,21 @@ const DirectMessagesPage: FC = () => {
                 </DropdownMenu>
               </div>
             </div>
+
+            {/* Message Search Bar */}
+            {showMessageSearch && (
+              <div className="p-4 border-b bg-muted/50">
+                <div className="relative">
+                  <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search messages..." 
+                    className="pl-8" 
+                    value={messageSearchQuery}
+                    onChange={(e) => setMessageSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Messages Area - with fixed height to prevent overflow issues */}
             <ScrollArea className="flex-1 p-4 max-h-[calc(100vh-230px)]">
