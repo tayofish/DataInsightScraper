@@ -5,6 +5,8 @@ import TaskFilters, { TaskFilterValues } from '@/components/task-filters';
 import TaskList from '@/components/task-list';
 import TaskForm from '@/components/task-form';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import type { Task } from '@shared/schema';
 
 interface TasksProps {
   showNewTaskForm?: boolean;
@@ -18,10 +20,13 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
   // Get URL query params and route params
   const searchParams = new URLSearchParams(window.location.search);
   const projectIdParam = searchParams.get('projectId');
+  const taskIdParam = searchParams.get('id');
   
-  // Check if we're on a task detail route (/tasks/:id)
+  // Check if we're on a task detail route (/tasks/:id) or have task ID in query
   const taskIdMatch = location.match(/^\/tasks\/(\d+)$/);
   const taskIdFromRoute = taskIdMatch ? parseInt(taskIdMatch[1], 10) : null;
+  const taskIdFromQuery = taskIdParam ? parseInt(taskIdParam, 10) : null;
+  const targetTaskId = taskIdFromRoute || taskIdFromQuery;
   
   const [filters, setFilters] = React.useState<TaskFilterValues>({
     assigneeId: -2,
@@ -33,16 +38,22 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
     search: '',
     sortBy: 'dueDate',
   });
+
+  // Fetch specific task if selectedTaskId is provided
+  const { data: selectedTask } = useQuery({
+    queryKey: [`/api/tasks/${selectedTaskId}`],
+    enabled: !!selectedTaskId,
+  });
   
   // Open task form if showNewTaskForm prop is true or if accessing a task detail route
   useEffect(() => {
     if (showNewTaskForm) {
       setIsTaskFormOpen(true);
-    } else if (taskIdFromRoute) {
-      setSelectedTaskId(taskIdFromRoute);
+    } else if (targetTaskId) {
+      setSelectedTaskId(targetTaskId);
       setIsTaskFormOpen(true);
     }
-  }, [showNewTaskForm, taskIdFromRoute]);
+  }, [showNewTaskForm, targetTaskId]);
 
   const handleFilterChange = (newFilters: TaskFilterValues) => {
     setFilters(newFilters);
@@ -88,7 +99,7 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
           setIsTaskFormOpen(false);
           setSelectedTaskId(null);
         }}
-        task={null}
+        task={selectedTask || null}
       />
     </div>
   );
