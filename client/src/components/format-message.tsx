@@ -48,6 +48,9 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
   const canDeleteFile = userId === currentUserId && messageId !== undefined && (type === 'file' || type === 'image') && fileUrl;
   
+  // Debug logging for file deletion capability
+  console.log(`Message ${messageId}: userId=${userId}, currentUserId=${currentUserId}, type=${type}, fileUrl=${fileUrl}, canDeleteFile=${canDeleteFile}`);
+  
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -434,7 +437,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
           
           {/* Display file attachment */}
           {fileUrl && (
-            <div className={`group-file relative ${content && content.trim() !== "" ? "mt-2" : ""}`}>
+            <div className={`group relative ${content && content.trim() !== "" ? "mt-2" : ""}`}>
               {isImage ? (
                 <div className="relative">
                   <a href={fileUrl} target="_blank" rel="noopener noreferrer">
@@ -451,12 +454,16 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-2 right-2 opacity-0 group-file-hover:opacity-100 transition-opacity h-6 w-6"
-                      onClick={() => fileDeleteMutation.mutate()}
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6 bg-red-500 hover:bg-red-600"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fileDeleteMutation.mutate();
+                      }}
                       disabled={fileDeleteMutation.isPending}
                       title="Delete file"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3 text-white" />
                     </Button>
                   )}
                 </div>
@@ -469,7 +476,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     className="flex items-center gap-2 p-2 border border-border rounded-md hover:bg-accent/10 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2-2V7.5L14.5 2z"/>
                       <polyline points="14 2 14 8 20 8"/>
                     </svg>
                     <span className="text-sm font-medium">{fileName || "Download attachment"}</span>
@@ -480,12 +487,16 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-1 right-1 opacity-0 group-file-hover:opacity-100 transition-opacity h-6 w-6"
-                      onClick={() => fileDeleteMutation.mutate()}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6 w-6 bg-red-500 hover:bg-red-600"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fileDeleteMutation.mutate();
+                      }}
                       disabled={fileDeleteMutation.isPending}
                       title="Delete file"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3 w-3 text-white" />
                     </Button>
                   )}
                 </div>
