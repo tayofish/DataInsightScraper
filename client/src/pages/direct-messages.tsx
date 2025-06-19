@@ -307,6 +307,22 @@ const DirectMessagesPage: FC = () => {
   const messagesQuery = useQuery<any[]>({
     queryKey: [`/api/direct-messages/${selectedUserId}`, Date.now()], // Cache bust for debugging
     enabled: !!selectedUserId && !!user,
+    queryFn: async () => {
+      console.log('CUSTOM QUERY FN: Fetching messages for user', selectedUserId);
+      const response = await fetch(`/api/direct-messages/${selectedUserId}`, {
+        credentials: 'include',
+      });
+      console.log('CUSTOM QUERY FN: Response status', response.status);
+      
+      if (!response.ok) {
+        console.error('CUSTOM QUERY FN: Response not OK', response.status, response.statusText);
+        throw new Error(`Failed to fetch messages: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('CUSTOM QUERY FN: Received data', data);
+      return data;
+    },
   });
   
   // Loading and error states from the query
