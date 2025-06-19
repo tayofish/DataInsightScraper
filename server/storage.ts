@@ -1162,15 +1162,32 @@ export const storage = {
     
     // Validate required fields
     if (!notificationData.userId) {
+      console.error("Storage: userId is missing in notification data");
       throw new Error("userId is required for notification creation");
     }
     
-    const [newNotification] = await db.insert(notifications)
-      .values(notificationData)
-      .returning();
+    // Additional validation for production
+    if (typeof notificationData.userId !== 'number' || notificationData.userId <= 0) {
+      console.error("Storage: Invalid userId value:", notificationData.userId);
+      throw new Error("userId must be a positive number");
+    }
     
-    console.log("Storage: Notification created successfully:", newNotification.id);
-    return newNotification;
+    try {
+      const [newNotification] = await db.insert(notifications)
+        .values(notificationData)
+        .returning();
+      
+      console.log("Storage: Notification created successfully:", newNotification.id);
+      return newNotification;
+    } catch (error: any) {
+      console.error("Storage: Failed to create notification:", error);
+      // Log the specific constraint violation for debugging
+      if (error.code === '23502' && error.column === 'userId') {
+        console.error("Storage: Database constraint violation - userId is null in database");
+        console.error("Storage: Input data was:", JSON.stringify(notificationData));
+      }
+      throw error;
+    }
   },
   
   markNotificationAsRead: async (id: number): Promise<Notification | undefined> => {

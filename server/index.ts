@@ -4,8 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// Modified body-parser setup to capture raw body for better error handling
+// Modified body-parser setup to capture raw body for better error handling with 10MB limit
 app.use(express.json({
+  limit: '10mb',
   verify: (req: any, res, buf, encoding) => {
     if (buf && buf.length) {
       // Use a safe default encoding
@@ -14,7 +15,10 @@ app.use(express.json({
     }
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ 
+  extended: false,
+  limit: '10mb'
+}));
 
 // Middleware to handle empty request bodies
 app.use((req: Request, res: Response, next: NextFunction) => {
