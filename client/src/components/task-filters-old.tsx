@@ -65,23 +65,35 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
       onFilterChange(value as TaskFilterValues);
     });
     return () => subscription.unsubscribe();
-  }, [form, onFilterChange]);
+  }, [form.watch, onFilterChange]);
 
-  const resetFilters = () => {
-    form.reset(defaultValues);
-  };
+  // Function to reset all filters
+  const resetFilters = React.useCallback(() => {
+    form.reset({
+      assigneeId: -2, // -2 means "All Users"
+      projectId: -2,  // -2 means "All Projects"
+      categoryId: -2, // -2 means "All Categories"
+      department: 'all',
+      status: 'all',
+      priority: 'all',
+      search: '',
+      sortBy: 'dueDate',
+      customFilter: undefined
+    });
+  }, [form]);
 
+  // Helper function to get active filter count
   const getActiveFilterCount = () => {
-    const values = form.getValues();
     let count = 0;
+    const values = form.getValues();
     
-    if (values.assigneeId !== -2) count++;
-    if (values.projectId !== -2) count++;
-    if (values.categoryId !== -2) count++;
-    if (values.department !== 'all') count++;
-    if (values.status !== 'all') count++;
-    if (values.priority !== 'all') count++;
-    if (values.search && values.search.trim() !== '') count++;
+    if (values.assigneeId && values.assigneeId !== -2) count++;
+    if (values.projectId && values.projectId !== -2) count++;
+    if (values.categoryId && values.categoryId !== -2) count++;
+    if (values.department && values.department !== 'all') count++;
+    if (values.status && values.status !== 'all') count++;
+    if (values.priority && values.priority !== 'all') count++;
+    if (values.search && values.search.trim()) count++;
     
     return count;
   };
@@ -205,175 +217,175 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Status
                   </label>
-                  <SearchableSelect
-                    options={[
-                      {
-                        value: "all",
-                        label: "All Statuses",
-                        icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      },
-                      {
-                        value: "pending",
-                        label: "Pending",
-                        icon: <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      },
-                      {
-                        value: "in_progress",
-                        label: "In Progress",
-                        icon: <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      },
-                      {
-                        value: "completed",
-                        label: "Completed",
-                        icon: <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      }
-                    ]}
-                    value={form.watch("status")}
-                    placeholder="All Statuses"
-                    searchPlaceholder="Search statuses..."
-                    emptyText="No status found."
-                    onValueChange={(value) => form.setValue("status", value || "all")}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Priority
-                  </label>
-                  <SearchableSelect
-                    options={[
-                      {
-                        value: "all",
-                        label: "All Priorities",
-                        icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      },
-                      {
-                        value: "low",
-                        label: "Low",
-                        icon: <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                      },
-                      {
-                        value: "medium",
-                        label: "Medium",
-                        icon: <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                      },
-                      {
-                        value: "high",
-                        label: "High",
-                        icon: <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      }
-                    ]}
-                    value={form.watch("priority")}
-                    placeholder="All Priorities"
-                    searchPlaceholder="Search priorities..."
-                    emptyText="No priority found."
-                    onValueChange={(value) => form.setValue("priority", value || "all")}
-                  />
-                </div>
-              </div>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Statuses",
+                    icon: <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "todo",
+                    label: "To Do",
+                    icon: <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                  },
+                  {
+                    value: "in_progress",
+                    label: "In Progress",
+                    icon: <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                  },
+                  {
+                    value: "completed",
+                    label: "Completed",
+                    icon: <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  }
+                ]}
+                value={form.watch("status")}
+                placeholder="All Statuses"
+                searchPlaceholder="Search status..."
+                emptyText="No status found."
+                onValueChange={(value) => form.setValue("status", value || "all")}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Priority
+              </label>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Priorities",
+                    icon: <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "high",
+                    label: "High",
+                    icon: <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                  },
+                  {
+                    value: "medium",
+                    label: "Medium",
+                    icon: <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                  },
+                  {
+                    value: "low",
+                    label: "Low",
+                    icon: <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  }
+                ]}
+                value={form.watch("priority")}
+                placeholder="All Priorities"
+                searchPlaceholder="Search priority..."
+                emptyText="No priority found."
+                onValueChange={(value) => form.setValue("priority", value || "all")}
+              />
+            </div>
+          </div>
 
-              {/* Second Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Department
-                  </label>
-                  <SearchableSelect
-                    options={[
-                      {
-                        value: "-2",
-                        label: "All Departments",
-                        icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      },
-                      {
-                        value: "-1",
-                        label: "Uncategorized",
-                        icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                      },
-                      ...categories.map((category) => ({
-                        value: category.id.toString(),
-                        label: category.name,
-                        icon: (
-                          <div 
-                            className="w-3 h-3 rounded-full border border-slate-200 dark:border-slate-600" 
-                            style={{ backgroundColor: category.color }}
-                          />
-                        )
-                      }))
-                    ]}
-                    value={form.watch("categoryId")?.toString() || "-2"}
-                    placeholder="All Departments"
-                    searchPlaceholder="Search departments..."
-                    emptyText="No departments found."
-                    onValueChange={(value) => {
-                      if (value === "-2") {
-                        form.setValue("categoryId", -2);
-                      } else if (value === "-1") {
-                        form.setValue("categoryId", -1);
-                      } else if (value === "") {
-                        form.setValue("categoryId", -2);
-                      } else {
-                        form.setValue("categoryId", parseInt(value));
-                      }
-                    }}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Unit
-                  </label>
-                  <SearchableSelect
-                    options={[
-                      {
-                        value: "all",
-                        label: "All Units",
-                        icon: <Building2 className="h-4 w-4 text-slate-500" />
-                      },
-                      ...departmentsData.map((department) => ({
-                        value: department.id.toString(),
-                        label: department.name,
-                        icon: <Building2 className="h-4 w-4 text-slate-500" />
-                      }))
-                    ]}
-                    value={form.watch("department")}
-                    placeholder="All Units"
-                    searchPlaceholder="Search units..."
-                    emptyText="No units found."
-                    onValueChange={(value) => form.setValue("department", value || "all")}
-                  />
-                </div>
+          {/* Second Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Department
+              </label>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "-2",
+                    label: "All Departments",
+                    icon: <div className="w-3 h-3 rounded-full bg-slate-400"></div>
+                  },
+                  {
+                    value: "-1",
+                    label: "Uncategorized",
+                    icon: <div className="w-3 h-3 rounded-full bg-gray-300"></div>
+                  },
+                  ...categories.map((category) => ({
+                    value: category.id.toString(),
+                    label: category.name,
+                    icon: (
+                      <div 
+                        className="w-3 h-3 rounded-full border border-slate-200 dark:border-slate-600" 
+                        style={{ backgroundColor: category.color }}
+                      />
+                    )
+                  }))
+                ]}
+                value={form.watch("categoryId")?.toString() || "-2"}
+                placeholder="All Departments"
+                searchPlaceholder="Search departments..."
+                emptyText="No departments found."
+                onValueChange={(value) => {
+                  if (value === "-2") {
+                    form.setValue("categoryId", -2);
+                  } else if (value === "-1") {
+                    form.setValue("categoryId", -1);
+                  } else if (value === "") {
+                    form.setValue("categoryId", -2);
+                  } else {
+                    form.setValue("categoryId", parseInt(value));
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Unit
+              </label>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "all",
+                    label: "All Units",
+                    icon: <Building2 className="h-4 w-4 text-slate-500" />
+                  },
+                  ...departmentsData.map((department) => ({
+                    value: department.id.toString(),
+                    label: department.name,
+                    icon: <Building2 className="h-4 w-4 text-slate-500" />
+                  }))
+                ]}
+                value={form.watch("department")}
+                placeholder="All Units"
+                searchPlaceholder="Search units..."
+                emptyText="No units found."
+                onValueChange={(value) => form.setValue("department", value || "all")}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Sort By
-                  </label>
-                  <SearchableSelect
-                    options={[
-                      {
-                        value: "dueDate",
-                        label: "Due Date",
-                        icon: <div className="w-4 h-4 text-slate-500">📅</div>
-                      },
-                      {
-                        value: "priority",
-                        label: "Priority",
-                        icon: <div className="w-4 h-4 text-slate-500">⭐</div>
-                      },
-                      {
-                        value: "updatedAt",
-                        label: "Recently Updated",
-                        icon: <div className="w-4 h-4 text-slate-500">🕒</div>
-                      }
-                    ]}
-                    value={form.watch("sortBy")}
-                    placeholder="Sort by..."
-                    searchPlaceholder="Search sort options..."
-                    emptyText="No sort option found."
-                    onValueChange={(value) => form.setValue("sortBy", value || "dueDate")}
-                  />
-                </div>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Sort By
+              </label>
+              <SearchableSelect
+                options={[
+                  {
+                    value: "dueDate",
+                    label: "Due Date",
+                    icon: <div className="w-4 h-4 text-slate-500">📅</div>
+                  },
+                  {
+                    value: "priority",
+                    label: "Priority",
+                    icon: <div className="w-4 h-4 text-slate-500">⭐</div>
+                  },
+                  {
+                    value: "updatedAt",
+                    label: "Recently Updated",
+                    icon: <div className="w-4 h-4 text-slate-500">🕒</div>
+                  }
+                ]}
+                value={form.watch("sortBy")}
+                placeholder="Sort by..."
+                searchPlaceholder="Search sort options..."
+                emptyText="No sort option found."
+                onValueChange={(value) => form.setValue("sortBy", value || "dueDate")}
+              />
+            </div>
+          </div>
             </CollapsibleContent>
           </Form>
         </CardContent>

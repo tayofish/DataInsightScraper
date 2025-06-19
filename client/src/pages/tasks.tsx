@@ -71,9 +71,7 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
 
       {/* Task Filters */}
       <div className="px-4 sm:px-6 md:px-8 mb-6">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-          <TaskFilters onFilterChange={handleFilterChange} />
-        </div>
+        <TaskFilters onFilterChange={handleFilterChange} />
       </div>
 
       {/* Task List */}

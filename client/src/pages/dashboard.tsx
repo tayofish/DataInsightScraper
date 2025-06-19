@@ -72,10 +72,7 @@ export default function Dashboard() {
 
       {/* Task Filters */}
       <div className="px-4 sm:px-6 md:px-8 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-5 border border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">Filter Tasks</h2>
-          <TaskFilters onFilterChange={handleFilterChange} />
-        </div>
+        <TaskFilters onFilterChange={handleFilterChange} />
       </div>
 
       {/* Task List */}
