@@ -7,10 +7,17 @@ import { storage } from '../storage';
 let transporter: Transporter | null = null;
 let smtpSettings: any = null;
 
-// Helper function to generate complete task URLs
+// Helper functions to generate complete URLs
+function getBaseUrl(): string {
+  return process.env.APP_URL || 'https://mist.promellon.com';
+}
+
 function getTaskUrl(taskId: number): string {
-  const baseUrl = process.env.APP_URL || 'https://1f298515-510f-433d-8fad-5ce4f4ce799e-00-3kl0zuem3y3dy.worf.replit.dev';
-  return `${baseUrl}/tasks/${taskId}`;
+  return `${getBaseUrl()}/tasks/${taskId}`;
+}
+
+function getLoginUrl(): string {
+  return `${getBaseUrl()}/auth`;
 }
 
 /**
@@ -418,7 +425,7 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
     mentionContent: comment.substring(0, 30) + (comment.length > 30 ? '...' : '')
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
+  const taskUrl = getTaskUrl(task.id);
   const userName = mentionedUser.name || mentionedUser.username || 'User';
   const mentionerName = mentionedBy?.name || mentionedBy?.username || 'Admin';
   
@@ -484,7 +491,7 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
     commentPreview: comment.substring(0, 20) + (comment.length > 20 ? '...' : '')
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
+  const taskUrl = getTaskUrl(task.id);
   const commenterName = commentBy?.name || commentBy?.username || 'Admin';
   let emailsSent = 0;
   let notificationsSent = 0;
@@ -555,7 +562,7 @@ export async function notifyUserCreation(user: any, password: string | null, adm
     adminId: admin?.id
   });
   
-  const loginUrl = `${process.env.APP_URL || ''}/auth`;
+  const loginUrl = getLoginUrl();
   const userName = user.name || user.username || 'User';
   const adminName = admin?.name || admin?.username || 'Administrator';
   
