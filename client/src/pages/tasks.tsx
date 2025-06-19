@@ -89,7 +89,6 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
           setSelectedTaskId(null);
         }}
         task={null}
-        taskId={selectedTaskId}
       />
     </div>
   );
