@@ -51,6 +51,11 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   // Debug logging for file deletion capability
   console.log(`Message ${messageId}: userId=${userId}, currentUserId=${currentUserId}, type=${type}, fileUrl=${fileUrl}, canDeleteFile=${canDeleteFile}`);
   
+  // Additional debug for file/image messages
+  if (type === 'file' || type === 'image') {
+    console.log('Rendering file delete button - canDeleteFile:', canDeleteFile, 'messageId:', messageId, 'type:', type);
+  }
+  
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -454,16 +459,17 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-2 right-2 h-6 w-6 bg-red-500 hover:bg-red-600"
+                      className="absolute top-2 right-2 h-8 w-8 bg-red-500 hover:bg-red-600 border-2 border-white z-50"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log('Image delete button clicked for message:', messageId);
                         fileDeleteMutation.mutate();
                       }}
                       disabled={fileDeleteMutation.isPending}
                       title="Delete file"
                     >
-                      <Trash2 className="h-3 w-3 text-white" />
+                      <Trash2 className="h-4 w-4 text-white" />
                     </Button>
                   )}
                 </div>
@@ -487,16 +493,17 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     <Button 
                       variant="destructive" 
                       size="icon" 
-                      className="absolute top-1 right-1 h-6 w-6 bg-red-500 hover:bg-red-600"
+                      className="absolute top-1 right-1 h-8 w-8 bg-red-500 hover:bg-red-600 border-2 border-white z-50"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        console.log('File delete button clicked for message:', messageId);
                         fileDeleteMutation.mutate();
                       }}
                       disabled={fileDeleteMutation.isPending}
                       title="Delete file"
                     >
-                      <Trash2 className="h-3 w-3 text-white" />
+                      <Trash2 className="h-4 w-4 text-white" />
                     </Button>
                   )}
                 </div>
