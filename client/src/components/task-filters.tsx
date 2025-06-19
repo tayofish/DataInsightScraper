@@ -10,7 +10,8 @@ import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { RotateCcw, Search, Filter, SlidersHorizontal, X, FolderOpen, Building2 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RotateCcw, Search, Filter, SlidersHorizontal, X, FolderOpen, Building2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface TaskFiltersProps {
   onFilterChange: (filters: TaskFilterValues) => void;
@@ -29,6 +30,8 @@ export interface TaskFilterValues {
 }
 
 export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  
   const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
   });
@@ -98,58 +101,69 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
   const activeFilterCount = getActiveFilterCount();
 
   return (
-    <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-      <CardContent className="p-6">
-        <Form {...form}>
-          {/* Header Section */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-5 w-5 text-slate-600 dark:text-slate-400" />
-                <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">Task Filters</h3>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+        <CardContent className="p-6">
+          <Form {...form}>
+            {/* Header Section */}
+            <div className="flex items-center justify-between mb-6">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="p-0 h-auto font-normal justify-start flex-1">
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="h-5 w-5 text-slate-600 dark:text-slate-400" />
+                      <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">Task Filters</h3>
+                      {isOpen ? (
+                        <ChevronUp className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                      )}
+                    </div>
+                    {activeFilterCount > 0 && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                        {activeFilterCount} active
+                      </Badge>
+                    )}
+                  </div>
+                </Button>
+              </CollapsibleTrigger>
+              <Button 
+                onClick={resetFilters} 
+                variant="ghost" 
+                size="sm"
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              >
+                <RotateCcw className="mr-1 h-4 w-4" />
+                Reset All
+              </Button>
+            </div>
+
+            <CollapsibleContent className="space-y-6">
+              {/* Quick Search */}
+              <div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="search"
+                    type="search"
+                    placeholder="Search tasks by title, description, or assignee..."
+                    className="pl-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
+                    value={form.watch("search")}
+                    onChange={(e) => form.setValue("search", e.target.value)}
+                  />
+                  {form.watch("search") && (
+                    <button
+                      onClick={() => form.setValue("search", "")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
-              {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {activeFilterCount} active
-                </Badge>
-              )}
-            </div>
-            <Button 
-              onClick={resetFilters} 
-              variant="ghost" 
-              size="sm"
-              className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-            >
-              <RotateCcw className="mr-1 h-4 w-4" />
-              Reset All
-            </Button>
-          </div>
 
-          {/* Quick Search */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                id="search"
-                type="search"
-                placeholder="Search tasks by title, description, or assignee..."
-                className="pl-10 h-11 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-400"
-                value={form.watch("search")}
-                onChange={(e) => form.setValue("search", e.target.value)}
-              />
-              {form.watch("search") && (
-                <button
-                  onClick={() => form.setValue("search", "")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* First Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* First Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
                 Assignee
@@ -372,8 +386,10 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
               />
             </div>
           </div>
-        </Form>
-      </CardContent>
-    </Card>
+            </CollapsibleContent>
+          </Form>
+        </CardContent>
+      </Card>
+    </Collapsible>
   );
 }
