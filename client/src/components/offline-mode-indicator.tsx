@@ -21,9 +21,6 @@ export function OfflineModeIndicator() {
     forceSyncNow
   } = useWebSocket();
   
-  // Don't show any notifications if user is not authenticated
-  if (!user) return null;
-  
   // Track offline status based on both network status and database status
   useEffect(() => {
     // Check network status
@@ -74,8 +71,10 @@ export function OfflineModeIndicator() {
     }
   }, [isDatabaseDown, offlineSince, toast]);
   
-  // Don't show if everything is working normally
-  if (!isOffline && !isDatabaseDown && pendingMessageCount === 0 && status === 'connected') return null;
+  // Don't show if everything is working normally or user is not authenticated
+  const shouldShow = user && (isOffline || isDatabaseDown || pendingMessageCount > 0 || status !== 'connected');
+  
+  if (!shouldShow) return null;
   
   // Format offline duration
   const formatDuration = () => {
