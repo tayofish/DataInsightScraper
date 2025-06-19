@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Pencil, Check, X } from 'lucide-react';
+import { Pencil, Check, X, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { FormattingToolbar } from './formatting-toolbar';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
 interface FormatMessageProps {
   content: string;
@@ -16,6 +18,8 @@ interface FormatMessageProps {
   isEdited?: boolean;
   updatedAt?: Date | string;
   onEditMessage?: (messageId: number, content: string) => void;
+  channelId?: number; // For channel messages
+  isDirectMessage?: boolean; // To distinguish between direct and channel messages
 }
 
 export const FormatMessage: React.FC<FormatMessageProps> = ({ 
@@ -29,7 +33,9 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   createdAt,
   isEdited,
   updatedAt,
-  onEditMessage
+  onEditMessage,
+  channelId,
+  isDirectMessage = false
 }) => {
   // Log message edit status for debugging
   console.log(`Message ${messageId} isEdited:`, isEdited, "updatedAt:", updatedAt);
@@ -40,9 +46,56 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   
   // Check if current user is the message author and message is editable
   const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
+  const canDeleteFile = userId === currentUserId && messageId !== undefined && (type === 'file' || type === 'image') && fileUrl;
   
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // File deletion mutation
+  const fileDeleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!messageId) throw new Error('No message ID');
+      
+      const endpoint = isDirectMessage 
+        ? `/api/direct-messages/${messageId}/file`
+        : `/api/channels/${channelId}/messages/${messageId}/file`;
+      
+      const res = await fetch(endpoint, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete file');
+      }
+      
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'File deleted successfully',
+        variant: 'default',
+      });
+      
+      // Invalidate relevant queries to refresh the UI
+      if (isDirectMessage) {
+        queryClient.invalidateQueries({ queryKey: ['/api/direct-messages'] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['/api/channels'] });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Failed to delete file',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
   
   // Enhanced message editing with offline-first approach for resilience to database rate limiting
   const handleSaveEdit = async () => {

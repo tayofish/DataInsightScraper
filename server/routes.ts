@@ -5761,6 +5761,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Delete file from direct message
+  app.delete("/api/direct-messages/:messageId/file", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const messageId = parseInt(req.params.messageId);
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid message ID" });
+      }
+
+      // Get the message to verify ownership and get file details
+      const message = await db.query.directMessages.findFirst({
+        where: (fields, { eq }) => eq(fields.id, messageId)
+      });
+
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      // Check if user is the sender of the message
+      if (message.senderId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to delete this file" });
+      }
+
+      // Check if message has a file
+      if (!message.fileUrl) {
+        return res.status(400).json({ message: "Message has no file attachment" });
+      }
+
+      // Delete file from disk
+      const filename = path.basename(message.fileUrl);
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.error("Failed to delete file from disk:", err);
+        // Continue even if physical file deletion fails
+      }
+
+      // Update message to remove file references
+      await db.update(directMessages)
+        .set({ 
+          fileUrl: null, 
+          fileName: null,
+          type: 'text'
+        })
+        .where(eq(directMessages.id, messageId));
+
+      // Broadcast file deletion to relevant users via WebSocket
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          wss.clients.forEach((client: ExtendedWebSocket) => {
+            if (client.readyState === WebSocket.OPEN && 
+                (client.userId === message.senderId || client.userId === message.receiverId)) {
+              client.send(JSON.stringify({
+                type: 'direct_message_file_deleted',
+                messageId: messageId,
+                senderId: message.senderId,
+                receiverId: message.receiverId
+              }));
+            }
+          });
+        }
+      } catch (wsError) {
+        console.error("Error broadcasting file deletion:", wsError);
+        // Continue - don't fail the request if WebSocket fails
+      }
+
+      return res.status(200).json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting file from direct message:", error);
+      return res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
+  // Delete file from channel message
+  app.delete("/api/channels/:channelId/messages/:messageId/file", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const channelId = parseInt(req.params.channelId);
+      const messageId = parseInt(req.params.messageId);
+      
+      if (isNaN(channelId) || isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid channel ID or message ID" });
+      }
+
+      // Get the message to verify ownership and get file details
+      const message = await db.query.messages.findFirst({
+        where: (fields, { eq, and }) => and(
+          eq(fields.id, messageId),
+          eq(fields.channelId, channelId)
+        )
+      });
+
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      // Check if user is the sender of the message
+      if (message.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to delete this file" });
+      }
+
+      // Check if message has a file
+      if (!message.fileUrl) {
+        return res.status(400).json({ message: "Message has no file attachment" });
+      }
+
+      // Delete file from disk
+      const filename = path.basename(message.fileUrl);
+      const filePath = path.join(process.cwd(), 'uploads', filename);
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err) {
+        console.error("Failed to delete file from disk:", err);
+        // Continue even if physical file deletion fails
+      }
+
+      // Update message to remove file references
+      await db.update(messages)
+        .set({ 
+          fileUrl: null, 
+          fileName: null,
+          type: 'text'
+        })
+        .where(eq(messages.id, messageId));
+
+      // Broadcast file deletion to channel members via WebSocket
+      try {
+        const wss = getWebSocketServer();
+        if (wss) {
+          // Get channel info to determine who should receive the update
+          const channel = await db.query.channels.findFirst({
+            where: (fields, { eq }) => eq(fields.id, channelId),
+            with: { members: true }
+          });
+
+          if (channel) {
+            wss.clients.forEach((client: ExtendedWebSocket) => {
+              if (client.readyState === WebSocket.OPEN && client.userId) {
+                // For public channels, send to everyone
+                // For private channels, check if user is a member
+                const canReceive = channel.type === 'public' || 
+                  channel.members.some(m => m.userId === client.userId);
+                
+                if (canReceive) {
+                  client.send(JSON.stringify({
+                    type: 'channel_message_file_deleted',
+                    messageId: messageId,
+                    channelId: channelId,
+                    userId: message.userId
+                  }));
+                }
+              }
+            });
+          }
+        }
+      } catch (wsError) {
+        console.error("Error broadcasting file deletion:", wsError);
+        // Continue - don't fail the request if WebSocket fails
+      }
+
+      return res.status(200).json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting file from channel message:", error);
+      return res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
   // Get unread message counts
   app.get("/api/messages/unread", async (req, res) => {
     try {
