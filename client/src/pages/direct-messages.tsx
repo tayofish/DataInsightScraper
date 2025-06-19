@@ -329,6 +329,9 @@ const DirectMessagesPage: FC = () => {
           console.log(`Raw file message ${msg.id}: type=${msg.type}, fileUrl=${msg.fileUrl}, fileName=${msg.fileName}`);
         }
       });
+      
+      // Debug: Log ALL messages to see what's being received
+      console.log('ALL RAW MESSAGES:', messagesQuery.data.map(m => ({id: m.id, type: m.type, fileUrl: m.fileUrl})));
     }
     
     // Use a more resilient approach to identify and keep optimistic messages
