@@ -1950,83 +1950,41 @@ export default function ChannelsPage() {
                               </div>
                             )}
                             {message.type === 'file' && (
-                              <div>
-                                <a 
-                                  href={message.fileUrl || message.fileUrl} 
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex items-center gap-2 p-3 border rounded-md hover:bg-secondary/30 transition-colors w-fit"
-                                >
-                                  <FileUp className="h-4 w-4" />
-                                  <span className="font-medium">{message.fileName || "File"}</span>
-                                </a>
-                                {message.content && (
-                                  <p className="mt-2 message-content" data-message-id={message.id}>
-                                    <FormatMessage 
-                                      content={message.content}
-                                      fileUrl={message.fileUrl}
-                                      fileName={message.fileName}
-                                      type={message.type}
-                                      messageId={message.id}
-                                      userId={message.userId}
-                                      currentUserId={user?.id}
-                                      createdAt={message.createdAt}
-                                      isEdited={message.isEdited}
-                                      updatedAt={message.updatedAt}
-                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
-                                      channelId={selectedChannelId}
-                                      isDirectMessage={false}
-                                    />
-                                  </p>
-                                )}
+                              <div data-message-id={message.id} className="message-content">
+                                <FormatMessage 
+                                  content={message.content || ''}
+                                  fileUrl={message.fileUrl}
+                                  fileName={message.fileName}
+                                  type={message.type}
+                                  messageId={message.id}
+                                  userId={message.userId}
+                                  currentUserId={user?.id}
+                                  createdAt={message.createdAt}
+                                  isEdited={message.isEdited}
+                                  updatedAt={message.updatedAt}
+                                  onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                  channelId={selectedChannelId}
+                                  isDirectMessage={false}
+                                />
                               </div>
                             )}
                             {message.type === 'image' && (
-                              <div>
-                                <a 
-                                  href={message.fileUrl} 
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="block w-fit"
-                                >
-                                  {isOptimistic ? (
-                                    <div className="relative">
-                                      <img 
-                                        src={message.fileUrl}
-                                        alt="Uploading"
-                                        className="max-w-full h-auto max-h-96 rounded-md"
-                                      />
-                                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                                        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <img 
-                                      src={message.fileUrl}
-                                      alt="Uploaded image"
-                                      className="max-w-full h-auto max-h-96 rounded-md"
-                                    />
-                                  )}
-                                </a>
-                                {message.content && (
-                                  <p className="mt-2 message-content" data-message-id={message.id}>
-                                    <FormatMessage 
-                                      content={message.content}
-                                      fileUrl={message.fileUrl}
-                                      fileName={message.fileName}
-                                      type={message.type}
-                                      messageId={message.id}
-                                      userId={message.userId}
-                                      currentUserId={user?.id}
-                                      createdAt={message.createdAt}
-                                      isEdited={message.isEdited}
-                                      updatedAt={message.updatedAt}
-                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
-                                      channelId={selectedChannelId}
-                                      isDirectMessage={false}
-                                    />
-                                  </p>
-                                )}
+                              <div data-message-id={message.id} className="message-content">
+                                <FormatMessage 
+                                  content={message.content || ''}
+                                  fileUrl={message.fileUrl}
+                                  fileName={message.fileName}
+                                  type={message.type}
+                                  messageId={message.id}
+                                  userId={message.userId}
+                                  currentUserId={user?.id}
+                                  createdAt={message.createdAt}
+                                  isEdited={message.isEdited}
+                                  updatedAt={message.updatedAt}
+                                  onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                  channelId={selectedChannelId}
+                                  isDirectMessage={false}
+                                />
                               </div>
                             )}
                           </div>
