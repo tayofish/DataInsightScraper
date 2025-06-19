@@ -5370,6 +5370,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           receiver: true
         }
       });
+
+      // Debug: Log the raw messages from database
+      console.log('=== RAW MESSAGES FROM DATABASE ===');
+      messages.forEach(msg => {
+        if (msg.fileUrl) {
+          console.log(`Message ${msg.id}: type="${msg.type}", fileUrl="${msg.fileUrl}", fileName="${msg.fileName}"`);
+        }
+      });
+      console.log('=== END RAW MESSAGES ===');
       
       // Mark messages from other user as read
       await db.update(directMessages)
@@ -5402,6 +5411,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isAdmin: message.receiver.isAdmin
         }
       }));
+
+      // Debug: Log the sanitized messages being sent to frontend
+      console.log('=== SANITIZED MESSAGES SENT TO FRONTEND ===');
+      sanitizedMessages.forEach(msg => {
+        if (msg.fileUrl) {
+          console.log(`Message ${msg.id}: type="${msg.type}", fileUrl="${msg.fileUrl}", fileName="${msg.fileName}"`);
+        }
+      });
+      console.log('=== END SANITIZED MESSAGES ===');
       
       return res.status(200).json(sanitizedMessages);
     } catch (error) {
