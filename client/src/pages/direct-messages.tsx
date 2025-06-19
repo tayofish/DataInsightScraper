@@ -1342,7 +1342,10 @@ const DirectMessagesPage: FC = () => {
                                 userId={msg.senderId}
                                 currentUserId={user?.id}
                                 createdAt={msg.createdAt}
+                                isEdited={msg.isEdited}
+                                updatedAt={msg.updatedAt}
                                 onEditMessage={handleEditMessage}
+                                isDirectMessage={true}
                               />
                             )}
                           </div>
