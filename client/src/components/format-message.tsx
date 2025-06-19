@@ -347,19 +347,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
            lowerCaseName.endsWith('.webp');
   }, [fileName]);
 
-  // Debug ALL messages to understand the issue
-  console.log('=== ALL MESSAGE DEBUG ===');
-  console.log('Message ID:', messageId);
-  console.log('Type:', type, 'Type of type:', typeof type);
-  console.log('File URL:', fileUrl);
-  console.log('File Name:', fileName);
-  console.log('User ID:', userId);
-  console.log('Current User ID:', currentUserId);
-  console.log('Can Delete File:', canDeleteFile);
-  console.log('Type === "file":', type === 'file');
-  console.log('Type === "image":', type === 'image');
-  console.log('Is Image:', isImage);
-  console.log('=== END ALL DEBUG ===');
+
   
   return (
     <div>

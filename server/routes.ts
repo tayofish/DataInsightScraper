@@ -5371,14 +5371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Debug: Log the raw messages from database
-      console.log('=== RAW MESSAGES FROM DATABASE ===');
-      messages.forEach(msg => {
-        if (msg.fileUrl) {
-          console.log(`Message ${msg.id}: type="${msg.type}", fileUrl="${msg.fileUrl}", fileName="${msg.fileName}"`);
-        }
-      });
-      console.log('=== END RAW MESSAGES ===');
+
       
       // Mark messages from other user as read
       await db.update(directMessages)
@@ -5412,14 +5405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
 
-      // Debug: Log the sanitized messages being sent to frontend
-      console.log('=== SANITIZED MESSAGES SENT TO FRONTEND ===');
-      sanitizedMessages.forEach(msg => {
-        if (msg.fileUrl) {
-          console.log(`Message ${msg.id}: type="${msg.type}", fileUrl="${msg.fileUrl}", fileName="${msg.fileName}"`);
-        }
-      });
-      console.log('=== END SANITIZED MESSAGES ===');
+
       
       return res.status(200).json(sanitizedMessages);
     } catch (error) {
@@ -5435,12 +5421,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      console.log("File upload request body:", JSON.stringify(req.body));
       const receiverId = parseInt(req.body.receiverId);
-      console.log("Parsed receiverId:", receiverId, "Type:", typeof receiverId);
       
       if (isNaN(receiverId)) {
-        console.log("Invalid receiverId - isNaN check failed");
         return res.status(400).json({ message: "Invalid receiver ID" });
       }
       
