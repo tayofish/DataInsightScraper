@@ -446,10 +446,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
             </Button>
           )}
           
-          {/* TEST: Visual indicator for file messages */}
-          {(type === 'file' || type === 'image') && (
-            <div className="absolute -top-2 -left-2 w-4 h-4 bg-green-500 border-2 border-yellow-400 z-50 rounded-full"></div>
-          )}
+
           
           {/* Display file attachment */}
           {fileUrl && (
@@ -466,21 +463,20 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                   {fileName && <div className="text-xs text-muted-foreground mt-1">{fileName}</div>}
                   
                   {/* Delete button for images */}
-                  {(canDeleteFile || true) && (
+                  {canDeleteFile && (
                     <Button 
-                      variant="destructive" 
+                      variant="ghost" 
                       size="icon" 
-                      className="absolute top-2 right-2 h-8 w-8 bg-red-500 hover:bg-red-600 border-2 border-white z-50"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm border border-border shadow-md hover:bg-destructive hover:text-destructive-foreground rounded-full"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Image delete button clicked for message:', messageId);
                         fileDeleteMutation.mutate();
                       }}
                       disabled={fileDeleteMutation.isPending}
                       title="Delete file"
                     >
-                      <Trash2 className="h-4 w-4 text-white" />
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
@@ -499,20 +495,23 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                     <span className="text-sm font-medium">{fileName || "Download attachment"}</span>
                   </a>
                   
-                  {/* Delete button for files - Testing visibility */}
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-red-500 border-4 border-yellow-400 flex items-center justify-center cursor-pointer z-50"
-                       onClick={(e) => {
-                         e.preventDefault();
-                         e.stopPropagation();
-                         console.log('TEST: File delete button clicked for message:', messageId);
-                         if (fileDeleteMutation) {
-                           fileDeleteMutation.mutate();
-                         }
-                       }}
-                       title="DELETE FILE">
-                    <Trash2 className="h-6 w-6 text-white" />
-                    <span className="text-white text-xs ml-1">DEL</span>
-                  </div>
+                  {/* Delete button for files */}
+                  {canDeleteFile && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute -top-1 -right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-background border border-border shadow-md hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        fileDeleteMutation.mutate();
+                      }}
+                      disabled={fileDeleteMutation.isPending}
+                      title="Delete file"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
