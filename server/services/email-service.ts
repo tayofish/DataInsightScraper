@@ -621,7 +621,7 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
     userEmail: user.email
   });
   
-  const loginUrl = `${process.env.APP_URL || ''}/auth`;
+  const loginUrl = getLoginUrl();
   const userName = user.name || user.username || 'User';
   
   // Create in-app notification
@@ -682,7 +682,7 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
     role
   });
   
-  const taskUrl = `${process.env.APP_URL || ''}/tasks/${task.id}`;
+  const taskUrl = getTaskUrl(task.id);
   const userName = user.name || user.username || 'User';
   const inviterName = inviter?.name || inviter?.username || 'Administrator';
   
