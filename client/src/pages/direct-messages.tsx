@@ -317,6 +317,10 @@ const DirectMessagesPage: FC = () => {
   const allMessages = useMemo(() => {
     const serverMessages = Array.isArray(messagesQuery.data) ? messagesQuery.data : [];
     
+    // Debug: Log the raw messagesQuery.data
+    console.log('MESSAGES QUERY RAW DATA:', messagesQuery.data);
+    console.log('SERVER MESSAGES LENGTH:', serverMessages.length);
+    
     // Use a more resilient approach to identify and keep optimistic messages
     // Include any local messages that are marked as optimistic and don't have a matching server message
     const pendingMessages = localMessages.filter(localMsg => {
