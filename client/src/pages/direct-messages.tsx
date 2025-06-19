@@ -1325,7 +1325,7 @@ const DirectMessagesPage: FC = () => {
                                   <div className="mb-2">{msg.content}</div>
                                 )}
                                 {console.log("Rendering file message:", msg)}
-                                <div>
+                                <div className="relative group">
                                   {msg.fileUrl && msg.fileUrl.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ? (
                                     <div>
                                       <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
@@ -1364,6 +1364,20 @@ const DirectMessagesPage: FC = () => {
                                     </div>
                                   ) : (
                                     <div className="text-sm text-muted-foreground italic">File attachment not available</div>
+                                  )}
+                                  
+                                  {/* Delete button for file messages */}
+                                  {(msg.senderId === user?.id || user?.isAdmin) && msg.fileUrl && (
+                                    <button
+                                      onClick={() => handleDeleteFile(msg.id, msg.fileUrl)}
+                                      className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-destructive/90"
+                                      title="Delete file"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 6L6 18"/>
+                                        <path d="M6 6l12 12"/>
+                                      </svg>
+                                    </button>
                                   )}
                                 </div>
                               </div>

@@ -1,0 +1,602 @@
+client:536 Uncaught (in promise) SyntaxError: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=608N4MIDif6c' is invalid.
+    at setupWebSocket (client:536:19)
+    at fallback (client:509:16)
+    at WebSocket.<anonymous> (client:555:7)Understand this error
+direct-messages.tsx:321 MESSAGES QUERY RAW DATA: undefined
+direct-messages.tsx:322 SERVER MESSAGES LENGTH: 0
+direct-messages.tsx:362 Combining 0 server messages with 0 pending messages
+direct-messages.tsx:365 SERVER MESSAGES DEBUG:
+direct-messages.tsx:380 COMBINED MESSAGES DEBUG:
+websocket-provider.tsx:159 WebSocket connected
+websocket-provider.tsx:178 WebSocket message received: database_status {type: 'database_status', connected: true, timestamp: '2025-06-19T12:12:58.807Z'}
+websocket-provider.tsx:178 WebSocket message received: welcome {type: 'welcome', message: 'Connected to Promellon WebSocket server'}
+websocket-provider.tsx:178 WebSocket message received: auth_success {type: 'auth_success', message: 'Successfully authenticated'}
+direct-messages.tsx:321 MESSAGES QUERY RAW DATA: (50) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+direct-messages.tsx:322 SERVER MESSAGES LENGTH: 50
+direct-messages.tsx:326 FILE MESSAGES IN RAW DATA:
+direct-messages.tsx:329 Raw file message 113: type=file, fileUrl=/uploads/4670341a-7bbd-49d9-9c7d-9510dd3ac253.xlsx, fileName=Analysis_2025(1)(AutoRecovered).xlsx
+direct-messages.tsx:329 Raw file message 112: type=file, fileUrl=/uploads/53b2b988-4ade-4126-b056-8de1b1f4603e.docx, fileName=I will draft a detailed 20.docx
+direct-messages.tsx:329 Raw file message 111: type=file, fileUrl=/uploads/e69eded6-d889-4643-867e-071901fc67ed.docx, fileName=I will draft a detailed 20.docx
+direct-messages.tsx:329 Raw file message 110: type=file, fileUrl=/uploads/3368a346-25fc-4aaf-9fdf-9853ae492437.txt, fileName=arcamoney.com.txt
+direct-messages.tsx:329 Raw file message 109: type=file, fileUrl=/uploads/dca331d6-1785-48bf-8870-09e74cba53bc.pdf, fileName=AWS_certification_paths.pdf
+direct-messages.tsx:329 Raw file message 108: type=file, fileUrl=/uploads/c9c2c929-f3c5-482e-b178-143a6e63ba3e.png, fileName=Ungogo Bill.png
+direct-messages.tsx:329 Raw file message 107: type=file, fileUrl=/uploads/1a57659f-15dd-444d-bdfb-9226f4f946ab.json, fileName=settings_backup_2025-06-18T14-03-30.892Z.json
+direct-messages.tsx:329 Raw file message 93: type=file, fileUrl=/uploads/2e08b2ca-ebed-4797-af88-12e308080580.jpg, fileName=PRO_1_pic.jpg
+direct-messages.tsx:334 ALL RAW MESSAGES: (50) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+direct-messages.tsx:362 Combining 50 server messages with 0 pending messages
+direct-messages.tsx:365 SERVER MESSAGES DEBUG:
+direct-messages.tsx:368 Server msg 113: type=file, fileUrl=/uploads/4670341a-7bbd-49d9-9c7d-9510dd3ac253.xlsx, fileName=Analysis_2025(1)(AutoRecovered).xlsx, content=""
+direct-messages.tsx:368 Server msg 112: type=file, fileUrl=/uploads/53b2b988-4ade-4126-b056-8de1b1f4603e.docx, fileName=I will draft a detailed 20.docx, content=""
+direct-messages.tsx:368 Server msg 111: type=file, fileUrl=/uploads/e69eded6-d889-4643-867e-071901fc67ed.docx, fileName=I will draft a detailed 20.docx, content=""
+direct-messages.tsx:368 Server msg 110: type=file, fileUrl=/uploads/3368a346-25fc-4aaf-9fdf-9853ae492437.txt, fileName=arcamoney.com.txt, content=""
+direct-messages.tsx:368 Server msg 109: type=file, fileUrl=/uploads/dca331d6-1785-48bf-8870-09e74cba53bc.pdf, fileName=AWS_certification_paths.pdf, content=""
+direct-messages.tsx:368 Server msg 108: type=file, fileUrl=/uploads/c9c2c929-f3c5-482e-b178-143a6e63ba3e.png, fileName=Ungogo Bill.png, content=""
+direct-messages.tsx:368 Server msg 107: type=file, fileUrl=/uploads/1a57659f-15dd-444d-bdfb-9226f4f946ab.json, fileName=settings_backup_2025-06-18T14-03-30.892Z.json, content=""
+direct-messages.tsx:368 Server msg 93: type=file, fileUrl=/uploads/2e08b2ca-ebed-4797-af88-12e308080580.jpg, fileName=PRO_1_pic.jpg, content=""
+direct-messages.tsx:380 COMBINED MESSAGES DEBUG:
+direct-messages.tsx:383 Combined msg 93: type=file, fileUrl=/uploads/2e08b2ca-ebed-4797-af88-12e308080580.jpg, fileName=PRO_1_pic.jpg, content=""
+direct-messages.tsx:383 Combined msg 107: type=file, fileUrl=/uploads/1a57659f-15dd-444d-bdfb-9226f4f946ab.json, fileName=settings_backup_2025-06-18T14-03-30.892Z.json, content=""
+direct-messages.tsx:383 Combined msg 108: type=file, fileUrl=/uploads/c9c2c929-f3c5-482e-b178-143a6e63ba3e.png, fileName=Ungogo Bill.png, content=""
+direct-messages.tsx:383 Combined msg 109: type=file, fileUrl=/uploads/dca331d6-1785-48bf-8870-09e74cba53bc.pdf, fileName=AWS_certification_paths.pdf, content=""
+direct-messages.tsx:383 Combined msg 110: type=file, fileUrl=/uploads/3368a346-25fc-4aaf-9fdf-9853ae492437.txt, fileName=arcamoney.com.txt, content=""
+direct-messages.tsx:383 Combined msg 111: type=file, fileUrl=/uploads/e69eded6-d889-4643-867e-071901fc67ed.docx, fileName=I will draft a detailed 20.docx, content=""
+direct-messages.tsx:383 Combined msg 112: type=file, fileUrl=/uploads/53b2b988-4ade-4126-b056-8de1b1f4603e.docx, fileName=I will draft a detailed 20.docx, content=""
+direct-messages.tsx:383 Combined msg 113: type=file, fileUrl=/uploads/4670341a-7bbd-49d9-9c7d-9510dd3ac253.xlsx, fileName=Analysis_2025(1)(AutoRecovered).xlsx, content=""
+direct-messages.tsx:1327 Rendering file message: {id: 93, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 107, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 108, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 109, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 110, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 111, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 112, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+direct-messages.tsx:1327 Rendering file message: {id: 113, senderId: 4, receiverId: 1, content: '', type: 'file', …}
+format-message.tsx:41 Message 61 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 61
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 62 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 62
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 63 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 63
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 64 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 64
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 65 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 65
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 66 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 66
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 67 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 67
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 68 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 68
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 69 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 69
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 70 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 70
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 71 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 71
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 72 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 72
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 73 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 73
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 74 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 74
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 75 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 75
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 76 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 76
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 77 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 77
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 78 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 78
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 79 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 79
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 80 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 80
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 81 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 81
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 82 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 82
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 83 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 83
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 84 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 84
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 85 isEdited: true updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 85
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 86 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 86
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 87 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 87
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 88 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 88
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 89 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 89
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 90 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 90
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 91 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 91
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 92 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 92
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 94 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 94
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 95 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 95
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 96 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 96
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 97 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 97
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 100 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 100
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 101 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 101
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 103 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 103
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 1
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 104 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 104
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 105 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 105
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+format-message.tsx:41 Message 106 isEdited: false updatedAt: undefined
+format-message.tsx:347 === ALL MESSAGE DEBUG ===
+format-message.tsx:348 Message ID: 106
+format-message.tsx:349 Type: text Type of type: string
+format-message.tsx:350 File URL: null
+format-message.tsx:351 File Name: null
+format-message.tsx:352 User ID: 4
+format-message.tsx:353 Current User ID: 4
+format-message.tsx:354 Can Delete File: false
+format-message.tsx:355 Type === "file": false
+format-message.tsx:356 Type === "image": false
+format-message.tsx:357 Is Image: false
+format-message.tsx:358 === END ALL DEBUG ===
+direct-messages.tsx:913 Direct message WebSocket connected
+direct-messages.tsx:925 Direct WebSocket message: database_status {type: 'database_status', connected: true, timestamp: '2025-06-19T12:13:01.063Z'}
+direct-messages.tsx:925 Direct WebSocket message: welcome {type: 'welcome', message: 'Connected to Promellon WebSocket server'}
+direct-messages.tsx:925 Direct WebSocket message: auth_success {type: 'auth_success', message: 'Successfully authenticated'}
