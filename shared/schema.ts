@@ -137,13 +137,13 @@ export const smtpConfig = pgTable("smtp_config", {
 // Notifications table for user notifications
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(), // Type of notification: task_assignment, task_mention, task_comment, project_assignment, etc.
+  isRead: boolean("is_read").default(false),
   referenceId: integer("reference_id"), // ID of the referenced item (task, project, etc.)
   referenceType: text("reference_type"), // Type of referenced item (task, project, etc.)
-  isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
