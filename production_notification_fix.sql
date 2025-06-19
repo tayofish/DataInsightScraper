@@ -2,6 +2,8 @@
 -- This addresses the column mapping issue where userId is not mapping correctly
 
 DO $$
+DECLARE
+    result INTEGER;
 BEGIN
     -- Check if we have the wrong column structure
     IF EXISTS (
@@ -20,11 +22,10 @@ BEGIN
         WHERE user_id IS NULL;
         
         -- Get count of fixed rows
-        GET DIAGNOSTICS 
-            ROW_COUNT = result;
+        GET DIAGNOSTICS result = ROW_COUNT;
         
-        IF FOUND THEN
-            RAISE NOTICE 'Fixed % rows with null user_id values', ROW_COUNT;
+        IF result > 0 THEN
+            RAISE NOTICE 'Fixed % rows with null user_id values', result;
         ELSE
             RAISE NOTICE 'No null user_id values found';
         END IF;
