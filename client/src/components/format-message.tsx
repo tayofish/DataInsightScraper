@@ -48,20 +48,6 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
   const canDeleteFile = userId === currentUserId && messageId !== undefined && (type === 'file' || type === 'image') && fileUrl;
   
-  // Debug logging for file deletion capability
-  if (type === 'file' || type === 'image') {
-    console.log('=== FILE MESSAGE DEBUG ===');
-    console.log('Message ID:', messageId);
-    console.log('Type:', type);
-    console.log('File URL:', fileUrl);
-    console.log('File Name:', fileName);
-    console.log('User ID:', userId);
-    console.log('Current User ID:', currentUserId);
-    console.log('Can Delete File:', canDeleteFile);
-    console.log('Is Image:', isImage);
-    console.log('=== END DEBUG ===');
-  }
-  
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -356,6 +342,20 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
            lowerCaseName.endsWith('.svg') || 
            lowerCaseName.endsWith('.webp');
   }, [fileName]);
+
+  // Debug ALL messages to understand the issue
+  console.log('=== ALL MESSAGE DEBUG ===');
+  console.log('Message ID:', messageId);
+  console.log('Type:', type, 'Type of type:', typeof type);
+  console.log('File URL:', fileUrl);
+  console.log('File Name:', fileName);
+  console.log('User ID:', userId);
+  console.log('Current User ID:', currentUserId);
+  console.log('Can Delete File:', canDeleteFile);
+  console.log('Type === "file":', type === 'file');
+  console.log('Type === "image":', type === 'image');
+  console.log('Is Image:', isImage);
+  console.log('=== END ALL DEBUG ===');
   
   return (
     <div>
