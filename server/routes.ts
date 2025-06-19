@@ -5417,8 +5417,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
+      console.log("File upload request body:", JSON.stringify(req.body));
       const receiverId = parseInt(req.body.receiverId);
+      console.log("Parsed receiverId:", receiverId, "Type:", typeof receiverId);
+      
       if (isNaN(receiverId)) {
+        console.log("Invalid receiverId - isNaN check failed");
         return res.status(400).json({ message: "Invalid receiver ID" });
       }
       
@@ -5467,6 +5471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create notification for the receiver
       try {
+        console.log("Creating notification for receiverId:", receiverId, "messageId:", newMessage.id);
         await storage.createNotification({
           userId: receiverId,
           title: "New direct message",
@@ -5476,6 +5481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referenceType: "direct_message",
           isRead: false
         });
+        console.log("Notification created successfully for file message");
       } catch (notificationError) {
         console.error("Error creating file message notification:", notificationError);
         // Continue - don't fail the entire request if notification fails

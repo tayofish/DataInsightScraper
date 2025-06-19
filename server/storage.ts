@@ -1158,9 +1158,18 @@ export const storage = {
   },
   
   createNotification: async (notificationData: InsertNotification): Promise<Notification> => {
+    console.log("Storage: Creating notification with data:", JSON.stringify(notificationData));
+    
+    // Validate required fields
+    if (!notificationData.userId) {
+      throw new Error("userId is required for notification creation");
+    }
+    
     const [newNotification] = await db.insert(notifications)
       .values(notificationData)
       .returning();
+    
+    console.log("Storage: Notification created successfully:", newNotification.id);
     return newNotification;
   },
   
