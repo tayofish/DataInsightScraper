@@ -305,7 +305,7 @@ const DirectMessagesPage: FC = () => {
 
   // Fetch messages for the selected conversation
   const messagesQuery = useQuery<any[]>({
-    queryKey: [`/api/direct-messages/${selectedUserId}`],
+    queryKey: [`/api/direct-messages/${selectedUserId}`, Date.now()], // Cache bust for debugging
     enabled: !!selectedUserId && !!user,
   });
   
@@ -320,6 +320,16 @@ const DirectMessagesPage: FC = () => {
     // Debug: Log the raw messagesQuery.data
     console.log('MESSAGES QUERY RAW DATA:', messagesQuery.data);
     console.log('SERVER MESSAGES LENGTH:', serverMessages.length);
+    
+    // Debug: Check if file messages are in the raw data
+    if (Array.isArray(messagesQuery.data)) {
+      console.log('FILE MESSAGES IN RAW DATA:');
+      messagesQuery.data.forEach(msg => {
+        if (msg.type === 'file' || msg.fileUrl) {
+          console.log(`Raw file message ${msg.id}: type=${msg.type}, fileUrl=${msg.fileUrl}, fileName=${msg.fileName}`);
+        }
+      });
+    }
     
     // Use a more resilient approach to identify and keep optimistic messages
     // Include any local messages that are marked as optimistic and don't have a matching server message
