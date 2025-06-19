@@ -1191,11 +1191,10 @@ export const storage = {
         try {
           console.log("Storage: Attempting fallback SQL insert for notification");
           const result = await db.execute(sql`
-            INSERT INTO notifications (title, message, user_id, type, is_read, reference_id, reference_type, created_at)
-            VALUES (${notificationData.title}, ${notificationData.message}, ${notificationData.userId}, 
-                    ${notificationData.type}, ${notificationData.isRead || false}, 
-                    ${notificationData.referenceId || null}, 
-                    ${notificationData.referenceType || null}, NOW())
+            INSERT INTO notifications (user_id, title, message, type, reference_id, reference_type, is_read, created_at)
+            VALUES (${notificationData.userId}, ${notificationData.title}, ${notificationData.message}, 
+                    ${notificationData.type}, ${notificationData.referenceId || null}, 
+                    ${notificationData.referenceType || null}, ${notificationData.isRead || false}, NOW())
             RETURNING *
           `);
           
