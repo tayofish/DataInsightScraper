@@ -46,7 +46,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
   
   // Check if current user is the message author and message is editable
   const canEdit = userId === currentUserId && messageId !== undefined && type !== 'system' && type !== 'file';
-  const canDeleteFile = userId === currentUserId && messageId !== undefined && (type === 'file' || type === 'image') && fileUrl;
+  const canDeleteFile = userId === currentUserId && messageId !== undefined && fileUrl && (type === 'file' || type === 'image');
   
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
