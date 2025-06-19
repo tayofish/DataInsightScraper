@@ -1,0 +1,55 @@
+Direct WebSocket message: auth_success {type: 'auth_success', message: 'Successfully authenticated'}
+direct-messages.tsx:1372 Uncaught ReferenceError: handleDeleteFile is not defined
+    at onClick (direct-messages.tsx:1372:54)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=880fc599:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=880fc599:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=880fc599:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-RPCDYKBN.js?v=880fc599:3736:33)
+    at executeDispatch (chunk-RPCDYKBN.js?v=880fc599:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-RPCDYKBN.js?v=880fc599:7034:15)
+    at processDispatchQueue (chunk-RPCDYKBN.js?v=880fc599:7043:13)
+    at dispatchEventsForPlugins (chunk-RPCDYKBN.js?v=880fc599:7051:11)
+    at chunk-RPCDYKBN.js?v=880fc599:7174:20
+onClick @ direct-messages.tsx:1372
+callCallback2 @ chunk-RPCDYKBN.js?v=880fc599:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=880fc599:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=880fc599:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=880fc599:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=880fc599:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=880fc599:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=880fc599:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=880fc599:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=880fc599:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=880fc599:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=880fc599:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=880fc599:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=880fc599:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=880fc599:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=880fc599:5449Understand this error
+chunk-RPCDYKBN.js?v=880fc599:3750 Uncaught ReferenceError: handleDeleteFile is not defined
+    at onClick (direct-messages.tsx:1372:54)
+    at HTMLUnknownElement.callCallback2 (chunk-RPCDYKBN.js?v=880fc599:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-RPCDYKBN.js?v=880fc599:3699:24)
+    at invokeGuardedCallback (chunk-RPCDYKBN.js?v=880fc599:3733:39)
+    at invokeGuardedCallbackAndCatchFirstError (chunk-RPCDYKBN.js?v=880fc599:3736:33)
+    at executeDispatch (chunk-RPCDYKBN.js?v=880fc599:7014:11)
+    at processDispatchQueueItemsInOrder (chunk-RPCDYKBN.js?v=880fc599:7034:15)
+    at processDispatchQueue (chunk-RPCDYKBN.js?v=880fc599:7043:13)
+    at dispatchEventsForPlugins (chunk-RPCDYKBN.js?v=880fc599:7051:11)
+    at chunk-RPCDYKBN.js?v=880fc599:7174:20
+onClick @ direct-messages.tsx:1372
+callCallback2 @ chunk-RPCDYKBN.js?v=880fc599:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=880fc599:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=880fc599:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=880fc599:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=880fc599:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=880fc599:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=880fc599:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=880fc599:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=880fc599:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=880fc599:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=880fc599:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=880fc599:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=880fc599:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=880fc599:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=880fc599:5449Understand this error

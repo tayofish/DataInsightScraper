@@ -848,6 +848,36 @@ const DirectMessagesPage: FC = () => {
     }
   }, [messages]);
 
+  // Function to handle file deletion
+  const handleDeleteFile = async (messageId: number, fileUrl: string) => {
+    try {
+      const response = await fetch(`/api/direct-messages/${messageId}/file`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete file');
+      }
+
+      toast({
+        title: 'File deleted successfully',
+        variant: 'default',
+      });
+
+      // Refresh messages to show the updated content
+      messagesQuery.refetch();
+    } catch (error: any) {
+      console.error('Error deleting file:', error);
+      toast({
+        title: 'Failed to delete file',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Function to handle editing direct messages
   const handleEditMessage = async (messageId: number, newContent: string) => {
     if (!selectedUserId) return;
