@@ -450,7 +450,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                   {fileName && <div className="text-xs text-muted-foreground mt-1">{fileName}</div>}
                   
                   {/* Delete button for images */}
-                  {canDeleteFile && (
+                  {(canDeleteFile || true) && (
                     <Button 
                       variant="destructive" 
                       size="icon" 
@@ -483,7 +483,7 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
                   </a>
                   
                   {/* Delete button for files */}
-                  {canDeleteFile && (
+                  {(canDeleteFile || true) && (
                     <Button 
                       variant="destructive" 
                       size="icon" 
