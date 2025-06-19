@@ -85,7 +85,11 @@ export const FormatMessage: React.FC<FormatMessageProps> = ({
       if (isDirectMessage) {
         queryClient.invalidateQueries({ queryKey: ['/api/direct-messages'] });
       } else {
+        // Invalidate both channel list and specific channel messages
         queryClient.invalidateQueries({ queryKey: ['/api/channels'] });
+        if (channelId) {
+          queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
+        }
       }
     },
     onError: (error: Error) => {
