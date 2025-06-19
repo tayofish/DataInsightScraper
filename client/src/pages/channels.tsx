@@ -1964,11 +1964,18 @@ export default function ChannelsPage() {
                                   <p className="mt-2 message-content" data-message-id={message.id}>
                                     <FormatMessage 
                                       content={message.content}
+                                      fileUrl={message.fileUrl}
+                                      fileName={message.fileName}
+                                      type={message.type}
                                       messageId={message.id}
                                       userId={message.userId}
                                       currentUserId={user?.id}
                                       createdAt={message.createdAt}
-                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)} 
+                                      isEdited={message.isEdited}
+                                      updatedAt={message.updatedAt}
+                                      onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                      channelId={selectedChannelId}
+                                      isDirectMessage={false}
                                     />
                                   </p>
                                 )}
@@ -2005,11 +2012,18 @@ export default function ChannelsPage() {
                                   <p className="mt-2 message-content" data-message-id={message.id}>
                                     <FormatMessage 
                                       content={message.content}
+                                      fileUrl={message.fileUrl}
+                                      fileName={message.fileName}
+                                      type={message.type}
                                       messageId={message.id}
                                       userId={message.userId}
                                       currentUserId={user?.id}
-                                      createdAt={message.createdAt} 
+                                      createdAt={message.createdAt}
+                                      isEdited={message.isEdited}
+                                      updatedAt={message.updatedAt}
                                       onEditMessage={(messageId, newContent) => handleEditMessage(messageId, newContent)}
+                                      channelId={selectedChannelId}
+                                      isDirectMessage={false}
                                     />
                                   </p>
                                 )}
