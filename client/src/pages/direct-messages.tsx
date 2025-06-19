@@ -344,12 +344,30 @@ const DirectMessagesPage: FC = () => {
     
     console.log(`Combining ${serverMessages.length} server messages with ${pendingMessages.length} pending messages`);
     
+    // Debug: Log all server messages to see what we're receiving
+    console.log('SERVER MESSAGES DEBUG:');
+    serverMessages.forEach(msg => {
+      if (msg.fileUrl || msg.type === 'file') {
+        console.log(`Server msg ${msg.id}: type=${msg.type}, fileUrl=${msg.fileUrl}, fileName=${msg.fileName}, content="${msg.content}"`);
+      }
+    });
+    
     // Combine and sort messages by creation time to ensure newest messages are at the bottom
-    return [...serverMessages, ...pendingMessages].sort((a, b) => {
+    const combined = [...serverMessages, ...pendingMessages].sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
       return dateA - dateB; // ascending order (oldest first, newest last)
     });
+    
+    // Debug: Log combined messages to see what's in the final result
+    console.log('COMBINED MESSAGES DEBUG:');
+    combined.forEach(msg => {
+      if (msg.fileUrl || msg.type === 'file') {
+        console.log(`Combined msg ${msg.id}: type=${msg.type}, fileUrl=${msg.fileUrl}, fileName=${msg.fileName}, content="${msg.content}"`);
+      }
+    });
+    
+    return combined;
   }, [messagesQuery.data, localMessages, user?.id]);
 
   // Filter messages based on search query
