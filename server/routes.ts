@@ -5822,9 +5822,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if physical file deletion fails
       }
 
-      // Update message to remove file references
+      // Update message to show file deletion placeholder
       await db.update(directMessages)
         .set({ 
+          content: (message.content || '') + (message.content ? '\n\n' : '') + '📎 File deleted',
           fileUrl: null, 
           fileName: null,
           type: 'text'
@@ -5907,9 +5908,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue even if physical file deletion fails
       }
 
-      // Update message to remove file references
+      // Update message to show file deletion placeholder
       await db.update(messages)
         .set({ 
+          content: (message.content || '') + (message.content ? '\n\n' : '') + '📎 File deleted',
           fileUrl: null, 
           fileName: null,
           type: 'text'
