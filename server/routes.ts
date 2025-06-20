@@ -1094,6 +1094,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Complete user onboarding
+  app.post("/api/user/complete-onboarding", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { unitIds, departmentId } = req.body;
+      const userId = req.user!.id;
+
+      if (!unitIds || !Array.isArray(unitIds) || unitIds.length === 0) {
+        return res.status(400).json({ message: "At least one unit must be selected" });
+      }
+
+      if (!departmentId) {
+        return res.status(400).json({ message: "Department selection is required" });
+      }
+
+      // Start transaction-like operations
+      try {
+        // Update user's onboarding status and primary department
+        await storage.updateUser(userId, {
+          hasCompletedOnboarding: true,
+          departmentId: departmentId
+        });
+
+        // Remove existing unit assignments
+        await executeQueryWithRetry(async () => {
+          return await db.delete(userDepartments)
+            .where(eq(userDepartments.userId, userId));
+        });
+
+        // Add new unit assignments
+        const assignments = unitIds.map((unitId: number, index: number) => ({
+          userId,
+          departmentId: unitId,
+          isPrimary: index === 0 // First unit is primary
+        }));
+
+        await executeQueryWithRetry(async () => {
+          return await db.insert(userDepartments)
+            .values(assignments);
+        });
+
+        // Broadcast onboarding completion to connected clients
+        wss.clients.forEach((client: ExtendedWebSocket) => {
+          if (client.readyState === WebSocket.OPEN && client.userId === userId) {
+            client.send(JSON.stringify({
+              type: 'onboarding_completed',
+              message: 'Onboarding completed successfully'
+            }));
+          }
+        });
+
+        return res.status(200).json({ 
+          message: "Onboarding completed successfully",
+          user: {
+            hasCompletedOnboarding: true,
+            departmentId: departmentId
+          }
+        });
+
+      } catch (dbError) {
+        console.error("Database error during onboarding:", dbError);
+        return res.status(500).json({ message: "Failed to complete onboarding setup" });
+      }
+
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get user department assignments
   app.get("/api/users/:id/departments", async (req, res) => {
     try {

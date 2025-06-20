@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false),
   isApproved: boolean("is_approved").default(true), // Default true for existing users, false for new OAuth users
   isBlocked: boolean("is_blocked").default(false), // Default false for all users
+  hasCompletedOnboarding: boolean("has_completed_onboarding").default(false), // Track first-time onboarding
   departmentId: integer("department_id").references(() => departments.id),
 });
 
