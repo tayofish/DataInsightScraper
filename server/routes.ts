@@ -6717,91 +6717,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Department ID is required' });
       }
 
-      if (!unitIds || !Array.isArray(unitIds) || unitIds.length === 0) {
-        return res.status(400).json({ message: 'At least one unit selection is required' });
-      }
-
-      // Validate that the department (category) exists
-      const department = await storage.getCategoryById(departmentId);
+      // Validate that the department exists
+      const department = await storage.getDepartmentById(departmentId);
       if (!department) {
         return res.status(400).json({ message: 'Invalid department selected' });
       }
 
-      // Validate that all units exist
-      for (const unitId of unitIds) {
-        const unit = await storage.getDepartmentById(unitId);
-        if (!unit) {
-          return res.status(400).json({ message: `Invalid unit selected: ${unitId}` });
-        }
+      // Prepare update data
+      const updateData: any = {
+        hasCompletedOnboarding: true,
+        departmentId: departmentId
+      };
+
+      // Add email to update if provided
+      if (email) {
+        updateData.email = email;
       }
 
-      // Start transaction-like operations
-      try {
-        // Update user's onboarding status and assign to primary unit
-        const updateData: any = {
-          hasCompletedOnboarding: true,
-          departmentId: unitIds[0] // First unit becomes the primary unit assignment
-        };
+      // Update user's onboarding status, department, and email
+      const updatedUser = await storage.updateUser(userId, updateData);
 
-        // Add email to update if provided
-        if (email) {
-          updateData.email = email;
-        }
-
-        // Update user's onboarding status, unit, and email
-        await storage.updateUser(userId, updateData);
-
-        // Remove existing department assignments
-        await db.delete(userDepartments)
-          .where(eq(userDepartments.userId, userId));
-
-        // Create the primary department assignment (what user selected as department)
-        await db.insert(userDepartments).values({
-          userId,
-          departmentId: departmentId, // This is the category/department they selected
-          isPrimary: true
-        });
-
-        // Create additional unit assignments if multiple units were selected
-        if (unitIds.length > 1) {
-          const additionalUnitAssignments = unitIds.slice(1).map((unitId: number) => ({
-            userId,
-            departmentId: unitId, // These are additional units, stored as departments in user_departments
-            isPrimary: false
-          }));
-
-          if (additionalUnitAssignments.length > 0) {
-            await db.insert(userDepartments).values(additionalUnitAssignments);
-          }
-        }
-
-        // Broadcast onboarding completion to connected clients
-        wss.clients.forEach((client: ExtendedWebSocket) => {
-          if (client.readyState === WebSocket.OPEN && client.userId === userId) {
-            client.send(JSON.stringify({
-              type: 'onboarding_completed',
-              message: 'Onboarding completed successfully'
-            }));
-          }
-        });
-
-        res.json({ 
-          message: 'Onboarding completed successfully',
-          success: true,
-          user: {
-            hasCompletedOnboarding: true,
-            departmentId: unitIds[0],
-            primaryDepartment: departmentId
-          }
-        });
-
-      } catch (dbError) {
-        console.error("Database error during onboarding:", dbError);
-        return res.status(500).json({ message: "Failed to complete onboarding setup" });
-      }
-
+      res.json({ 
+        message: 'Onboarding completed successfully',
+        user: updatedUser 
+      });
     } catch (error) {
-      console.error('Error completing onboarding:', error);
+      console.error('Database error during onboarding:', error);
       res.status(500).json({ message: 'Failed to complete onboarding setup' });
     }
   });
