@@ -6686,7 +6686,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'User not authenticated' });
       }
 
-      const { departmentId, unitIds } = req.body;
+      const { departmentId, unitIds, email } = req.body;
+      
+      // Validate email if provided
+      if (email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ message: 'Valid email address is required' });
+        }
+      }
       
       if (!departmentId) {
         return res.status(400).json({ message: 'Department ID is required' });
@@ -6698,11 +6706,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid department selected' });
       }
 
-      // Update user's onboarding status and department
-      const updatedUser = await storage.updateUser(userId, {
+      // Prepare update data
+      const updateData: any = {
         hasCompletedOnboarding: true,
         departmentId: departmentId
-      });
+      };
+
+      // Add email to update if provided
+      if (email) {
+        updateData.email = email;
+      }
+
+      // Update user's onboarding status, department, and email
+      const updatedUser = await storage.updateUser(userId, updateData);
 
       res.json({ 
         message: 'Onboarding completed successfully',

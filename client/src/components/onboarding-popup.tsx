@@ -53,7 +53,7 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
 
   // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
-    mutationFn: async (data: { unitIds: number[], departmentId: number }) => {
+    mutationFn: async (data: { unitIds: number[], departmentId: number, email?: string }) => {
       const response = await fetch('/api/complete-onboarding', {
         method: 'POST',
         headers: {
@@ -95,7 +95,21 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
     );
   };
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleComplete = () => {
+    if (!email || !validateEmail(email)) {
+      toast({
+        title: "Valid email required",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (selectedUnits.length === 0) {
       toast({
         title: "Unit selection required",
@@ -116,7 +130,8 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
 
     completeOnboardingMutation.mutate({
       unitIds: selectedUnits,
-      departmentId: parseInt(selectedDepartment)
+      departmentId: parseInt(selectedDepartment),
+      email: email
     });
   };
 
@@ -134,9 +149,50 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
                 Let's set up your profile to get you started. We need to assign you to your units and department for better collaboration.
               </p>
             </div>
-            <Button onClick={() => setCurrentStep('units')} className="w-full">
+            <Button onClick={() => setCurrentStep('email')} className="w-full">
               Get Started
             </Button>
+          </div>
+        );
+
+      case 'email':
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Mail className="mx-auto w-12 h-12 text-primary mb-3" />
+              <h3 className="text-lg font-semibold mb-2">Verify Your Email</h3>
+              <p className="text-sm text-muted-foreground">
+                Please confirm or update your email address for notifications and communication.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="email-input">Email Address</Label>
+              <Input 
+                id="email-input"
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={!validateEmail(email) && email ? "border-red-500" : ""}
+              />
+              {!validateEmail(email) && email && (
+                <p className="text-sm text-red-500">Please enter a valid email address</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setCurrentStep('welcome')} className="flex-1">
+                Back
+              </Button>
+              <Button 
+                onClick={() => setCurrentStep('units')} 
+                disabled={!email || !validateEmail(email)}
+                className="flex-1"
+              >
+                Continue
+              </Button>
+            </div>
           </div>
         );
 
