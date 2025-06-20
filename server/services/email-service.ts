@@ -42,7 +42,6 @@ async function retryOperation(operation: () => Promise<any>, maxRetries = 3, ini
       }
       
       const delay = initialDelay * Math.pow(2, retries - 1);
-      console.log(`Rate limit encountered, retry attempt ${retries}/${maxRetries} after ${delay}ms delay`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -57,7 +56,6 @@ export async function initializeEmailService() {
     });
     
     if (configs.length === 0) {
-      console.log('No active SMTP configuration found. Email notifications are disabled.');
       return false;
     }
     
@@ -66,7 +64,6 @@ export async function initializeEmailService() {
     // Create the transporter
     // Special case for Zeptomail which requires specific authentication
     if (smtpSettings.host.includes('zeptomail')) {
-      console.log('Using Zeptomail-specific configuration');
       
       // Use the environment variable API key if available, otherwise fall back to database stored key
       const apiKey = process.env.ZEPTOMAIL_API_KEY || smtpSettings.password;
@@ -103,7 +100,6 @@ export async function initializeEmailService() {
     
     // Verify connection
     await transporter.verify();
-    console.log('SMTP connection verified successfully. Email notifications are enabled.');
     return true;
   } catch (error) {
     console.error('Failed to initialize email service:', error);
@@ -120,7 +116,6 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
   if (!transporter || !smtpSettings) {
     await initializeEmailService();
     if (!transporter) {
-      console.error('Email service not initialized. Cannot send email.');
       return false;
     }
   }

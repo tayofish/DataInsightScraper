@@ -579,7 +579,7 @@ export default function ChannelsPage() {
       return !serverMessageMap.has(key);
     });
     
-    console.log(`Combined messages: ${serverMessages.length} server + ${pendingMessages.length} pending`);
+
     
     // Combine and sort messages by creation time to ensure newest messages are at the bottom
     return [...serverMessages, ...pendingMessages].sort((a, b) => {
