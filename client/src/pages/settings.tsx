@@ -50,7 +50,6 @@ export default function Settings() {
     queryKey: ["/api/user-departments"],
     enabled: !!user?.id,
     staleTime: 0, // Force fresh data
-    cacheTime: 0, // Don't cache
   });
 
   // Fetch all departments (categories) to get department info
