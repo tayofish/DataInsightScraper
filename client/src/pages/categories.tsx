@@ -89,10 +89,7 @@ export default function Categories() {
   // Create category mutation
   const createCategory = useMutation({
     mutationFn: async (values: CategoryFormValues) => {
-      return apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(values),
-      });
+      return apiRequest('POST', '/api/categories', values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
@@ -114,10 +111,7 @@ export default function Categories() {
   // Update category mutation
   const updateCategory = useMutation({
     mutationFn: async (values: CategoryFormValues & { id: number }) => {
-      return apiRequest(`/api/categories/${values.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(values),
-      });
+      return apiRequest('PUT', `/api/categories/${values.id}`, values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
