@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Upload, Camera } from "lucide-react";
+import { Loader2, Upload, Camera, Mail, Building2, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 // Profile update schema
 const profileSchema = z.object({
@@ -43,6 +44,38 @@ export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Fetch user departments (which returns user-department assignments)
+  const { data: userDepartments = [] } = useQuery({
+    queryKey: ["/api/user-departments"],
+    enabled: !!user?.id,
+  });
+
+  // Fetch all departments (categories) to get department info
+  const { data: allDepartments = [] } = useQuery({
+    queryKey: ["/api/categories"],
+    enabled: !!user?.id,
+  });
+
+  // Fetch all units to get unit info
+  const { data: allUnits = [] } = useQuery({
+    queryKey: ["/api/departments"],
+    enabled: !!user?.id,
+  });
+
+  // Get primary department info from user-department assignments
+  const primaryDepartmentAssignment = Array.isArray(userDepartments) 
+    ? userDepartments.find((assignment: any) => assignment.isPrimary)
+    : null;
+  
+  const primaryDepartment = primaryDepartmentAssignment && Array.isArray(allDepartments)
+    ? allDepartments.find((dept: any) => dept.id === primaryDepartmentAssignment.departmentId)
+    : null;
+
+  // Get user's unit info
+  const userUnit = Array.isArray(allUnits) && user?.departmentId
+    ? allUnits.find((unit: any) => unit.id === user.departmentId)
+    : null;
 
   // Profile form
   const profileForm = useForm<ProfileValues>({
@@ -294,6 +327,80 @@ export default function Settings() {
                         )}
                       </div>
                     </div>
+
+                    <Separator />
+
+                    {/* Account Information Section */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium">Account Information</h3>
+                      
+                      {/* Email */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Email Address</span>
+                        </div>
+                        <div className="pl-6">
+                          <p className="text-sm bg-muted/50 px-3 py-2 rounded-md">
+                            {user?.email || "No email address set"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Primary Department */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Primary Department</span>
+                        </div>
+                        <div className="pl-6">
+                          {primaryDepartment ? (
+                            <div className="space-y-2">
+                              <Badge variant="secondary" className="text-sm">
+                                {primaryDepartment.name}
+                              </Badge>
+                              {primaryDepartment.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {primaryDepartment.description}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                              No primary department assigned
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Unit Assignment */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Unit Assignment</span>
+                        </div>
+                        <div className="pl-6">
+                          {userUnit ? (
+                            <div className="space-y-2">
+                              <Badge variant="outline" className="text-sm">
+                                {userUnit.name}
+                              </Badge>
+                              {userUnit.description && (
+                                <p className="text-xs text-muted-foreground">
+                                  {userUnit.description}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
+                              No unit assigned
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <FormField
