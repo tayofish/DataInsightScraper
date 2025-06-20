@@ -46,9 +46,11 @@ export default function Settings() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Fetch user departments (which returns user-department assignments)
-  const { data: userDepartments = [] } = useQuery({
+  const { data: userDepartments = [], refetch: refetchUserDepartments } = useQuery({
     queryKey: ["/api/user-departments"],
     enabled: !!user?.id,
+    staleTime: 0, // Force fresh data
+    cacheTime: 0, // Don't cache
   });
 
   // Fetch all departments (categories) to get department info

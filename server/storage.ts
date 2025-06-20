@@ -143,14 +143,7 @@ export const storage = {
     });
   },
 
-  getUserDepartments: async (userId: number): Promise<any[]> => {
-    return db.query.userDepartments.findMany({
-      where: eq(userDepartments.userId, userId),
-      with: {
-        department: true
-      }
-    });
-  },
+
 
   blockUser: async (id: number): Promise<User | undefined> => {
     try {
@@ -282,18 +275,7 @@ export const storage = {
     }
   },
 
-  // User department operations
-  getUserDepartments: async (userId: number): Promise<number[]> => {
-    try {
-      const userDepts = await db.query.userDepartments.findMany({
-        where: eq(userDepartments.userId, userId)
-      });
-      return userDepts.map(ud => ud.departmentId);
-    } catch (error) {
-      console.error('Error fetching user departments:', error);
-      return [];
-    }
-  },
+
 
   // Project operations
   getAllProjects: async (): Promise<Project[]> => {
@@ -1349,7 +1331,7 @@ export const storage = {
     });
     return userDepts.map(dept => ({ 
       departmentId: dept.departmentId, 
-      isPrimary: dept.isPrimary 
+      isPrimary: Boolean(dept.isPrimary)
     }));
   }
 };
