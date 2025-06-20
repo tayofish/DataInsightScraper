@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CheckCircle, Building2, Users } from "lucide-react";
+import { CheckCircle, Building2, Users, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -21,8 +22,22 @@ interface OnboardingPopupProps {
 export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
   const [selectedUnits, setSelectedUnits] = useState<number[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
-  const [currentStep, setCurrentStep] = useState<'welcome' | 'units' | 'department' | 'summary'>('welcome');
+  const [email, setEmail] = useState<string>("");
+  const [currentStep, setCurrentStep] = useState<'welcome' | 'email' | 'units' | 'department' | 'summary'>('welcome');
   const { toast } = useToast();
+
+  // Fetch current user to get existing email
+  const { data: currentUser } = useQuery<{id: number, email?: string}>({
+    queryKey: ['/api/user'],
+    enabled: isOpen
+  });
+
+  // Initialize email from current user data
+  useEffect(() => {
+    if (currentUser?.email) {
+      setEmail(currentUser.email);
+    }
+  }, [currentUser]);
 
   // Fetch departments (units)
   const { data: departments = [] } = useQuery<Department[]>({
