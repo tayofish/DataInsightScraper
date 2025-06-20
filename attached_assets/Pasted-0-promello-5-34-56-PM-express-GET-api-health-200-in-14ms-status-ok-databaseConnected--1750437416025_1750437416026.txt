@@ -1,0 +1,107 @@
+0|promello | 5:34:56 PM [express] GET /api/health 200 in 14ms :: {"status":"ok","databaseConnected":true,"timesta…
+
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:12 PM [express] GET /api/app-settings/logo 500 in 41ms
+0|promellon  | 5:35:25 PM [express] GET /api/health 200 in 11ms :: {"status":"ok","databaseConnected":true,"timesta…
+0|promellon  | WebSocket connection established
+0|promellon  | User sarah.johnson (ID: 4) authenticated on WebSocket
+0|promellon  | WebSocket connection closed
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:37 PM [express] GET /api/health 200 in 30ms :: {"status":"ok","databaseConnected":true,"timesta…
+0|promellon  | 5:35:37 PM [express] GET /api/notifications 500 in 35ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:37 PM [express] GET /api/notifications/unread-count 500 in 47ms
+0|promellon  | WebSocket connection established
+0|promellon  | User sarah.johnson (ID: 4) authenticated on WebSocket
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:38 PM [express] POST /api/logout 500 in 14ms
+0|promellon  | WebSocket connection closed
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:47 PM [express] GET /api/app-settings/favicon 500 in 31ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:47 PM [express] GET /api/health 200 in 14ms :: {"status":"ok","databaseConnected":true,"timesta…
+0|promellon  | 5:35:47 PM [express] GET /api/app-settings/app-name 500 in 29ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:47 PM [express] GET /api/user 500 in 21ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:47 PM [express] GET /api/app-settings/auth/all 500 in 29ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:35:55 PM [express] POST /api/login 500 in 26ms
+0|promellon  | 5:35:56 PM [express] GET /api/health 200 in 9ms :: {"status":"ok","databaseConnected":true,"timestam…
+0|promellon  | 5:36:19 PM [express] GET /api/health 200 in 7ms :: {"status":"ok","databaseConnected":true,"timestam…
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:36:21 PM [express] GET /api/auth/entra 500 in 29ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:36:25 PM [express] GET /api/app-settings/auth/all 500 in 29ms
+0|promellon  | 5:36:25 PM [express] GET /api/user 500 in 29ms
+0|promellon  | 5:36:25 PM [express] GET /api/health 200 in 39ms :: {"status":"ok","databaseConnected":true,"timesta…
+0|promellon  | 5:36:26 PM [express] GET /api/health 200 in 8ms :: {"status":"ok","databaseConnected":true,"timestam…
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:36:29 PM [express] GET /api/auth/entra 500 in 14ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:36:32 PM [express] GET /api/health 200 in 27ms :: {"status":"ok","databaseConnected":true,"timesta…
+0|promellon  | 5:36:32 PM [express] GET /api/app-settings/auth/all 500 in 34ms
+0|promellon  | error: column "has_completed_onboarding" does not exist
+0|promellon  |     at /root/DataInsightScraper/node_modules/pg-pool/index.js:45:11
+0|promellon  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/node_modules/src/node-postgres/session.ts:104:19)
+0|promellon  |     at <anonymous> (/root/DataInsightScraper/server/auth.ts:234:20)
+0|promellon  | 5:36:32 PM [express] GET /api/user 500 in 36ms
+
