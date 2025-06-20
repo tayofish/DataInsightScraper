@@ -143,6 +143,15 @@ export const storage = {
     });
   },
 
+  getUserDepartments: async (userId: number): Promise<any[]> => {
+    return db.query.userDepartments.findMany({
+      where: eq(userDepartments.userId, userId),
+      with: {
+        department: true
+      }
+    });
+  },
+
   blockUser: async (id: number): Promise<User | undefined> => {
     try {
       console.log("Storage.blockUser: Starting with user ID:", id);

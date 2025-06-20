@@ -198,6 +198,14 @@ function Router() {
         </AppLayout>
       )} />
       
+      <ProtectedRoute path="/profile" component={() => (
+        <OnboardingWrapper>
+          <AppLayout>
+            <ProfilePage />
+          </AppLayout>
+        </OnboardingWrapper>
+      )} />
+      
       <Route component={NotFound} />
     </Switch>
   );

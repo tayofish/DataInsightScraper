@@ -1204,6 +1204,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ message: "Failed to fetch users" });
     }
   });
+
+  // Get user departments (units assigned to user)
+  app.get("/api/user-departments", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const userId = req.user!.id;
+      const userDepts = await storage.getUserDepartments(userId);
+      
+      return res.status(200).json(userDepts);
+    } catch (error) {
+      console.error("Error fetching user departments:", error);
+      return res.status(500).json({ message: "Failed to fetch user departments" });
+    }
+  });
   
   // Admin: Create user
   app.post("/api/admin/users", isAdmin, async (req, res) => {

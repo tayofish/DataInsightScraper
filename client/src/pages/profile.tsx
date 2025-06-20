@@ -42,7 +42,8 @@ export default function ProfilePage() {
   // Get user's primary department
   const { data: primaryDepartment } = useQuery({
     queryKey: ['/api/categories', user?.departmentId],
-    enabled: !!user?.departmentId
+    enabled: !!user?.departmentId,
+    select: (data: any) => data || null
   });
 
   if (userLoading || departmentsLoading) {
