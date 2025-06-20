@@ -6678,5 +6678,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Complete onboarding endpoint
+  app.post("/api/complete-onboarding", async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      const { departmentId } = req.body;
+      
+      if (!departmentId) {
+        return res.status(400).json({ message: 'Department ID is required' });
+      }
+
+      // Update user's onboarding status and department
+      const updatedUser = await storage.updateUser(userId, {
+        hasCompletedOnboarding: true,
+        departmentId: departmentId
+      });
+
+      res.json({ 
+        message: 'Onboarding completed successfully',
+        user: updatedUser 
+      });
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      res.status(500).json({ message: 'Failed to complete onboarding' });
+    }
+  });
+
   return httpServer;
 }
