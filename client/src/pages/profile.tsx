@@ -123,9 +123,9 @@ export default function ProfilePage() {
             {primaryDepartment ? (
               <div className="space-y-2">
                 <Badge variant="secondary" className="text-sm">
-                  {primaryDepartment.name}
+                  {primaryDepartment?.name || 'Unknown Department'}
                 </Badge>
-                {primaryDepartment.description && (
+                {primaryDepartment?.description && (
                   <p className="text-sm text-muted-foreground">
                     {primaryDepartment.description}
                   </p>

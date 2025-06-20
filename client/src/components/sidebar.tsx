@@ -18,7 +18,8 @@ import {
   Shield,
   BarChart2,
   MessageSquare,
-  MessagesSquare
+  MessagesSquare,
+  User
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -147,6 +148,10 @@ export function Sidebar() {
         </NavItem>
         <NavItem href="/direct-messages" icon={<MessageSquare size={20} />} isActive={location.startsWith('/direct-messages')}>
           Messages
+        </NavItem>
+        
+        <NavItem href="/profile" icon={<User size={20} />} isActive={location === '/profile'}>
+          Profile
         </NavItem>
         
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
