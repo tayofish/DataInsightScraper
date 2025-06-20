@@ -21,6 +21,7 @@ import NotificationsPage from "@/pages/notifications";
 import ChannelsPage from "@/pages/channels";
 import DirectMessagesPage from "@/pages/direct-messages";
 import DatabaseErrorPage from "@/pages/database-error";
+import ProfilePage from "@/pages/profile";
 import { Sidebar } from "@/components/sidebar";
 import { NotificationDropdown } from "@/components/notification-dropdown";
 import { GlobalSearch } from "@/components/global-search";

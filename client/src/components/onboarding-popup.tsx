@@ -23,6 +23,7 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
   const [selectedUnits, setSelectedUnits] = useState<number[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [unitSearchQuery, setUnitSearchQuery] = useState<string>("");
   const [currentStep, setCurrentStep] = useState<'welcome' | 'email' | 'units' | 'department' | 'summary'>('welcome');
   const { toast } = useToast();
 
@@ -207,9 +208,23 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
               </p>
             </div>
 
+            <div className="space-y-3">
+              <Input 
+                placeholder="Search units..."
+                value={unitSearchQuery}
+                onChange={(e) => setUnitSearchQuery(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
             <ScrollArea className="h-64 w-full">
               <div className="space-y-2">
-                {departments.map((dept) => (
+                {departments
+                  .filter(dept => 
+                    dept.name.toLowerCase().includes(unitSearchQuery.toLowerCase()) ||
+                    (dept.description && dept.description.toLowerCase().includes(unitSearchQuery.toLowerCase()))
+                  )
+                  .map((dept) => (
                   <Card 
                     key={dept.id}
                     className={`cursor-pointer transition-colors ${
