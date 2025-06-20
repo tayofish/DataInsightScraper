@@ -129,7 +129,6 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
       html,
     });
     
-    console.log(`Email sent to ${to}`);
     return true;
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -156,17 +155,8 @@ export async function createNotification(
 ) {
   try {
     if (!userId) {
-      console.log('Cannot create notification: missing userId');
       return null;
     }
-    
-    console.log('Creating in-app notification:', {
-      userId,
-      title,
-      type,
-      referenceType,
-      referenceId
-    });
     
     const notification = await storage.createNotification({
       userId,
@@ -178,7 +168,6 @@ export async function createNotification(
       isRead: false,
     });
     
-    console.log(`Created notification ID ${notification.id} for user ${userId}`);
     return notification;
   } catch (error) {
     console.error('Failed to create notification:', error);
@@ -202,19 +191,10 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
   }
   
   if (!task || !task.id) {
-    console.error('Invalid task data for notification', { task });
     return;
   }
   
   const taskUrl = getTaskUrl(task.id);
-  console.log('Sending task creation notification for task:', {
-    taskId: task.id,
-    title: task.title,
-    assigneeId: assignee?.id,
-    assigneeEmail: assignee?.email,
-    creatorId: creator?.id,
-    teamSize: projectTeam?.length
-  });
   
   let notificationsSent = 0;
   
@@ -256,29 +236,18 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
           notificationsSent++;
         }
       } catch (err) {
-        console.error(`Failed to send task creation notification to assignee ${assignee.id}:`, err);
+        // Silent error handling for production
       }
-    } else {
-      console.log('Assignee has no email address:', {
-        assigneeId: assignee.id,
-        assigneeUsername: assignee.username
-      });
     }
   }
   
   // Notify project team
   if (projectTeam && projectTeam.length > 0) {
-    console.log(`Attempting to notify ${projectTeam.length} team members about task creation`);
     let teamNotificationCount = 0;
     
     for (const member of projectTeam) {
       // Skip notification for assignee (already notified) and creator
       if ((assignee && member.id === assignee.id) || member.id === creator?.id || !member.email) {
-        console.log(`Skipping team notification for user ${member.id}: ${
-          !member.email ? 'no email' : 
-          (assignee && member.id === assignee.id) ? 'is assignee' : 
-          'is creator'
-        }`);
         continue;
       }
       
