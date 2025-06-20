@@ -10,12 +10,14 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -24,6 +26,7 @@ import {
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -33,8 +36,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -59,109 +64,126 @@ import { Input } from '@/components/ui/input';
 import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type Category, type Department } from '@shared/schema';
 
-// Validation schema for category creation/editing
+// Form schema for category creation/editing
 const categoryFormSchema = z.object({
-  name: z.string().min(1, 'Department name is required').max(100),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Must be a valid hex color'),
-  departmentId: z.number().nullable(),
+  name: z.string().min(1, 'Category name is required'),
+  color: z.string().regex(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/, 'Must be a valid hex color'),
+  departmentId: z.number().optional().nullable(), // Make departmentId optional and nullable
 });
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 export default function Categories() {
   const { toast } = useToast();
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [currentCategory, setCurrentCategory] = useState<Category | null>(null);
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [currentCategory, setCurrentCategory] = React.useState<Category | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   // Fetch categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
-
+  
   // Fetch departments
-  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery<Department[]>({
     queryKey: ['/api/departments'],
   });
 
-  // Create category mutation
-  const createCategory = useMutation({
+  // Create/Update category mutation
+  const categoryMutation = useMutation({
     mutationFn: async (values: CategoryFormValues) => {
-      return apiRequest('/api/categories', {
-        method: 'POST',
-        body: JSON.stringify(values),
-      });
+      if (currentCategory) {
+        return apiRequest('PATCH', `/api/categories/${currentCategory.id}`, values);
+      } else {
+        return apiRequest('POST', '/api/categories', values);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
-        title: 'Success',
-        description: 'Department created successfully.',
+        title: `Category ${currentCategory ? 'updated' : 'created'}`,
+        description: `Category has been ${currentCategory ? 'updated' : 'created'} successfully.`,
       });
-      setIsFormOpen(false);
+      handleCloseForm();
     },
-    onError: (error: any) => {
+    onError: (err) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create department.',
+        description: `Failed to ${currentCategory ? 'update' : 'create'} category: ${err}`,
         variant: 'destructive',
       });
-    },
-  });
-
-  // Update category mutation
-  const updateCategory = useMutation({
-    mutationFn: async (values: CategoryFormValues & { id: number }) => {
-      return apiRequest(`/api/categories/${values.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(values),
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({
-        title: 'Success',
-        description: 'Department updated successfully.',
-      });
-      setIsFormOpen(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update department.',
-        variant: 'destructive',
-      });
-    },
+    }
   });
 
   // Delete category mutation
-  const deleteCategory = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/categories/${id}`, {
-        method: 'DELETE',
-      });
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (categoryId: number) => {
+      return apiRequest('DELETE', `/api/categories/${categoryId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
-        title: 'Success',
-        description: 'Department deleted successfully.',
+        title: 'Category deleted',
+        description: 'Category has been deleted successfully.',
       });
     },
-    onError: (error: any) => {
+    onError: (err) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete department.',
+        description: `Failed to delete category: ${err}`,
         variant: 'destructive',
       });
-    },
+    }
   });
 
-  // Helper function to get unit name from departmentId
-  const getUnitName = (departmentId: number | null) => {
-    if (departmentId === null) return 'General';
+  // Form for creating/editing categories
+  const form = useForm<CategoryFormValues>({
+    resolver: zodResolver(categoryFormSchema),
+    defaultValues: {
+      name: '',
+      color: '#3b82f6',
+      departmentId: null,
+    }
+  });
+
+  // Open form for creating a new category
+  const handleOpenNewForm = () => {
+    form.reset({
+      name: '',
+      color: '#3b82f6',
+      departmentId: null, // No department by default - will be categorized under "General"
+    });
+    setCurrentCategory(null);
+    setIsFormOpen(true);
+  };
+
+  // Open form for editing a category
+  const handleEditCategory = (category: Category) => {
+    form.reset({
+      name: category.name,
+      color: category.color || '#3b82f6',
+      departmentId: category.departmentId, // Use the departmentId from the category
+    });
+    setCurrentCategory(category);
+    setIsFormOpen(true);
+  };
+
+  // Close the form
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setCurrentCategory(null);
+  };
+
+  // Handle form submission
+  const onSubmit = (values: CategoryFormValues) => {
+    categoryMutation.mutate(values);
+  };
+
+  // Find unit name by id
+  const getUnitName = (departmentId: number | null): string => {
+    if (!departmentId) return 'General';
     const department = departments.find(d => d.id === departmentId);
     return department ? department.name : 'General';
   };
@@ -187,47 +209,6 @@ export default function Categories() {
   React.useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
-
-  // Form for creating/editing categories
-  const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categoryFormSchema),
-    defaultValues: {
-      name: '',
-      color: '#3b82f6',
-      departmentId: null,
-    }
-  });
-
-  // Open form for creating a new category
-  const handleOpenNewForm = () => {
-    form.reset({
-      name: '',
-      color: '#3b82f6',
-      departmentId: null,
-    });
-    setCurrentCategory(null);
-    setIsFormOpen(true);
-  };
-
-  // Open form for editing a category
-  const handleEditCategory = (category: Category) => {
-    form.reset({
-      name: category.name,
-      color: category.color || '#3b82f6',
-      departmentId: category.departmentId,
-    });
-    setCurrentCategory(category);
-    setIsFormOpen(true);
-  };
-
-  // Handle form submission
-  const onSubmit = (values: CategoryFormValues) => {
-    if (currentCategory) {
-      updateCategory.mutate({ ...values, id: currentCategory.id });
-    } else {
-      createCategory.mutate(values);
-    }
-  };
 
   const isLoading = categoriesLoading || departmentsLoading;
   
@@ -410,73 +391,95 @@ export default function Categories() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Department Name</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter department name" {...field} />
+                      <Input placeholder="Department name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+              
+              <FormField
+                control={form.control}
+                name="departmentId"
+                render={({ field }) => {
+                  return (
+                    <FormItem>
+                      <FormLabel>Unit</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value?.toString() || "none"}
+                          onValueChange={(value) => {
+                            field.onChange(value === "none" ? null : parseInt(value));
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a unit (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">General (No Unit)</SelectItem>
+                            {departments.map((department) => (
+                              <SelectItem key={department.id} value={department.id.toString()}>
+                                {department.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormDescription>
+                        Optional: Assign this department to a unit
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
               <FormField
                 control={form.control}
                 name="color"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Color</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input type="color" {...field} className="w-12 h-10 p-1" />
-                        <Input {...field} placeholder="#3b82f6" />
-                      </div>
-                    </FormControl>
+                    <div className="flex items-center gap-4">
+                      <Input
+                        type="color"
+                        className="w-12 h-12 p-1 rounded-md"
+                        {...field}
+                      />
+                      <Input
+                        type="text"
+                        placeholder="#3b82f6"
+                        {...field}
+                        className="flex-1"
+                      />
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="departmentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit (Optional)</FormLabel>
-                    <Select
-                      value={field.value?.toString() || "null"}
-                      onValueChange={(value) => field.onChange(value === "null" ? null : parseInt(value))}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a unit" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="null">General (No Unit)</SelectItem>
-                        {departments.map((department) => (
-                          <SelectItem key={department.id} value={department.id.toString()}>
-                            {department.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCloseForm}
+                  disabled={categoryMutation.isPending}
+                >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={createCategory.isPending || updateCategory.isPending}
+                <Button
+                  type="submit"
+                  disabled={categoryMutation.isPending}
                 >
-                  {createCategory.isPending || updateCategory.isPending
+                  {categoryMutation.isPending
                     ? 'Saving...'
                     : currentCategory
-                    ? 'Update Department'
-                    : 'Create Department'}
+                      ? 'Update Category'
+                      : 'Create Category'}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>
