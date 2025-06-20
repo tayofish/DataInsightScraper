@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -61,7 +61,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { type Category, type Department } from '@shared/schema';
 
 // Form schema for category creation/editing
@@ -77,6 +77,9 @@ export default function Categories() {
   const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [currentCategory, setCurrentCategory] = React.useState<Category | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Fetch categories
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
@@ -185,42 +188,27 @@ export default function Categories() {
     return department ? department.name : 'General';
   };
 
-  // Group departments by unit
-  const categoriesByDepartment = React.useMemo(() => {
-    const grouped: Record<string, Category[]> = {};
-    
-    // First add the "General" departments for null departmentId
-    grouped['General'] = categories.filter(c => c.departmentId === null);
-    
-    // Then group by unit name for other departments
-    categories.forEach(category => {
-      if (category.departmentId !== null) {
-        const unitName = getUnitName(category.departmentId);
-        if (!grouped[unitName]) {
-          grouped[unitName] = [];
-        }
-        grouped[unitName].push(category);
-      }
-    });
-    
-    // Make sure General appears first in the order
-    const orderedGrouped: Record<string, Category[]> = {};
-    if (grouped['General'] && grouped['General'].length > 0) {
-      orderedGrouped['General'] = grouped['General'];
-    }
-    
-    // Add all other units in alphabetical order
-    Object.keys(grouped)
-      .filter(unit => unit !== 'General')
-      .sort()
-      .forEach(unit => {
-        if (grouped[unit].length > 0) {
-          orderedGrouped[unit] = grouped[unit];
-        }
-      });
-    
-    return orderedGrouped;
-  }, [categories, departments]);
+  // Filter and paginate categories based on search query
+  const filteredCategories = useMemo(() => {
+    return categories.filter(category =>
+      category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [categories, searchQuery]);
+
+  // Paginated categories
+  const paginatedCategories = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredCategories.slice(startIndex, endIndex);
+  }, [filteredCategories, currentPage, itemsPerPage]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+
+  // Reset to first page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   const isLoading = categoriesLoading || departmentsLoading;
   

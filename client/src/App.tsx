@@ -136,13 +136,13 @@ function Router() {
       )} />
       
       {/* Admin-only routes */}
-      <AdminRoute path="/categories" component={() => (
+      <AdminRoute path="/departments" component={() => (
         <AppLayout>
           <Categories />
         </AppLayout>
       )} />
       
-      <AdminRoute path="/departments" component={() => (
+      <AdminRoute path="/units" component={() => (
         <AppLayout>
           <Departments />
         </AppLayout>

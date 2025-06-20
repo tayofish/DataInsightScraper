@@ -158,10 +158,10 @@ export function Sidebar() {
         {/* Admin-only sections */}
         {user?.isAdmin && (
           <>
-            <NavItem href="/categories" icon={<Tag size={20} />} isActive={location === '/categories'}>
+            <NavItem href="/departments" icon={<Tag size={20} />} isActive={location === '/departments'}>
               Departments
             </NavItem>
-            <NavItem href="/departments" icon={<Building2 size={20} />} isActive={location === '/departments'}>
+            <NavItem href="/units" icon={<Building2 size={20} />} isActive={location === '/units'}>
               Units
             </NavItem>
             <NavItem href="/teams" icon={<Users size={20} />} isActive={location === '/teams'}>
