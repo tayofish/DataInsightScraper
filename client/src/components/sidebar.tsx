@@ -150,9 +150,6 @@ export function Sidebar() {
           Messages
         </NavItem>
         
-        <NavItem href="/profile" icon={<User size={20} />} isActive={location === '/profile'}>
-          Profile
-        </NavItem>
         
         <NavItem href="/settings" icon={<Settings size={20} />} isActive={location === '/settings'}>
           Settings
