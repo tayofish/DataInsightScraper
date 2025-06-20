@@ -52,7 +52,7 @@ async function checkDatabaseAvailability() {
     
     // If database status changed from down to up, notify all connected clients
     if (!isDatabaseAvailable) {
-
+      console.log('Database connection restored. Notifying clients...');
       
       // This function will be called after we update the status below
       setTimeout(() => {
@@ -76,7 +76,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Check database on startup
   try {
     isDatabaseAvailable = await checkDatabaseAvailability();
+    console.log(`Database availability: ${isDatabaseAvailable ? 'ONLINE' : 'OFFLINE'}`);
   } catch (error) {
+    console.error('Initial database check failed:', error);
     isDatabaseAvailable = false;
   }
   
@@ -418,17 +420,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // This is potentially destructive, so we'll log what we're doing
+      console.log("Restoring database from backup...");
       
       try {
         // Restore users
         if (backupData.data.users && backupData.data.users.length > 0) {
           // In a real application, we would use transactions here
+          console.log(`Restoring ${backupData.data.users.length} users...`);
           
           // For safety, we won't delete existing users, just add new ones
           for (const user of backupData.data.users) {
             try {
               const existingUser = await storage.getUserByUsername(user.username);
               if (!existingUser) {
+                console.log(`Creating user: ${user.username}`);
                 
                 // Process creation date fields if present
                 if (user.created_at && typeof user.created_at === 'string') {
@@ -446,6 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   departmentId: user.departmentId
                 });
               } else {
+                console.log(`User ${user.username} already exists, skipping`);
               }
             } catch (userError) {
               console.error(`Error restoring user ${user.username}:`, userError);
@@ -456,10 +462,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Restore departments
         if (backupData.data.departments && backupData.data.departments.length > 0) {
+          console.log(`Restoring ${backupData.data.departments.length} departments...`);
           for (const department of backupData.data.departments) {
             try {
               // Skip if department name doesn't exist in the data
               if (!department.name) {
+                console.log("Skipping department with no name");
                 continue;
               }
               
@@ -472,11 +480,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const existingDepartments = await db.select().from(departments).where(eq(departments.name, department.name));
               
               if (existingDepartments.length === 0) {
+                console.log(`Creating department: ${department.name}`);
                 await storage.createDepartment({
                   name: department.name,
                   description: department.description || ''
                 });
               } else {
+                console.log(`Department ${department.name} already exists, skipping`);
               }
             } catch (deptError) {
               console.error(`Error restoring department ${department.name}:`, deptError);
@@ -487,10 +497,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Restore categories
         if (backupData.data.categories && backupData.data.categories.length > 0) {
+          console.log(`Restoring ${backupData.data.categories.length} categories...`);
           for (const category of backupData.data.categories) {
             try {
               // Skip if category name doesn't exist in the data
               if (!category.name) {
+                console.log("Skipping category with no name");
                 continue;
               }
               
@@ -503,11 +515,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const existingCategories = await db.select().from(categories).where(eq(categories.name, category.name));
               
               if (existingCategories.length === 0) {
+                console.log(`Creating category: ${category.name}`);
                 
                 // Check if referenced department exists (if specified)
                 if (category.departmentId) {
                   const departmentExists = await db.select().from(departments).where(eq(departments.id, category.departmentId));
                   if (departmentExists.length === 0) {
+                    console.log(`Category ${category.name} references non-existent department ID ${category.departmentId}, setting to null`);
                     category.departmentId = null;
                   }
                 }
@@ -523,6 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
                 await storage.createCategory(categoryData);
               } else {
+                console.log(`Category ${category.name} already exists, skipping`);
               }
             } catch (catError) {
               console.error(`Error restoring category ${category.name}:`, catError);
@@ -533,10 +548,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Restore projects
         if (backupData.data.projects && backupData.data.projects.length > 0) {
+          console.log(`Restoring ${backupData.data.projects.length} projects...`);
           for (const project of backupData.data.projects) {
             try {
               // Skip if project name doesn't exist in the data
               if (!project.name) {
+                console.log("Skipping project with no name");
                 continue;
               }
               
@@ -549,6 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const existingProjects = await db.select().from(projects).where(eq(projects.name, project.name));
               
               if (existingProjects.length === 0) {
+                console.log(`Creating project: ${project.name}`);
                 // Create a project with the fields in our schema
                 const projectData: InsertProject = {
                   name: project.name,
@@ -556,6 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 };
                 await storage.createProject(projectData);
               } else {
+                console.log(`Project ${project.name} already exists, skipping`);
               }
             } catch (projError) {
               console.error(`Error restoring project ${project.name}:`, projError);
@@ -566,10 +585,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Restore tasks
         if (backupData.data.tasks && backupData.data.tasks.length > 0) {
+          console.log(`Restoring ${backupData.data.tasks.length} tasks...`);
           for (const task of backupData.data.tasks) {
             try {
               // Skip if task title doesn't exist in the data
               if (!task.title) {
+                console.log("Skipping task with no title");
                 continue;
               }
               
@@ -577,6 +598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (task.assigneeId) {
                 const userExists = await db.select().from(users).where(eq(users.id, task.assigneeId));
                 if (userExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced assignee ID ${task.assigneeId} does not exist`);
                   continue;
                 }
               }
@@ -584,6 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (task.projectId) {
                 const projectExists = await db.select().from(projects).where(eq(projects.id, task.projectId));
                 if (projectExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced project ID ${task.projectId} does not exist`);
                   continue;
                 }
               }
@@ -591,6 +614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (task.categoryId) {
                 const categoryExists = await db.select().from(categories).where(eq(categories.id, task.categoryId));
                 if (categoryExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced category ID ${task.categoryId} does not exist`);
                   continue;
                 }
               }
@@ -598,10 +622,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (task.departmentId) {
                 const departmentExists = await db.select().from(departments).where(eq(departments.id, task.departmentId));
                 if (departmentExists.length === 0) {
+                  console.log(`Skipping task '${task.title}' - Referenced department ID ${task.departmentId} does not exist`);
                   continue;
                 }
               }
               
+              console.log(`Creating task: ${task.title}`);
               // Create task data with properly formatted dates
               const taskData: InsertTask = {
                 title: task.title,
@@ -809,7 +835,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
+      console.log("API /users: Starting request");
       const users = await storage.getAllUsers();
+      console.log("API /users: Storage returned", users.length, "users");
+      console.log("API /users: Raw user data:", users.map(u => ({ id: u.id, username: u.username, name: u.name })));
       
       // Remove sensitive data from response
       const safeUsers = users.map(user => ({
@@ -824,6 +853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         departmentId: user.departmentId
       }));
       
+      console.log("API /users: Mapped safe users:", safeUsers.length, "users");
+      console.log("API /users: Safe user data:", safeUsers.map(u => ({ id: u.id, username: u.username, name: u.name })));
       
       return res.status(200).json(safeUsers);
     } catch (error) {
@@ -2004,6 +2035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (taskData.description && taskData.description !== currentTask.description) {
           const mentions = extractMentions(taskData.description);
           if (mentions.length > 0) {
+            console.log(`Found ${mentions.length} mentions in task description for task ${id}: [${mentions.join(', ')}]`);
             
             // Process mentions (e.g. notify mentioned users)
             for (const username of mentions) {
@@ -2012,6 +2044,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== userId) {
+                  console.log(`Processing description mention for user ${mentionedUser.username} (${mentionedUser.id})`);
                   
                   try {
                     // Record mention update
@@ -2024,6 +2057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       comment: `@${username} mentioned in task description`
                     });
                     
+                    console.log(`Created mention update record: ${mentionUpdate.id}`);
                     
                     // Send mention notification
                     try {
@@ -2033,6 +2067,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         req.user, 
                         taskData.description || ''
                       );
+                      console.log(`Successfully sent mention notification to ${mentionedUser.username} for task description mention`);
                     } catch (mentionError) {
                       console.error(`Error sending mention notification to ${mentionedUser.username} for task description:`, mentionError);
                     }
@@ -2040,7 +2075,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     console.error(`Error creating mention update for ${username} in task description:`, updateError);
                   }
                 } else if (mentionedUser) {
+                  console.log(`Skipping self-mention for user ${username} in task description`);
                 } else {
+                  console.log(`Could not find user with username ${username} for task description mention notification`);
                 }
               } catch (userLookupError) {
                 console.error(`Error looking up mentioned user ${username} for task description:`, userLookupError);
@@ -2270,6 +2307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add mentioned users
           if (mentions.length > 0) {
+            console.log(`Found ${mentions.length} mentions in comment for task ${taskId}: [${mentions.join(', ')}]`);
             
             for (const username of mentions) {
               try {
@@ -2277,6 +2315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== commentUser.id) {
+                  console.log(`Processing mention for user ${mentionedUser.username} (${mentionedUser.id})`);
                   
                   try {
                     // Record mention update
@@ -2289,6 +2328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       comment: `@${username} was mentioned in a comment`
                     });
                     
+                    console.log(`Created mention update record: ${mentionUpdate.id}`);
                     
                     // Add to notification list if not already included
                     if (!usersToNotify.some(u => u.id === mentionedUser.id)) {
@@ -2302,17 +2342,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           commentUser, 
                           commentData.comment
                         );
+                        console.log(`Successfully sent mention notification to ${mentionedUser.username}`);
                       } catch (mentionError) {
                         console.error(`Error sending mention notification to ${mentionedUser.username}:`, mentionError);
                         // Continue processing other mentions even if this one failed
                       }
                     } else {
+                      console.log(`User ${mentionedUser.username} already in notification list, skipping duplicate mention notification`);
                     }
                   } catch (updateError) {
                     console.error(`Error creating mention update for ${username}:`, updateError);
                   }
                 } else if (mentionedUser) {
+                  console.log(`Skipping self-mention for user ${username}`);
                 } else {
+                  console.log(`Could not find user with username ${username} for mention notification`);
                 }
               } catch (userLookupError) {
                 console.error(`Error looking up mentioned user ${username}:`, userLookupError);
@@ -3219,7 +3263,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const configData = smtpConfigFormSchema.parse(req.body);
       
-      const newConfig = await storage.createSmtpConfig({
+      console.log('Creating SMTP config:', {
         host: configData.host,
         port: configData.port,
         username: configData.username,
@@ -3250,6 +3294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (configData.active) {
         try {
           const success = await emailService.initializeEmailService();
+          console.log('Email service initialization result:', success);
         } catch (initError) {
           console.error('Failed to initialize email service:', initError);
           // Continue execution - email service initialization failure shouldn't break config creation
@@ -3279,6 +3324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const configData = smtpConfigFormSchema.parse(req.body);
       
+      console.log('Updating SMTP config:', {
         id,
         host: configData.host,
         port: configData.port,
@@ -3329,6 +3375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (configData.active) {
         try {
           const success = await emailService.initializeEmailService();
+          console.log('Email service initialization result:', success);
         } catch (initError) {
           console.error('Failed to initialize email service:', initError);
           // Continue execution - email service initialization failure shouldn't break config update
@@ -3385,6 +3432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Special case for Zeptomail which requires specific authentication
       if (configData.host.includes('zeptomail')) {
+        console.log('Using Zeptomail-specific configuration for test');
         
         // Use the environment variable API key if available, otherwise use the provided password
         const apiKey = process.env.ZEPTOMAIL_API_KEY || configData.password;
@@ -3419,6 +3467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      console.log('Testing SMTP connection with settings:', {
         host: configData.host,
         port: configData.port,
         secure: configData.port === 465,
@@ -3429,6 +3478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         // Verify connection
         await transporter.verify();
+        console.log('SMTP connection verified successfully');
         
         // Send a test email to the admin user if email exists
         if (req.user && req.user.email) {
@@ -3441,6 +3491,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               html: "<h1>TaskScout SMTP Test</h1><p>This is a test email from TaskScout to verify your SMTP configuration.</p>",
             });
             
+            console.log(`Test email sent successfully to ${req.user.email}`);
             return res.status(200).json({ message: "Test email sent successfully" });
           } catch (emailError) {
             console.error("Failed to send test email:", emailError);
@@ -3668,6 +3719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin endpoints for user management
   app.patch("/api/admin/users/:id/block", async (req, res) => {
+    console.log("Block user request received:", {
       params: req.params,
       isAuthenticated: req.isAuthenticated(),
       userIsAdmin: req.user?.isAdmin,
@@ -3675,22 +3727,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      console.log("Block user denied: Admin access required");
       return res.status(403).json({ message: "Admin access required" });
     }
 
     try {
       const id = parseInt(req.params.id);
+      console.log("Attempting to block user ID:", id);
       
       if (isNaN(id)) {
+        console.log("Block user failed: Invalid ID");
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
+      console.log("Calling storage.blockUser with ID:", id);
       const updatedUser = await storage.blockUser(id);
+      console.log("Storage.blockUser result:", updatedUser);
       
       if (!updatedUser) {
+        console.log("Block user failed: User not found");
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log("User blocked successfully:", updatedUser);
       return res.status(200).json(updatedUser);
     } catch (error) {
       console.error("Error blocking user - Full error details:", {
@@ -3707,6 +3766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/admin/users/:id/unblock", async (req, res) => {
+    console.log("Unblock user request received:", {
       params: req.params,
       isAuthenticated: req.isAuthenticated(),
       userIsAdmin: req.user?.isAdmin,
@@ -3714,22 +3774,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     if (!req.isAuthenticated() || !req.user?.isAdmin) {
+      console.log("Unblock user denied: Admin access required");
       return res.status(403).json({ message: "Admin access required" });
     }
 
     try {
       const id = parseInt(req.params.id);
+      console.log("Attempting to unblock user ID:", id);
       
       if (isNaN(id)) {
+        console.log("Unblock user failed: Invalid ID");
         return res.status(400).json({ message: "Invalid user ID" });
       }
 
+      console.log("Calling storage.unblockUser with ID:", id);
       const updatedUser = await storage.unblockUser(id);
+      console.log("Storage.unblockUser result:", updatedUser);
       
       if (!updatedUser) {
+        console.log("Unblock user failed: User not found");
         return res.status(404).json({ message: "User not found" });
       }
 
+      console.log("User unblocked successfully:", updatedUser);
       return res.status(200).json(updatedUser);
     } catch (error) {
       console.error("Error unblocking user - Full error details:", {
@@ -5024,6 +5091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     // Continue even if WebSocket notification fails
                   }
                 } else {
+                  console.log(`User ${req.user!.username} doesn't have permission to add ${user.username} to private channel ${channel.name}`);
                 }
               } catch (error) {
                 console.error(`Error adding mentioned user ${user.username} to channel:`, error);
@@ -5099,6 +5167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const wss = getWebSocketServer();
         if (wss && completeMessage) {
+          console.log("Broadcasting new channel message via HTTP route:", completeMessage.id);
           
           wss.clients.forEach((client: ExtendedWebSocket) => {
             if (client.readyState === WebSocket.OPEN) {
@@ -5113,6 +5182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           });
           
+          console.log("Broadcasted message to all connected channel members");
         }
       } catch (error) {
         console.error('Error broadcasting new channel message:', error);
@@ -5466,8 +5536,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: req.file.originalname
       };
       
+      console.log("Direct message file upload - messageData:", JSON.stringify(messageData));
       
       const [newMessage] = await db.insert(directMessages).values(messageData).returning();
+      console.log("Direct message file upload - DB inserted message:", JSON.stringify(newMessage));
       
       // Add sanitized user data to the message for the response
       const fullMessage = {
@@ -5482,9 +5554,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
       
+      console.log("Direct message file upload - fullMessage:", JSON.stringify(fullMessage));
       
       // Create notification for the receiver
       try {
+        console.log("Creating notification for receiverId:", receiverId, "messageId:", newMessage.id);
         await storage.createNotification({
           userId: receiverId,
           title: "New direct message",
@@ -5494,6 +5568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           referenceType: "direct_message",
           isRead: false
         });
+        console.log("Notification created successfully for file message");
       } catch (notificationError) {
         console.error("Error creating file message notification:", notificationError);
         // Continue - don't fail the entire request if notification fails
@@ -5705,6 +5780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const wss = getWebSocketServer();
         if (wss && sanitizedMessage) {
+          console.log("Broadcasting real-time message via HTTP route:", sanitizedMessage.id);
           
           wss.clients.forEach((client: ExtendedWebSocket) => {
             if (client.readyState === WebSocket.OPEN) {
@@ -5714,6 +5790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   type: 'new_direct_message',
                   message: sanitizedMessage
                 }));
+                console.log("Sent new message notification to receiver:", receiverId);
               }
               // Send confirmation to the sender
               else if (client.userId === req.user!.id) {
@@ -5721,6 +5798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   type: 'direct_message_sent',
                   message: sanitizedMessage
                 }));
+                console.log("Sent confirmation to sender:", req.user!.id);
               }
             }
           });
@@ -6051,6 +6129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   wss.on('connection', (ws: ExtendedWebSocket, req) => {
+    console.log('WebSocket connection established');
     
     // Send initial database status to client
     ws.send(JSON.stringify({
@@ -6082,6 +6161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ws.userId = userId;
           ws.username = username;
           
+          console.log(`User ${username} (ID: ${userId}) authenticated on WebSocket`);
           
           // Send confirmation
           ws.send(JSON.stringify({ 
@@ -6093,11 +6173,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle pong response to ping for heartbeat
         else if (data.type === 'pong') {
           // Keep connection alive - no action needed, just acknowledge
+          console.log(`Received pong from user ${ws.userId || 'unknown'}`);
         }
         
         // Handle channel message
         else if (data.type === 'channel_message' && ws.userId) {
           const { channelId, content, parentId, mentions } = data;
+          console.log('Received channel message:', { 
             userId: ws.userId, channelId, content, 
             mentions: mentions || 'none'
           });
@@ -6158,6 +6240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Create message in database
           let newMessage;
           try {
+            console.log("Creating new message in database");
             const result = await db.insert(messages).values({
               channelId,
               userId: ws.userId,
@@ -6181,6 +6264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             
             [newMessage] = result;
+            console.log("Message created successfully:", newMessage.id);
           } catch (dbError) {
             console.error("Database error creating message:", dbError);
             ws.send(JSON.stringify({ 
@@ -6197,6 +6281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Process mentions if not already provided by client
           if (!mentions || !Array.isArray(mentions) || mentions.length === 0) {
+            console.log('Extracting mentions from text content');
             const mentionedUsers = extractMentions(content);
             if (mentionedUsers.length > 0) {
               // Process each mention to find users by username or full name with underscores
@@ -6211,6 +6296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Update message with mentions
               if (foundUsers.length > 0) {
                 const userIds = foundUsers.map(u => u.id);
+                console.log('Extracted mentions from text:', userIds);
                 await db.update(messages)
                   .set({ 
                     mentions: JSON.stringify(userIds)
@@ -6265,6 +6351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Broadcast message to all users in the channel
           try {
+            console.log("Broadcasting new message to channel members");
             
             const broadcastMessage = {
               type: 'new_channel_message',
@@ -6285,6 +6372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       channel.members.some(m => m.userId === userId)) {
                     connection.send(JSON.stringify(broadcastMessage));
                     broadcastCount++;
+                    console.log(`Sent channel message to user ${userId}`);
                   }
                 }
               } catch (connectionError) {
@@ -6292,6 +6380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Continue trying other clients
               }
             }
+            console.log(`Message broadcast to ${broadcastCount} clients`);
             
             // Log the activity
             try {
@@ -6324,6 +6413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { receiverId, content, mentions } = data;
           
           try {
+            console.log("Processing direct message to user:", receiverId);
             
             // Verify receiver exists
             let receiver;
@@ -6386,6 +6476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 mentions: mentions || null
               }).returning();
               
+              console.log("Direct message created successfully:", newMessage.id);
             } catch (dbError) {
               console.error("Error creating direct message:", dbError);
               ws.send(JSON.stringify({ 
@@ -6420,6 +6511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 receiver
               };
               
+              console.log("Broadcasting direct message:", newMessage.id, "from user", ws.userId, "to user", receiverId);
               
               // Loop through all connected clients
               wss.clients.forEach((client: ExtendedWebSocket) => {
@@ -6430,6 +6522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       type: 'direct_message_sent',
                       message: messagePayload
                     }));
+                    console.log("Sent confirmation to sender:", client.userId);
                   } 
                   // If this is the receiver, send a new message notification
                   else if (client.userId === receiverId) {
@@ -6437,6 +6530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       type: 'new_direct_message',
                       message: messagePayload
                     }));
+                    console.log("Sent new message to receiver:", client.userId);
                   }
                 }
               });
@@ -6559,6 +6653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Handle disconnection
     ws.on('close', async () => {
+      console.log('WebSocket connection closed');
       
       if (ws.userId) {
         // Remove from clients map

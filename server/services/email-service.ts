@@ -42,6 +42,7 @@ async function retryOperation(operation: () => Promise<any>, maxRetries = 3, ini
       }
       
       const delay = initialDelay * Math.pow(2, retries - 1);
+      console.log(`Rate limit encountered, retry attempt ${retries}/${maxRetries} after ${delay}ms delay`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -56,6 +57,7 @@ export async function initializeEmailService() {
     });
     
     if (configs.length === 0) {
+      console.log('No active SMTP configuration found. Email notifications are disabled.');
       return false;
     }
     
@@ -64,6 +66,7 @@ export async function initializeEmailService() {
     // Create the transporter
     // Special case for Zeptomail which requires specific authentication
     if (smtpSettings.host.includes('zeptomail')) {
+      console.log('Using Zeptomail-specific configuration');
       
       // Use the environment variable API key if available, otherwise fall back to database stored key
       const apiKey = process.env.ZEPTOMAIL_API_KEY || smtpSettings.password;
@@ -100,6 +103,7 @@ export async function initializeEmailService() {
     
     // Verify connection
     await transporter.verify();
+    console.log('SMTP connection verified successfully. Email notifications are enabled.');
     return true;
   } catch (error) {
     console.error('Failed to initialize email service:', error);
@@ -116,6 +120,7 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
   if (!transporter || !smtpSettings) {
     await initializeEmailService();
     if (!transporter) {
+      console.error('Email service not initialized. Cannot send email.');
       return false;
     }
   }
@@ -129,6 +134,7 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
       html,
     });
     
+    console.log(`Email sent to ${to}`);
     return true;
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -155,8 +161,17 @@ export async function createNotification(
 ) {
   try {
     if (!userId) {
+      console.log('Cannot create notification: missing userId');
       return null;
     }
+    
+    console.log('Creating in-app notification:', {
+      userId,
+      title,
+      type,
+      referenceType,
+      referenceId
+    });
     
     const notification = await storage.createNotification({
       userId,
@@ -168,6 +183,7 @@ export async function createNotification(
       isRead: false,
     });
     
+    console.log(`Created notification ID ${notification.id} for user ${userId}`);
     return notification;
   } catch (error) {
     console.error('Failed to create notification:', error);
@@ -182,6 +198,7 @@ export async function createNotification(
  */
 export async function notifyTaskCreation(task: any, creator: any, assignee: any | null, projectTeam: any[] = []) {
   if (!assignee && (!projectTeam || projectTeam.length === 0)) {
+    console.log('No recipients for task creation notification - skipping', {
       taskId: task?.id,
       hasAssignee: Boolean(assignee),
       teamSize: projectTeam?.length || 0
@@ -190,10 +207,19 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
   }
   
   if (!task || !task.id) {
+    console.error('Invalid task data for notification', { task });
     return;
   }
   
   const taskUrl = getTaskUrl(task.id);
+  console.log('Sending task creation notification for task:', {
+    taskId: task.id,
+    title: task.title,
+    assigneeId: assignee?.id,
+    assigneeEmail: assignee?.email,
+    creatorId: creator?.id,
+    teamSize: projectTeam?.length
+  });
   
   let notificationsSent = 0;
   
@@ -235,18 +261,29 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
           notificationsSent++;
         }
       } catch (err) {
-        // Silent error handling for production
+        console.error(`Failed to send task creation notification to assignee ${assignee.id}:`, err);
       }
+    } else {
+      console.log('Assignee has no email address:', {
+        assigneeId: assignee.id,
+        assigneeUsername: assignee.username
+      });
     }
   }
   
   // Notify project team
   if (projectTeam && projectTeam.length > 0) {
+    console.log(`Attempting to notify ${projectTeam.length} team members about task creation`);
     let teamNotificationCount = 0;
     
     for (const member of projectTeam) {
       // Skip notification for assignee (already notified) and creator
       if ((assignee && member.id === assignee.id) || member.id === creator?.id || !member.email) {
+        console.log(`Skipping team notification for user ${member.id}: ${
+          !member.email ? 'no email' : 
+          (assignee && member.id === assignee.id) ? 'is assignee' : 
+          'is creator'
+        }`);
         continue;
       }
       
@@ -294,8 +331,10 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
       }
     }
     
+    console.log(`Successfully notified ${teamNotificationCount} team members about task creation`);
   }
   
+  console.log(`Task creation notification summary: sent ${notificationsSent} notification emails`);
 }
 
 /**
@@ -303,12 +342,14 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any 
  */
 export async function notifyTaskAssignment(task: any, assignee: any, assignedBy: any) {
   if (!assignee) {
+    console.log('Cannot send task assignment notification: assignee missing', {
       taskId: task?.id,
       assigneeId: assignee?.id
     });
     return;
   }
   
+  console.log('Sending task assignment notification:', {
     taskId: task.id,
     assigneeId: assignee.id,
     assigneeEmail: assignee.email,
@@ -368,12 +409,14 @@ export async function notifyTaskAssignment(task: any, assignee: any, assignedBy:
  */
 export async function notifyMention(task: any, mentionedUser: any, mentionedBy: any, comment: string) {
   if (!mentionedUser) {
+    console.log('Cannot send mention notification: mentioned user missing', {
       taskId: task?.id,
       mentionedUserId: mentionedUser?.id
     });
     return;
   }
   
+  console.log('Sending mention notification:', {
     taskId: task.id,
     mentionedUserId: mentionedUser.id,
     mentionedUserEmail: mentionedUser.email || 'no-email',
@@ -397,6 +440,7 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
       'task'
     );
     
+    console.log(`Created in-app mention notification: ${notification?.id || 'unknown'} for user ${mentionedUser.id}`);
     
     // Send email notification if email is available
     if (mentionedUser.email) {
@@ -414,12 +458,14 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
           `,
         });
         
+        console.log(`Email notification for mention sent: ${emailSent ? 'success' : 'failed'} for user ${mentionedUser.id}`);
       } catch (emailError) {
         console.error(`Failed to send mention email notification to ${mentionedUser.username}:`, emailError);
         // Email failure doesn't mean the notification failed completely
         // The in-app notification was still created
       }
     } else {
+      console.log(`User ${mentionedUser.id} (${mentionedUser.username}) has no email address, skipping email notification`);
     }
     
     return notification;
@@ -434,9 +480,11 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
  */
 export async function notifyTaskComment(task: any, comment: string, commentBy: any, notifyUsers: any[]) {
   if (!notifyUsers || notifyUsers.length === 0) {
+    console.log('No users to notify about comment');
     return;
   }
   
+  console.log('Sending comment notifications:', {
     taskId: task.id,
     commenterUserId: commentBy?.id,
     numberOfUsersToNotify: notifyUsers.length,
@@ -451,6 +499,7 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
   for (const user of notifyUsers) {
     // Don't notify the commenter about their own comment
     if (user.id === commentBy.id) {
+      console.log(`Skipping notification for user ${user.id}: is commenter`);
       continue;
     }
     
@@ -493,6 +542,7 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
     }
   }
   
+  console.log(`Sent ${emailsSent} comment notification emails and ${notificationsSent} in-app notifications`);
 }
 
 /**
@@ -500,11 +550,13 @@ export async function notifyTaskComment(task: any, comment: string, commentBy: a
  */
 export async function notifyUserCreation(user: any, password: string | null, admin: any) {
   if (!user) {
+    console.log('Cannot send user creation notification: user missing', {
       userId: user?.id
     });
     return;
   }
   
+  console.log('Sending user creation notification:', {
     userId: user.id,
     userEmail: user.email,
     adminId: admin?.id
@@ -524,6 +576,7 @@ export async function notifyUserCreation(user: any, password: string | null, adm
       user.id,
       'user'
     );
+    console.log(`Created in-app welcome notification for user ${user.id}`);
   } catch (err) {
     console.error(`Failed to create in-app welcome notification for user ${user.id}:`, err);
   }
@@ -545,6 +598,7 @@ export async function notifyUserCreation(user: any, password: string | null, adm
           ${password ? `<p>For security reasons, please change your password after the first login.</p>` : ''}
         `,
       });
+      console.log(`Sent welcome email to user ${user.id}`);
     } catch (err) {
       console.error(`Failed to send welcome email to user ${user.id}:`, err);
     }
@@ -556,11 +610,13 @@ export async function notifyUserCreation(user: any, password: string | null, adm
  */
 export async function notifyPasswordReset(user: any, newPassword: string) {
   if (!user) {
+    console.log('Cannot send password reset notification: user missing', {
       userId: user?.id
     });
     return;
   }
   
+  console.log('Sending password reset notification:', {
     userId: user.id,
     userEmail: user.email
   });
@@ -578,6 +634,7 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
       user.id,
       'user'
     );
+    console.log(`Created in-app password reset notification for user ${user.id}`);
   } catch (err) {
     console.error(`Failed to create in-app password reset notification for user ${user.id}:`, err);
   }
@@ -597,6 +654,7 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
           <p>For security reasons, please change your password after login.</p>
         `,
       });
+      console.log(`Sent password reset email to user ${user.id}`);
     } catch (err) {
       console.error(`Failed to send password reset email to user ${user.id}:`, err);
     }
@@ -608,12 +666,14 @@ export async function notifyPasswordReset(user: any, newPassword: string) {
  */
 export async function notifyTaskCollaboration(task: any, user: any, inviter: any, role: string = 'viewer') {
   if (!user) {
+    console.log('Cannot send task collaboration notification: user missing', {
       taskId: task?.id,
       userId: user?.id
     });
     return;
   }
   
+  console.log('Sending task collaboration invitation notification:', {
     taskId: task.id,
     taskTitle: task.title,
     userId: user.id,
@@ -636,6 +696,7 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
       task.id,
       'task'
     );
+    console.log(`Successfully created in-app task collaboration notification for user ${user.id}`);
   } catch (err) {
     console.error(`Failed to create in-app task collaboration notification for user ${user.id}:`, err);
   }
@@ -660,6 +721,7 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
       });
       
       if (success) {
+        console.log(`Successfully sent task collaboration invitation email to ${user.email}`);
       }
     } catch (err) {
       console.error(`Failed to send task collaboration invitation email to user ${user.id}:`, err);
@@ -672,12 +734,14 @@ export async function notifyTaskCollaboration(task: any, user: any, inviter: any
  */
 export async function notifyProjectAssignment(project: any, user: any, assignedBy: any, role: string = 'member') {
   if (!user) {
+    console.log('Cannot send project assignment notification: user missing', {
       projectId: project?.id,
       userId: user?.id
     });
     return;
   }
   
+  console.log('Sending project assignment notification:', {
     projectId: project.id,
     projectName: project.name,
     userId: user.id,
@@ -700,6 +764,7 @@ export async function notifyProjectAssignment(project: any, user: any, assignedB
       project.id,
       'project'
     );
+    console.log(`Successfully created in-app project assignment notification for user ${user.id}`);
   } catch (err) {
     console.error(`Failed to create in-app project assignment notification for user ${user.id}:`, err);
   }
@@ -722,6 +787,7 @@ export async function notifyProjectAssignment(project: any, user: any, assignedB
       });
       
       if (success) {
+        console.log(`Successfully sent project assignment notification email to ${user.email}`);
       }
     } catch (err) {
       console.error(`Failed to send project assignment notification email to user ${user.id}:`, err);
