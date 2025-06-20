@@ -6787,6 +6787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         res.json({ 
           message: 'Onboarding completed successfully',
+          success: true,
           user: {
             hasCompletedOnboarding: true,
             departmentId: unitIds[0],

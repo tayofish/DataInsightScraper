@@ -286,7 +286,7 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
               <Building2 className="mx-auto w-12 h-12 text-primary mb-3" />
               <h3 className="text-lg font-semibold mb-2">Select Your Department</h3>
               <p className="text-sm text-muted-foreground">
-                Choose your primary department for task assignments and reporting.
+                Choose your primary department for task assignments and reporting structure.
               </p>
             </div>
 
