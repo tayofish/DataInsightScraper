@@ -39,7 +39,7 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
   // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
     mutationFn: async (data: { unitIds: number[], departmentId: number }) => {
-      const response = await fetch('/api/user/complete-onboarding', {
+      const response = await fetch('/api/complete-onboarding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -201,15 +201,9 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
                   <SelectValue placeholder="Select a department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className="w-3 h-3 rounded-full" 
-                          style={{ backgroundColor: category.color }}
-                        />
-                        {category.name}
-                      </div>
+                  {departments.map((department) => (
+                    <SelectItem key={department.id} value={department.id.toString()}>
+                      {department.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

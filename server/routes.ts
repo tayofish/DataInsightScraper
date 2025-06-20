@@ -6686,10 +6686,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: 'User not authenticated' });
       }
 
-      const { departmentId } = req.body;
+      const { departmentId, unitIds } = req.body;
       
       if (!departmentId) {
         return res.status(400).json({ message: 'Department ID is required' });
+      }
+
+      // Validate that the department exists
+      const department = await storage.getDepartmentById(departmentId);
+      if (!department) {
+        return res.status(400).json({ message: 'Invalid department selected' });
       }
 
       // Update user's onboarding status and department
@@ -6703,8 +6709,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: updatedUser 
       });
     } catch (error) {
-      console.error('Error completing onboarding:', error);
-      res.status(500).json({ message: 'Failed to complete onboarding' });
+      console.error('Database error during onboarding:', error);
+      res.status(500).json({ message: 'Failed to complete onboarding setup' });
     }
   });
 
