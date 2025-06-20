@@ -29,6 +29,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { WebSocketProvider } from "@/hooks/websocket-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AdminRoute } from "@/lib/admin-route";
+import { OnboardingWrapper } from "@/components/onboarding-wrapper";
 import { useEffect, useState } from "react";
 
 function AppLayout({ children }: { children: React.ReactNode }) {

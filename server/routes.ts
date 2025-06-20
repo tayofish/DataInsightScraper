@@ -8,7 +8,7 @@ import {
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
   smtpConfigFormSchema, smtpConfig, tasks, departments, categories, projects, InsertTask, 
   InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
-  users, appSettings, notifications, notificationInsertSchema,
+  users, appSettings, notifications, notificationInsertSchema, userDepartments,
   // Collaboration features
   channelInsertSchema, messageInsertSchema, directMessageInsertSchema, userActivityInsertSchema,
   channels, messages, directMessages, userActivities, InsertChannel, InsertMessage, InsertDirectMessage,
@@ -1121,10 +1121,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Remove existing unit assignments
-        await executeQueryWithRetry(async () => {
-          return await db.delete(userDepartments)
-            .where(eq(userDepartments.userId, userId));
-        });
+        await db.delete(userDepartments)
+          .where(eq(userDepartments.userId, userId));
 
         // Add new unit assignments
         const assignments = unitIds.map((unitId: number, index: number) => ({
@@ -1133,10 +1131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isPrimary: index === 0 // First unit is primary
         }));
 
-        await executeQueryWithRetry(async () => {
-          return await db.insert(userDepartments)
-            .values(assignments);
-        });
+        await db.insert(userDepartments)
+          .values(assignments);
 
         // Broadcast onboarding completion to connected clients
         wss.clients.forEach((client: ExtendedWebSocket) => {

@@ -181,7 +181,8 @@ export function setupAuth(app: Express) {
             name: displayName,
             password: await hashPassword(randomBytes(16).toString('hex')), // Generate random password for OAuth users
             avatar: null,
-            isApproved: !authSettings.microsoftApprovalRequired // Only require approval if setting is enabled
+            isApproved: !authSettings.microsoftApprovalRequired, // Only require approval if setting is enabled
+            hasCompletedOnboarding: false // New users need to complete onboarding
           });
           
           // Notify admins about new user pending approval only if approval is required
