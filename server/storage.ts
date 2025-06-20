@@ -1343,10 +1343,13 @@ export const storage = {
   },
 
   // User Department operations
-  getUserDepartments: async (userId: number): Promise<{ departmentId: number }[]> => {
+  getUserDepartments: async (userId: number): Promise<{ departmentId: number; isPrimary: boolean }[]> => {
     const userDepts = await db.query.userDepartments.findMany({
       where: eq(userDepartments.userId, userId)
     });
-    return userDepts.map(dept => ({ departmentId: dept.departmentId }));
+    return userDepts.map(dept => ({ 
+      departmentId: dept.departmentId, 
+      isPrimary: dept.isPrimary 
+    }));
   }
 };
