@@ -287,9 +287,9 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
                   <SelectValue placeholder="Select a department" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id.toString()}>
-                      {department.name}
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
