@@ -47,10 +47,20 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
   });
 
   // Fetch categories (departments) 
-  const { data: categories = [] } = useQuery<Category[]>({
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
     enabled: isOpen
   });
+
+  // Debug categories loading
+  useEffect(() => {
+    if (isOpen && categories.length > 0) {
+      console.log('Categories loaded for onboarding:', categories);
+    }
+    if (categoriesError) {
+      console.error('Error loading categories:', categoriesError);
+    }
+  }, [categories, categoriesError, isOpen]);
 
   // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
@@ -282,18 +292,32 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
 
             <div className="space-y-3">
               <Label htmlFor="department-select">Department</Label>
-              <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a department" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id.toString()}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {categoriesLoading ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">Loading departments...</p>
+                </div>
+              ) : categoriesError ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-red-500">Error loading departments. Please try again.</p>
+                </div>
+              ) : categories.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">No departments available. Please contact your administrator.</p>
+                </div>
+              ) : (
+                <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="flex gap-3">
