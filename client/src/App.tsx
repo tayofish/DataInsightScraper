@@ -79,45 +79,59 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       
       <ProtectedRoute path="/" component={() => (
-        <AppLayout>
-          <Dashboard />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <Dashboard />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/tasks" component={() => (
-        <AppLayout>
-          <Tasks />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <Tasks />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/tasks/new" component={() => (
-        <AppLayout>
-          <Tasks showNewTaskForm={true} />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <Tasks showNewTaskForm={true} />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/tasks/:id" component={() => (
-        <AppLayout>
-          <Tasks />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <Tasks />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/projects" component={() => (
-        <AppLayout>
-          <Projects />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <Projects />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/projects/:id" component={() => (
-        <AppLayout>
-          <ProjectDetailPage />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <ProjectDetailPage />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       <ProtectedRoute path="/projects/:id/team" component={() => (
-        <AppLayout>
-          <ProjectTeam />
-        </AppLayout>
+        <OnboardingWrapper>
+          <AppLayout>
+            <ProjectTeam />
+          </AppLayout>
+        </OnboardingWrapper>
       )} />
       
       {/* Admin-only routes */}
