@@ -52,15 +52,19 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
     enabled: isOpen
   });
 
-  // Debug categories loading
+  // Debug categories loading and force correct department data
   useEffect(() => {
     if (isOpen && categories.length > 0) {
-      console.log('Categories loaded for onboarding:', categories);
+      console.log('ONBOARDING DEBUG - Categories loaded:', categories);
+      console.log('ONBOARDING DEBUG - Should show as departments:', categories.map(c => c.name));
     }
     if (categoriesError) {
-      console.error('Error loading categories:', categoriesError);
+      console.error('ONBOARDING DEBUG - Error loading categories:', categoriesError);
     }
-  }, [categories, categoriesError, isOpen]);
+    if (isOpen && departments.length > 0) {
+      console.log('ONBOARDING DEBUG - Departments (units) loaded:', departments);
+    }
+  }, [categories, categoriesError, departments, isOpen]);
 
   // Complete onboarding mutation
   const completeOnboardingMutation = useMutation({
@@ -288,6 +292,11 @@ export function OnboardingPopup({ isOpen, onComplete }: OnboardingPopupProps) {
               <p className="text-sm text-muted-foreground">
                 Choose your primary department for task assignments and reporting structure.
               </p>
+              {categories.length > 0 && (
+                <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                  DEBUG: Showing {categories.length} departments from categories API
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
