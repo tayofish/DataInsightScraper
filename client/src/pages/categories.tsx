@@ -133,9 +133,7 @@ export default function Categories() {
   // Delete category mutation
   const deleteCategory = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/categories/${id}`, {
-        method: 'DELETE',
-      });
+      return apiRequest('DELETE', `/api/categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
