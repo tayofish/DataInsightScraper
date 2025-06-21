@@ -32,6 +32,7 @@ import SmtpConfigForm from "@/components/smtp-config-form";
 import LogoUpload from "@/components/logo-upload";
 import FaviconUpload from "@/components/favicon-upload";
 import AppNameEditor from "@/components/app-name-editor";
+import EndOfDayNotifications from "@/components/end-of-day-notifications";
 
 // User management form schema
 const userFormSchema = z.object({
@@ -1257,7 +1258,10 @@ export default function AdminPage() {
           </TabsComponentContent>
           
           <TabsComponentContent value="smtp" className="mt-6">
-            <SmtpConfigForm />
+            <div className="space-y-6">
+              <SmtpConfigForm />
+              <EndOfDayNotifications />
+            </div>
           </TabsComponentContent>
           
           <TabsComponentContent value="backup" className="mt-6">

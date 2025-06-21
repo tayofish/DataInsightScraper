@@ -399,12 +399,12 @@ export default function EndOfDayNotifications() {
                                     <span>{user.username}</span>
                                     <div className="flex gap-2">
                                       {user.overdueTasks > 0 && (
-                                        <Badge variant="destructive" size="sm">
+                                        <Badge variant="destructive" className="text-xs">
                                           {user.overdueTasks} overdue
                                         </Badge>
                                       )}
                                       {user.pendingTasks > 0 && (
-                                        <Badge variant="secondary" size="sm">
+                                        <Badge variant="secondary" className="text-xs">
                                           {user.pendingTasks} pending
                                         </Badge>
                                       )}
