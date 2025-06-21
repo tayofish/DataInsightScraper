@@ -293,7 +293,11 @@ export const projectInsertSchema = createInsertSchema(projects, {
 
 export const departmentInsertSchema = createInsertSchema(departments, {
   name: (schema) => schema.min(2, "Department name must be at least 2 characters"),
-  unitHeadId: (schema) => schema.nullable().optional(),
+  unitHeadId: (schema) => schema.transform((val) => {
+    if (val === "none" || val === "" || val === null || val === undefined) return null;
+    const num = parseInt(val as string);
+    return isNaN(num) ? null : num;
+  }).nullable().optional(),
 });
 
 export const categoryInsertSchema = createInsertSchema(categories, {
