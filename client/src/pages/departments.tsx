@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
 
 // Custom form schema that handles string values from Select components
@@ -51,7 +52,8 @@ export default function Departments() {
     defaultValues: {
       name: '',
       description: '',
-      unitHeadId: "none"
+      departmentHeadId: "none",
+      selectedUnits: []
     }
   });
   
@@ -81,19 +83,19 @@ export default function Departments() {
     mutationFn: async (values: DepartmentFormValues) => {
       console.log('Form submission data:', values);
       
-      // Handle unit head selection - convert "none" to null
+      // Handle department head selection - convert "none" to null
       const processedValues = {
         ...values,
-        unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
+        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
       };
 
       console.log('Processed values:', processedValues);
 
-      // Remove unitHeadId from department data as it's handled separately
-      const { unitHeadId, ...departmentData } = processedValues;
+      // Remove fields not needed for department creation
+      const { selectedUnits, ...departmentData } = processedValues;
       
-      console.log('Department data (without unitHeadId):', departmentData);
-      console.log('Unit head ID to assign:', unitHeadId);
+      console.log('Department data:', departmentData);
+      console.log('Selected units:', selectedUnits);
       
       let departmentResponse;
       
@@ -105,10 +107,17 @@ export default function Departments() {
         departmentResponse = await apiRequest('POST', '/api/departments', departmentData);
       }
 
-      // Handle unit head assignment
+      // Handle units creation if this is a new department and units are selected
       const departmentId = editingDepartment ? editingDepartment.id : departmentResponse.id;
-      if (departmentId) {
-        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId });
+      if (departmentId && selectedUnits && selectedUnits.length > 0) {
+        // Create units for this department
+        for (const unitName of selectedUnits) {
+          await apiRequest('POST', '/api/units', {
+            name: unitName,
+            description: '',
+            departmentId: departmentId
+          });
+        }
       }
 
       return departmentResponse;
@@ -122,10 +131,10 @@ export default function Departments() {
       form.reset();
       
       toast({
-        title: editingDepartment ? 'Unit Updated' : 'Unit Created',
+        title: editingDepartment ? 'Department Updated' : 'Department Created',
         description: editingDepartment 
           ? `${form.getValues().name} has been updated.` 
-          : `${form.getValues().name} has been added to units.`,
+          : `${form.getValues().name} has been added to departments.`,
       });
     },
     onError: (error) => {
@@ -164,13 +173,7 @@ export default function Departments() {
     console.log('onSubmit function called with values:', values);
     console.log('Form errors during submission:', form.formState.errors);
     
-    // Handle unit head selection - convert "none" to null
-    const processedValues = {
-      ...values,
-      unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
-    };
-    console.log('Processed values before mutation:', processedValues);
-    createDepartmentMutation.mutate(processedValues);
+    createDepartmentMutation.mutate(values);
   };
 
   const onFormError = (errors: any) => {
@@ -398,34 +401,55 @@ export default function Departments() {
                 )}
               />
 
-              {/* Unit Head Selection */}
+              {/* Department Head Selection */}
               <FormField
                 control={form.control}
-                name="unitHeadId"
+                name="departmentHeadId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center space-x-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>Unit Head</span>
+                      <span>Department Head</span>
                     </FormLabel>
-                    <Select
+                    <SearchableSelect
+                      options={[
+                        { value: "none", label: "No Department Head" },
+                        ...users.map(user => ({ 
+                          value: user.id.toString(), 
+                          label: `${user.name} (${user.username})` 
+                        }))
+                      ]}
                       value={field.value || "none"}
                       onValueChange={field.onChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a unit head (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No Unit Head</SelectItem>
-                        {users.map((user) => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.name} ({user.username})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select a department head (optional)"
+                      searchPlaceholder="Search users..."
+                      emptyText="No users found"
+                    />
                     <FormDescription>
-                      Unit heads receive daily email summaries for their assigned units
+                      Department heads oversee multiple units and receive consolidated email summaries
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Units Input */}
+              <FormField
+                control={form.control}
+                name="selectedUnits"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Units (Optional)</FormLabel>
+                    <Input
+                      placeholder="Enter unit names separated by commas (e.g., Sales Team, Marketing Team)"
+                      value={field.value?.join(', ') || ''}
+                      onChange={(e) => {
+                        const units = e.target.value.split(',').map(unit => unit.trim()).filter(unit => unit);
+                        field.onChange(units);
+                      }}
+                    />
+                    <FormDescription>
+                      Add units that belong to this department. You can create units later if needed.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
