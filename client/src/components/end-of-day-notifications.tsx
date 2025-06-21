@@ -16,6 +16,16 @@ interface NotificationSettings {
   adminNotificationsEnabled: boolean;
 }
 
+interface SchedulerConfig {
+  enabled: boolean;
+  time: string;
+  timezone: string;
+  status: {
+    running: boolean;
+    nextRun?: string;
+  };
+}
+
 interface UserTaskSummary {
   overdueTasks: any[];
   pendingTasks: any[];
@@ -56,6 +66,11 @@ export default function EndOfDayNotifications() {
   const { data: adminSummary, isLoading: adminSummaryLoading } = useQuery<AdminSummary>({
     queryKey: ['/api/end-of-day-notifications/admin-summary'],
     enabled: previewType === 'admin',
+  });
+
+  // Fetch scheduler configuration
+  const { data: schedulerConfig, isLoading: schedulerLoading } = useQuery<SchedulerConfig>({
+    queryKey: ['/api/scheduler/config'],
   });
 
   // Update settings mutation
@@ -118,6 +133,37 @@ export default function EndOfDayNotifications() {
 
   const handleSendNotifications = () => {
     sendNotificationsMutation.mutate();
+  };
+
+  // Update scheduler configuration mutation
+  const updateSchedulerMutation = useMutation({
+    mutationFn: async (config: Partial<SchedulerConfig>) => {
+      const response = await fetch('/api/scheduler/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config),
+      });
+      if (!response.ok) throw new Error('Failed to update scheduler configuration');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/scheduler/config'] });
+      toast({
+        title: 'Scheduler Updated',
+        description: 'Automatic scheduler configuration has been updated successfully.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update scheduler configuration.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleSchedulerChange = (config: Partial<SchedulerConfig>) => {
+    updateSchedulerMutation.mutate(config);
   };
 
   if (settingsLoading) {
@@ -442,6 +488,134 @@ export default function EndOfDayNotifications() {
               </DialogContent>
             </Dialog>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Automatic Scheduler Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Settings className="mr-2 h-5 w-5" />
+            Automatic Scheduler
+          </CardTitle>
+          <CardDescription>
+            Configure automatic daily email notifications with custom timing and timezone settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {schedulerLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <>
+              {/* Enable/Disable Scheduler */}
+              <div className="flex items-center justify-between space-x-4">
+                <div className="space-y-1">
+                  <Label htmlFor="scheduler-enabled" className="text-base font-medium">
+                    Enable Automatic Scheduler
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Automatically send end-of-day notifications at a specified time each day.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {schedulerConfig?.status.running ? (
+                    <Badge variant="default" className="flex items-center">
+                      <PlayCircle className="mr-1 h-3 w-3" />
+                      Running
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="flex items-center">
+                      <StopCircle className="mr-1 h-3 w-3" />
+                      Stopped
+                    </Badge>
+                  )}
+                  <Switch
+                    id="scheduler-enabled"
+                    checked={schedulerConfig?.enabled || false}
+                    onCheckedChange={(checked) => handleSchedulerChange({ enabled: checked })}
+                    disabled={updateSchedulerMutation.isPending}
+                  />
+                </div>
+              </div>
+
+              {/* Time Configuration */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="scheduler-time" className="text-base font-medium">
+                    Notification Time
+                  </Label>
+                  <Input
+                    id="scheduler-time"
+                    type="time"
+                    value={schedulerConfig?.time || '18:00'}
+                    onChange={(e) => handleSchedulerChange({ time: e.target.value })}
+                    disabled={updateSchedulerMutation.isPending}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Time when daily notifications will be sent (24-hour format)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="scheduler-timezone" className="text-base font-medium">
+                    Timezone
+                  </Label>
+                  <Select
+                    value={schedulerConfig?.timezone || 'UTC'}
+                    onValueChange={(value) => handleSchedulerChange({ timezone: value })}
+                    disabled={updateSchedulerMutation.isPending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC">UTC (Coordinated Universal Time)</SelectItem>
+                      <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                      <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                      <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                      <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                      <SelectItem value="Europe/London">London (GMT/BST)</SelectItem>
+                      <SelectItem value="Europe/Paris">Paris (CET/CEST)</SelectItem>
+                      <SelectItem value="Europe/Berlin">Berlin (CET/CEST)</SelectItem>
+                      <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                      <SelectItem value="Asia/Shanghai">Shanghai (CST)</SelectItem>
+                      <SelectItem value="Asia/Mumbai">Mumbai (IST)</SelectItem>
+                      <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Timezone for scheduled notifications
+                  </p>
+                </div>
+              </div>
+
+              {/* Scheduler Status and Information */}
+              {schedulerConfig?.enabled && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Scheduler Status</span>
+                  </div>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p>
+                      <strong>Next notification:</strong> Daily at {schedulerConfig.time} ({schedulerConfig.timezone})
+                    </p>
+                    <p>
+                      <strong>Status:</strong> {schedulerConfig.status.running ? 'Active and running' : 'Inactive'}
+                    </p>
+                    {schedulerConfig.status.nextRun && (
+                      <p>
+                        <strong>Next run:</strong> {schedulerConfig.status.nextRun}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
