@@ -48,7 +48,7 @@ export default function Departments() {
 
   // Fetch units for department assignment
   const { data: units = [] } = useQuery<Array<{id: number, name: string, description: string, departmentId: number}>>({
-    queryKey: ['/api/departments']
+    queryKey: ['/api/units']
   });
 
   // Note: Departments are the primary organizational structure
@@ -130,7 +130,7 @@ export default function Departments() {
         // Assign units to new department if unitIds are provided
         if (values.unitIds && values.unitIds.length > 0 && result?.id) {
           const unitUpdates = values.unitIds.map(unitId => 
-            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: result.id })
+            apiRequest('PATCH', `/api/units/${unitId}`, { departmentId: result.id })
           );
           await Promise.all(unitUpdates);
         }
@@ -141,7 +141,7 @@ export default function Departments() {
     onSuccess: () => {
       // Invalidate and refetch both departments and units
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
