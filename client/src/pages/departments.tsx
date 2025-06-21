@@ -48,7 +48,7 @@ export default function Departments() {
 
   // Fetch units for department assignment
   const { data: units = [] } = useQuery<Array<{id: number, name: string, description: string, departmentId: number}>>({
-    queryKey: ['/api/departments']
+    queryKey: ['/api/units']
   });
 
   // Note: Departments are the primary organizational structure
