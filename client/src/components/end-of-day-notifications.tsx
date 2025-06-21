@@ -55,10 +55,57 @@ interface AdminSummary {
   }>;
 }
 
+interface UnitSummary {
+  unitName: string;
+  unitId: number;
+  totalOverdueTasks: number;
+  totalPendingTasks: number;
+  tasksCompletedToday: any[];
+  unitMembers: Array<{
+    username: string;
+    name: string;
+    email: string;
+    overdueTasks: number;
+    pendingTasks: number;
+  }>;
+  membersWithCompletedWork: Array<{
+    username: string;
+    name: string;
+    email: string;
+    completedTasks: number;
+  }>;
+}
+
+interface DepartmentSummary {
+  departmentName: string;
+  departmentId: number;
+  totalOverdueTasks: number;
+  totalPendingTasks: number;
+  tasksCompletedToday: any[];
+  departmentUnits: Array<{
+    unitName: string;
+    unitId: number;
+    unitHeadName?: string;
+    unitHeadEmail?: string;
+    overdueTasks: number;
+    pendingTasks: number;
+    completedTasks: number;
+    memberCount: number;
+  }>;
+  allDepartmentMembers: Array<{
+    username: string;
+    name: string;
+    email: string;
+    unitName: string;
+    overdueTasks: number;
+    pendingTasks: number;
+  }>;
+}
+
 export default function EndOfDayNotifications() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [previewType, setPreviewType] = useState<'user' | 'admin'>('user');
+  const [previewType, setPreviewType] = useState<'user' | 'admin' | 'unitHead' | 'departmentHead'>('user');
 
   // Fetch notification settings
   const { data: settings, isLoading: settingsLoading } = useQuery<NotificationSettings>({
@@ -75,6 +122,18 @@ export default function EndOfDayNotifications() {
   const { data: adminSummary, isLoading: adminSummaryLoading } = useQuery<AdminSummary>({
     queryKey: ['/api/end-of-day-notifications/admin-summary'],
     enabled: previewType === 'admin',
+  });
+
+  // Fetch unit summary for preview (using first available unit)
+  const { data: unitSummary, isLoading: unitSummaryLoading } = useQuery<UnitSummary>({
+    queryKey: ['/api/end-of-day-notifications/unit-summary', 13], // Using Database Unit ID
+    enabled: previewType === 'unitHead',
+  });
+
+  // Fetch department summary for preview (using first available department)
+  const { data: departmentSummary, isLoading: departmentSummaryLoading } = useQuery<DepartmentSummary>({
+    queryKey: ['/api/end-of-day-notifications/department-summary', 13], // Using Database Unit ID
+    enabled: previewType === 'departmentHead',
   });
 
   // Fetch scheduler configuration
@@ -306,7 +365,7 @@ export default function EndOfDayNotifications() {
                 
                 <div className="space-y-4">
                   {/* Preview Type Selector */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant={previewType === 'user' ? 'default' : 'outline'}
                       size="sm"
@@ -320,8 +379,24 @@ export default function EndOfDayNotifications() {
                       size="sm"
                       onClick={() => setPreviewType('admin')}
                     >
-                      <Clock className="mr-2 h-4 w-4" />
+                      <Settings className="mr-2 h-4 w-4" />
                       Admin Summary
+                    </Button>
+                    <Button
+                      variant={previewType === 'unitHead' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPreviewType('unitHead')}
+                    >
+                      <Users className="mr-2 h-4 w-4" />
+                      Unit Head Summary
+                    </Button>
+                    <Button
+                      variant={previewType === 'departmentHead' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPreviewType('departmentHead')}
+                    >
+                      <Clock className="mr-2 h-4 w-4" />
+                      Department Head Summary
                     </Button>
                   </div>
 
@@ -550,6 +625,212 @@ export default function EndOfDayNotifications() {
                         </div>
                       ) : (
                         <p className="text-muted-foreground">Unable to load admin summary preview.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Unit Head Summary Preview */}
+                  {previewType === 'unitHead' && (
+                    <div className="space-y-4">
+                      {unitSummaryLoading ? (
+                        <div className="flex items-center justify-center p-8">
+                          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+                        </div>
+                      ) : unitSummary ? (
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                          <h3 className="font-semibold mb-3">Unit Head Daily Summary Preview</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Unit: {unitSummary.unitName}</p>
+                          
+                          {/* Unit Statistics */}
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-red-600">
+                                {unitSummary.totalOverdueTasks}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Overdue Tasks</div>
+                            </div>
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-orange-600">
+                                {unitSummary.totalPendingTasks}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Pending Tasks</div>
+                            </div>
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-green-600">
+                                {unitSummary.tasksCompletedToday.length}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Completed Today</div>
+                            </div>
+                          </div>
+
+                          {/* Unit Members with Pending Work */}
+                          {unitSummary.unitMembers.length > 0 && (
+                            <div className="mb-4">
+                              <Badge variant="secondary" className="mb-2">
+                                Unit Members with Pending Work ({unitSummary.unitMembers.length})
+                              </Badge>
+                              <div className="space-y-2">
+                                {unitSummary.unitMembers.slice(0, 5).map((member, index) => (
+                                  <div key={index} className="flex justify-between items-center text-sm bg-background p-2 rounded border">
+                                    <span>{member.name}</span>
+                                    <div className="flex gap-2">
+                                      {member.overdueTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          {member.overdueTasks} overdue
+                                        </Badge>
+                                      )}
+                                      {member.pendingTasks > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {member.pendingTasks} pending
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Members with Completed Work */}
+                          {unitSummary.membersWithCompletedWork.length > 0 && (
+                            <div className="mb-4">
+                              <Badge variant="default" className="mb-2 bg-green-600">
+                                Members with Completed Work ({unitSummary.membersWithCompletedWork.length})
+                              </Badge>
+                              <div className="space-y-2">
+                                {unitSummary.membersWithCompletedWork.slice(0, 5).map((member, index) => (
+                                  <div key={index} className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-200">
+                                    <span className="font-medium">{member.name}</span>
+                                    <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                      {member.completedTasks} completed
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">Unable to load unit summary preview.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Department Head Summary Preview */}
+                  {previewType === 'departmentHead' && (
+                    <div className="space-y-4">
+                      {departmentSummaryLoading ? (
+                        <div className="flex items-center justify-center p-8">
+                          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+                        </div>
+                      ) : departmentSummary ? (
+                        <div className="border rounded-lg p-4 bg-muted/50">
+                          <h3 className="font-semibold mb-3">Department Head Daily Summary Preview</h3>
+                          <p className="text-sm text-muted-foreground mb-4">Department: {departmentSummary.departmentName}</p>
+                          
+                          {/* Department Statistics */}
+                          <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-red-600">
+                                {departmentSummary.totalOverdueTasks}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Overdue Tasks</div>
+                            </div>
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-orange-600">
+                                {departmentSummary.totalPendingTasks}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Pending Tasks</div>
+                            </div>
+                            <div className="text-center p-3 border rounded">
+                              <div className="text-2xl font-bold text-green-600">
+                                {departmentSummary.tasksCompletedToday.length}
+                              </div>
+                              <div className="text-xs text-muted-foreground">Completed Today</div>
+                            </div>
+                          </div>
+
+                          {/* Department Units Overview */}
+                          {departmentSummary.departmentUnits.length > 0 && (
+                            <div className="mb-4">
+                              <Badge variant="secondary" className="mb-2">
+                                Department Units ({departmentSummary.departmentUnits.length})
+                              </Badge>
+                              <div className="space-y-2">
+                                {departmentSummary.departmentUnits.slice(0, 5).map((unit, index) => (
+                                  <div key={index} className="bg-background p-3 rounded border">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-medium">{unit.unitName}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {unit.memberCount} members
+                                      </span>
+                                    </div>
+                                    <div className="flex gap-2 text-xs">
+                                      {unit.overdueTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          {unit.overdueTasks} overdue
+                                        </Badge>
+                                      )}
+                                      {unit.pendingTasks > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {unit.pendingTasks} pending
+                                        </Badge>
+                                      )}
+                                      {unit.completedTasks > 0 && (
+                                        <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                          {unit.completedTasks} completed
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {unit.unitHeadName && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Head: {unit.unitHeadName}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* All Department Members Summary */}
+                          {departmentSummary.allDepartmentMembers.length > 0 && (
+                            <div className="mb-4">
+                              <Badge variant="secondary" className="mb-2">
+                                All Department Members ({departmentSummary.allDepartmentMembers.length})
+                              </Badge>
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {departmentSummary.allDepartmentMembers.slice(0, 10).map((member, index) => (
+                                  <div key={index} className="flex justify-between items-center text-sm bg-background p-2 rounded border">
+                                    <div>
+                                      <span>{member.name}</span>
+                                      <span className="text-xs text-muted-foreground ml-2">({member.unitName})</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {member.overdueTasks > 0 && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          {member.overdueTasks} overdue
+                                        </Badge>
+                                      )}
+                                      {member.pendingTasks > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {member.pendingTasks} pending
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                                {departmentSummary.allDepartmentMembers.length > 10 && (
+                                  <p className="text-xs text-muted-foreground ml-2">
+                                    ... and {departmentSummary.allDepartmentMembers.length - 10} more members
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-muted-foreground">Unable to load department summary preview.</p>
                       )}
                     </div>
                   )}
