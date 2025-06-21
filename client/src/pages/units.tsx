@@ -16,12 +16,11 @@ import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users, Buildin
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
 
-// Unit form schema
+// Department form schema (treating departments as units)
 const unitFormSchema = z.object({
   name: z.string().min(2, "Unit name must be at least 2 characters"),
   description: z.string().optional(),
-  unitHeadId: z.string().optional(),
-  departmentId: z.string().min(1, "Department is required")
+  headId: z.string().optional()
 });
 
 type UnitFormValues = z.infer<typeof unitFormSchema>;
@@ -35,15 +34,12 @@ export default function Units() {
 
   const { toast } = useToast();
 
-  // Fetch units with departments
+  // Fetch departments as units (respecting original data structure)
   const { data: units = [], isLoading: unitsLoading } = useQuery({
-    queryKey: ['/api/units']
-  });
-
-  // Fetch departments for selection
-  const { data: departments = [] } = useQuery({
     queryKey: ['/api/departments']
   });
+
+  // Since we're treating departments as units, we don't need a separate departments list for selection
 
   // Fetch users for unit head selection
   const { data: users = [] } = useQuery<Array<{id: number, username: string, name: string}>>({
@@ -56,8 +52,7 @@ export default function Units() {
     defaultValues: {
       name: '',
       description: '',
-      unitHeadId: "none",
-      departmentId: ""
+      headId: "none"
     }
   });
 
