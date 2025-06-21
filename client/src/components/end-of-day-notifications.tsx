@@ -44,6 +44,11 @@ interface AdminSummary {
     overdueTasks: number;
     pendingTasks: number;
   }>;
+  usersWithCompletedWork: Array<{
+    username: string;
+    email: string;
+    completedTasks: number;
+  }>;
 }
 
 export default function EndOfDayNotifications() {

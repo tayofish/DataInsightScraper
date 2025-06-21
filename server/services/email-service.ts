@@ -216,6 +216,11 @@ interface AdminSummary {
     overdueTasks: number;
     pendingTasks: number;
   }>;
+  usersWithCompletedWork: Array<{
+    username: string;
+    email: string;
+    completedTasks: number;
+  }>;
 }
 
 export async function getUserTaskSummary(userId: number): Promise<UserTaskSummary> {
@@ -337,6 +342,8 @@ export async function getAdminSummary(): Promise<AdminSummary> {
   });
 
   const userSummaries = [];
+  const usersWithCompletedWork = [];
+  
   for (const user of allUsers) {
     const userOverdue = await db
       .select({ count: count() })
@@ -355,19 +362,44 @@ export async function getAdminSummary(): Promise<AdminSummary> {
         or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
       ));
 
-    userSummaries.push({
-      username: user.username,
-      email: user.email || '',
-      overdueTasks: userOverdue[0]?.count || 0,
-      pendingTasks: userPending[0]?.count || 0
-    });
+    const userCompleted = await db
+      .select({ count: count() })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, user.id),
+        eq(tasks.status, 'completed'),
+        gte(tasks.updatedAt, startOfDay),
+        lte(tasks.updatedAt, endOfDay)
+      ));
+
+    const overdueTasks = userOverdue[0]?.count || 0;
+    const pendingTasks = userPending[0]?.count || 0;
+    const completedTasks = userCompleted[0]?.count || 0;
+
+    if (overdueTasks > 0 || pendingTasks > 0) {
+      userSummaries.push({
+        username: user.username,
+        email: user.email || '',
+        overdueTasks,
+        pendingTasks
+      });
+    }
+
+    if (completedTasks > 0) {
+      usersWithCompletedWork.push({
+        username: user.username,
+        email: user.email || '',
+        completedTasks
+      });
+    }
   }
 
   return {
     totalOverdueTasks: overdueCount[0]?.count || 0,
     totalPendingTasks: pendingCount[0]?.count || 0,
     tasksCompletedToday: completedToday,
-    userSummaries: userSummaries.filter(u => u.overdueTasks > 0 || u.pendingTasks > 0)
+    userSummaries,
+    usersWithCompletedWork
   };
 }
 
@@ -537,7 +569,7 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
     html += `</ul></div>`;
   }
 
-  // User summaries
+  // User summaries with pending work
   if (summary.userSummaries.length > 0) {
     html += `
       <div style="margin: 20px 0; padding: 15px; background-color: #fefce8; border-left: 4px solid #eab308;">
@@ -562,6 +594,39 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
           </td>
           <td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb; color: ${user.pendingTasks > 0 ? '#d97706' : '#666'};">
             ${user.pendingTasks}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Users with completed work table
+  if (summary.usersWithCompletedWork.length > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #ecfdf5; border-left: 4px solid #10b981;">
+        <h3 style="color: #047857; margin-top: 0;">🎯 Users with Completed Work</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+          <thead>
+            <tr style="background-color: #f0fdf4;">
+              <th style="padding: 8px; text-align: left; border: 1px solid #bbf7d0;">User</th>
+              <th style="padding: 8px; text-align: center; border: 1px solid #bbf7d0;">Tasks Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    summary.usersWithCompletedWork.forEach(user => {
+      html += `
+        <tr>
+          <td style="padding: 8px; border: 1px solid #bbf7d0;">${user.username}</td>
+          <td style="padding: 8px; text-align: center; border: 1px solid #bbf7d0; color: #059669; font-weight: bold;">
+            ${user.completedTasks}
           </td>
         </tr>
       `;
