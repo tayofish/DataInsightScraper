@@ -47,7 +47,7 @@ export const units = pgTable("units", {
   name: text("name").notNull(),
   description: text("description"),
   unitHeadId: integer("unit_head_id").references(() => users.id),
-  departmentId: integer("department_id").references(() => departments.id).notNull(),
+  departmentId: integer("department_id").references(() => departments.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
