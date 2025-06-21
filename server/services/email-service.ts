@@ -1,6 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
-import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings } from '@shared/schema';
+import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings, departments, userDepartments } from '@shared/schema';
 import { eq, and, gte, lte, or, count, desc, ilike, sql } from 'drizzle-orm';
 
 // Email transporter

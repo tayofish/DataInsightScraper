@@ -37,6 +37,7 @@ export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description"),
+  unitHeadId: integer("unit_head_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -184,10 +185,14 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   projectAssignments: many(projectAssignments),
 }));
 
-export const departmentsRelations = relations(departments, ({ many }) => ({
+export const departmentsRelations = relations(departments, ({ many, one }) => ({
   categories: many(categories),
   users: many(users),
   userDepartments: many(userDepartments),
+  unitHead: one(users, {
+    fields: [departments.unitHeadId],
+    references: [users.id],
+  }),
 }));
 
 export const categoriesRelations = relations(categories, ({ many, one }) => ({
