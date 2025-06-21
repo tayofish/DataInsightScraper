@@ -1788,14 +1788,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bodyKeys: Object.keys(req.body)
       });
 
-      const unitData = unitInsertSchema.partial().parse(req.body);
-      const updatedUnit = await storage.updateUnit(id, unitData);
+      const departmentData = departmentInsertSchema.partial().parse(req.body);
+      const updatedDepartment = await storage.updateDepartment(id, departmentData);
       
-      if (!updatedUnit) {
+      if (!updatedDepartment) {
         return res.status(404).json({ message: "Unit not found" });
       }
 
-      return res.status(200).json(updatedUnit);
+      return res.status(200).json(updatedDepartment);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid department data", errors: error.errors });
