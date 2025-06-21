@@ -126,13 +126,13 @@ export default function EndOfDayNotifications() {
 
   // Fetch unit summary for preview (using first available unit)
   const { data: unitSummary, isLoading: unitSummaryLoading } = useQuery<UnitSummary>({
-    queryKey: ['/api/end-of-day-notifications/unit-summary', 13], // Using Database Unit ID
+    queryKey: ['/api/end-of-day-notifications/unit-summary/13'], // Using Database Unit ID
     enabled: previewType === 'unitHead',
   });
 
   // Fetch department summary for preview (using first available department)
   const { data: departmentSummary, isLoading: departmentSummaryLoading } = useQuery<DepartmentSummary>({
-    queryKey: ['/api/end-of-day-notifications/department-summary', 13], // Using Database Unit ID
+    queryKey: ['/api/end-of-day-notifications/department-summary/13'], // Using Database Unit ID
     enabled: previewType === 'departmentHead',
   });
 
