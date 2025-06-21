@@ -7092,6 +7092,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unit head summary (for unit heads or admins)
+  app.get("/api/end-of-day-notifications/unit-summary/:unitId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const unitId = parseInt(req.params.unitId);
+      if (isNaN(unitId)) {
+        return res.status(400).json({ message: "Invalid unit ID" });
+      }
+
+      // Check if unit exists
+      const unit = await storage.getDepartmentById(unitId);
+      if (!unit) {
+        return res.status(404).json({ message: "Unit not found" });
+      }
+
+      // Check if user is admin or unit head of the requested unit
+      const isUserAdmin = req.user.isAdmin;
+      const isUnitHead = unit.unitHeadId === req.user.id;
+
+      if (!isUserAdmin && !isUnitHead) {
+        return res.status(403).json({ message: "Access denied. Only unit heads and admins can view unit summaries" });
+      }
+
+      const summary = await emailService.getUnitSummary(unitId);
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching unit summary:', error);
+      res.status(500).json({ message: 'Failed to fetch unit summary' });
+    }
+  });
+
   // Get department head summary (for department heads or admins)
   app.get("/api/end-of-day-notifications/department-summary/:departmentId", async (req, res) => {
     try {
