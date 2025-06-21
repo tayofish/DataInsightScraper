@@ -1400,6 +1400,44 @@ export default function AdminPage() {
                 
                 <div className="flex items-center justify-between">
                   <div>
+                    <h4 className="font-medium">Microsoft Authentication</h4>
+                    <p className="text-sm text-muted-foreground">Allow users to login with Microsoft Entra ID</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="microsoft-auth" 
+                      checked={authSettings.microsoftAuth}
+                      onCheckedChange={() => handleAuthToggle('microsoftAuth')}
+                    />
+                    <Badge variant={authSettings.microsoftAuth ? "default" : "outline"}>
+                      {authSettings.microsoftAuth ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                {authSettings.microsoftAuth && (
+                  <div className="flex items-center justify-between pl-6 border-l-2 border-muted">
+                    <div>
+                      <h4 className="font-medium">Microsoft User Approval Required</h4>
+                      <p className="text-sm text-muted-foreground">Require admin approval for new Microsoft authentication users</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="microsoft-approval" 
+                        checked={authSettings.microsoftApprovalRequired}
+                        onCheckedChange={() => handleAuthToggle('microsoftApprovalRequired')}
+                      />
+                      <Badge variant={authSettings.microsoftApprovalRequired ? "default" : "outline"}>
+                        {authSettings.microsoftApprovalRequired ? "Required" : "Not Required"}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+                
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div>
                     <h4 className="font-medium">User Registration</h4>
                     <p className="text-sm text-muted-foreground">Allow new users to register accounts</p>
                   </div>
