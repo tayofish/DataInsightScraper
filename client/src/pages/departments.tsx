@@ -35,7 +35,7 @@ export default function Departments() {
   const itemsPerPage = 10;
   const { toast } = useToast();
   
-  // Fetch departments (from categories endpoint)
+  // Fetch departments
   const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
     queryKey: ['/api/categories']
   });
@@ -83,17 +83,17 @@ export default function Departments() {
     mutationFn: async (values: DepartmentFormValues) => {
       console.log('Form submission data:', values);
       
-      // Handle department head selection - convert "none" to null
+      // Handle department head selection - convert "none" to null, keep as string for backend validation
       const processedValues = {
         ...values,
-        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
+        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId || null
       };
 
       console.log('Processed values:', processedValues);
       
       if (editingDepartment) {
         // Update existing department
-        return await apiRequest('PUT', `/api/categories/${editingDepartment.id}`, processedValues);
+        return await apiRequest('PATCH', `/api/categories/${editingDepartment.id}`, processedValues);
       } else {
         // Create new department
         return await apiRequest('POST', '/api/categories', processedValues);
@@ -102,6 +102,7 @@ export default function Departments() {
     onSuccess: () => {
       // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.refetchQueries({ queryKey: ['/api/categories'] });
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
@@ -115,10 +116,10 @@ export default function Departments() {
       });
     },
     onError: (error) => {
-      console.error('Failed to save unit:', error);
+      console.error('Failed to save department:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save unit. Please try again.',
+        description: 'Failed to save department. Please try again.',
         variant: 'destructive'
       });
     }

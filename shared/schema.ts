@@ -57,6 +57,7 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   color: text("color").notNull().default('#6b7280'), // Default gray color
   departmentId: integer("department_id").references(() => departments.id), // Reference to departments table
+  departmentHeadId: integer("department_head_id").references(() => users.id), // Department head assignment
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
