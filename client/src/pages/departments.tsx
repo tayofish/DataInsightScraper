@@ -22,8 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 const departmentFormSchema = z.object({
   name: z.string().min(2, "Department name must be at least 2 characters"),
   description: z.string().optional(),
-  departmentHeadId: z.string().optional(),
-  selectedUnits: z.array(z.string()).optional()
+  departmentHeadId: z.string().optional()
 });
 
 type DepartmentFormValues = z.infer<typeof departmentFormSchema>;
@@ -47,10 +46,7 @@ export default function Departments() {
     queryKey: ['/api/users']
   });
 
-  // Fetch units for multi-select dropdown
-  const { data: units = [] } = useQuery<Array<{id: number, name: string}>>({
-    queryKey: ['/api/units']
-  });
+  // Note: Departments are the primary organizational structure
   
   // Create department form
   const form = useForm<DepartmentFormValues>({
@@ -58,8 +54,7 @@ export default function Departments() {
     defaultValues: {
       name: '',
       description: '',
-      departmentHeadId: "none",
-      selectedUnits: []
+      departmentHeadId: "none"
     }
   });
   
@@ -97,11 +92,7 @@ export default function Departments() {
 
       console.log('Processed values:', processedValues);
 
-      // Remove fields not needed for department creation
-      const { selectedUnits, ...departmentData } = processedValues;
-      
-      console.log('Department data:', departmentData);
-      console.log('Selected units:', selectedUnits);
+      console.log('Department data:', processedValues);
       
       let departmentResponse;
       
@@ -243,10 +234,10 @@ export default function Departments() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center p-4">Loading units...</div>
+            <div className="flex justify-center p-4">Loading departments...</div>
           ) : departments.length === 0 ? (
             <div className="text-center p-4">
-              <p className="text-gray-500">No units found. Create your first unit to get started.</p>
+              <p className="text-gray-500">No departments found. Create your first department to get started.</p>
             </div>
           ) : (
             <>
