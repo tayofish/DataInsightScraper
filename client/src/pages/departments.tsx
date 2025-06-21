@@ -256,35 +256,35 @@ export default function Departments() {
                   />
                 </div>
                 <div className="text-sm text-gray-500">
-                  {filteredDepartments.length} of {departments.length} units
+                  {filteredDepartments.length} of {departments.length} departments
                 </div>
               </div>
 
-              {/* Units Table */}
+              {/* Departments Table */}
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[200px]">Name</TableHead>
+                    <TableHead className="w-[200px]">Department Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-[150px]">Unit Head</TableHead>
+                    <TableHead className="w-[150px]">Department Head</TableHead>
                     <TableHead className="text-right w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedDepartments.map((department) => {
-                    const unitHead = department.unitHeadId ? users.find(u => u.id === department.unitHeadId) : null;
+                    const departmentHead = department.departmentHeadId ? users.find(u => u.id === department.departmentHeadId) : null;
                     return (
                       <TableRow key={department.id}>
                         <TableCell className="font-medium">{department.name}</TableCell>
                         <TableCell className="max-w-xs truncate">{department.description}</TableCell>
                         <TableCell>
-                          {unitHead ? (
+                          {departmentHead ? (
                             <div className="flex items-center space-x-2">
                               <Users className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm">{unitHead.name}</span>
+                              <span className="text-sm">{departmentHead.name}</span>
                             </div>
                           ) : (
-                            <span className="text-sm text-muted-foreground">No unit head</span>
+                            <span className="text-sm text-muted-foreground">No department head</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">

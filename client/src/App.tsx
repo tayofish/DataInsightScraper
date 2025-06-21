@@ -13,6 +13,7 @@ import ProjectTeam from "@/pages/project-team";
 import Reports from "@/pages/reports";
 import Categories from "@/pages/categories";
 import Departments from "@/pages/departments";
+import Units from "@/pages/units";
 import Teams from "@/pages/teams";
 import Settings from "@/pages/settings";
 import AdminPage from "@/pages/admin";
@@ -136,15 +137,21 @@ function Router() {
       )} />
       
       {/* Admin-only routes */}
-      <AdminRoute path="/departments" component={() => (
+      <AdminRoute path="/categories" component={() => (
         <AppLayout>
           <Categories />
         </AppLayout>
       )} />
       
-      <AdminRoute path="/units" component={() => (
+      <AdminRoute path="/departments" component={() => (
         <AppLayout>
           <Departments />
+        </AppLayout>
+      )} />
+      
+      <AdminRoute path="/units" component={() => (
+        <AppLayout>
+          <Units />
         </AppLayout>
       )} />
       
