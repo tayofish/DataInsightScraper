@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 interface NotificationSettings {
   userNotificationsEnabled: boolean;
   adminNotificationsEnabled: boolean;
+  unitHeadNotificationsEnabled: boolean;
 }
 
 interface SchedulerConfig {
@@ -236,6 +237,24 @@ export default function EndOfDayNotifications() {
               id="admin-notifications"
               checked={settings?.adminNotificationsEnabled || false}
               onCheckedChange={(checked) => handleSettingChange('adminNotificationsEnabled', checked)}
+              disabled={updateSettingsMutation.isPending}
+            />
+          </div>
+
+          {/* Unit Head Notifications Setting */}
+          <div className="flex items-center justify-between space-x-4">
+            <div className="space-y-1">
+              <Label htmlFor="unit-head-notifications" className="text-base font-medium">
+                Unit Head Daily Summaries
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Send daily unit-specific summaries to unit heads including their unit's task progress and member activity.
+              </p>
+            </div>
+            <Switch
+              id="unit-head-notifications"
+              checked={settings?.unitHeadNotificationsEnabled || false}
+              onCheckedChange={(checked) => handleSettingChange('unitHeadNotificationsEnabled', checked)}
               disabled={updateSettingsMutation.isPending}
             />
           </div>

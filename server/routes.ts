@@ -6760,9 +6760,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         where: eq(appSettings.key, 'end_of_day_admin_notifications')
       });
 
+      const unitHeadNotificationsSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_unit_head_notifications')
+      });
+
       res.json({
         userNotificationsEnabled: userNotificationsSetting?.value === 'true',
-        adminNotificationsEnabled: adminNotificationsSetting?.value === 'true'
+        adminNotificationsEnabled: adminNotificationsSetting?.value === 'true',
+        unitHeadNotificationsEnabled: unitHeadNotificationsSetting?.value === 'true'
       });
     } catch (error) {
       console.error('Error fetching end-of-day notification settings:', error);
@@ -6773,7 +6778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update end-of-day notification settings
   app.post("/api/end-of-day-notifications/settings", isAdmin, async (req, res) => {
     try {
-      const { userNotificationsEnabled, adminNotificationsEnabled } = req.body;
+      const { userNotificationsEnabled, adminNotificationsEnabled, unitHeadNotificationsEnabled } = req.body;
 
       // Update user notifications setting
       const userSetting = await db.query.appSettings.findFirst({
@@ -6811,10 +6816,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Update unit head notifications setting
+      const unitHeadSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_unit_head_notifications')
+      });
+
+      if (unitHeadSetting) {
+        await storage.updateAppSetting(unitHeadSetting.id, {
+          value: unitHeadNotificationsEnabled ? 'true' : 'false',
+          updatedAt: new Date()
+        });
+      } else {
+        await storage.createAppSetting({
+          key: 'end_of_day_unit_head_notifications',
+          value: unitHeadNotificationsEnabled ? 'true' : 'false',
+          description: 'Enable/disable end-of-day email notifications for unit heads'
+        });
+      }
+
       res.json({ 
         message: 'End-of-day notification settings updated successfully',
         userNotificationsEnabled,
-        adminNotificationsEnabled
+        adminNotificationsEnabled,
+        unitHeadNotificationsEnabled
       });
     } catch (error) {
       console.error('Error updating end-of-day notification settings:', error);
