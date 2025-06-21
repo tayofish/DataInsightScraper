@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users, Building } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
@@ -117,10 +117,10 @@ export default function Departments() {
         return result;
       } else {
         // Create new department
-        const result = await apiRequest('POST', '/api/categories', processedValues);
+        const result = await apiRequest('POST', '/api/categories', processedValues) as any;
         
         // Assign units to new department if unitIds are provided
-        if (values.unitIds && values.unitIds.length > 0 && result.id) {
+        if (values.unitIds && values.unitIds.length > 0 && result?.id) {
           const unitUpdates = values.unitIds.map(unitId => 
             apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: result.id })
           );
@@ -131,9 +131,11 @@ export default function Departments() {
       }
     },
     onSuccess: () => {
-      // Invalidate and refetch
+      // Invalidate and refetch both departments and units
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       queryClient.refetchQueries({ queryKey: ['/api/categories'] });
+      queryClient.refetchQueries({ queryKey: ['/api/departments'] });
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
@@ -451,7 +453,7 @@ export default function Departments() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center space-x-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <Users className="h-4 w-4 text-muted-foreground" />
                       <span>Units</span>
                     </FormLabel>
                     <FormControl>
