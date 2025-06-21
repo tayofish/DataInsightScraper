@@ -139,10 +139,20 @@ export default function Units() {
         title: "Success",
         description: "Unit deleted successfully",
       });
+      
+      // Force page reload for production cache clearing if needed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
-    onSettled: () => {
-      // Always refetch after error or success to sync with server
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+    onSettled: async () => {
+      // Force clear cache and refetch from server for production reliability
+      queryClient.removeQueries({ queryKey: ['/api/departments'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/departments'] });
+      
+      // Also invalidate related caches
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
     },
   });
 
