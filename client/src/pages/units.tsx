@@ -109,13 +109,40 @@ export default function Units() {
     mutationFn: async (unitId: number) => {
       return await apiRequest('DELETE', `/api/units/${unitId}`);
     },
+    onMutate: async (unitId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/departments'] });
+      
+      // Snapshot the previous value
+      const previousUnits = queryClient.getQueryData(['/api/departments']);
+      
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/departments'], (old: any) => {
+        if (!old) return old;
+        return old.filter((unit: any) => unit.id !== unitId);
+      });
+      
+      // Return a context object with the snapshotted value
+      return { previousUnits };
+    },
+    onError: (err, unitId, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(['/api/departments'], context.previousUnits);
+      toast({
+        title: "Error",
+        description: "Failed to delete unit",
+        variant: "destructive",
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
-      queryClient.refetchQueries({ queryKey: ['/api/departments'] });
       toast({
         title: "Success",
         description: "Unit deleted successfully",
       });
+    },
+    onSettled: () => {
+      // Always refetch after error or success to sync with server
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
     },
     onError: (error: any) => {
       toast({
