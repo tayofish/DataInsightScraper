@@ -21,7 +21,7 @@ export const users = pgTable("users", {
   isApproved: boolean("is_approved").default(true), // Default true for existing users, false for new OAuth users
   isBlocked: boolean("is_blocked").default(false), // Default false for all users
   hasCompletedOnboarding: boolean("has_completed_onboarding").default(false), // Track first-time onboarding
-  departmentId: integer("department_id").references(() => departments.id),
+  departmentId: integer("department_id"),
 });
 
 // Projects table
@@ -37,7 +37,7 @@ export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description"),
-  departmentHeadId: integer("department_head_id").references(() => users.id),
+  departmentHeadId: integer("department_head_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -304,35 +304,35 @@ export const reportsRelations = relations(reports, ({ one }) => ({
 
 // Define schemas for validation
 export const userInsertSchema = createInsertSchema(users, {
-  username: (schema) => schema.min(3, "Username must be at least 3 characters"),
-  password: (schema) => schema.min(6, "Password must be at least 6 characters"),
-  name: (schema) => schema.min(2, "Name must be at least 2 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
 });
 
 export const projectInsertSchema = createInsertSchema(projects, {
-  name: (schema) => schema.min(3, "Project name must be at least 3 characters"),
+  name: z.string().min(3, "Project name must be at least 3 characters"),
 });
 
 export const departmentInsertSchema = createInsertSchema(departments, {
-  name: (schema) => schema.min(2, "Department name must be at least 2 characters"),
-  departmentHeadId: (schema) => schema.transform((val) => {
+  name: z.string().min(2, "Department name must be at least 2 characters"),
+  departmentHeadId: z.string().transform((val) => {
     if (val === "none" || val === "" || val === null || val === undefined) return null;
-    const num = parseInt(val as string);
+    const num = parseInt(val);
     return isNaN(num) ? null : num;
   }).nullable().optional(),
 });
 
 export const unitInsertSchema = createInsertSchema(units, {
-  name: (schema) => schema.min(2, "Unit name must be at least 2 characters"),
-  unitHeadId: (schema) => schema.transform((val) => {
+  name: z.string().min(2, "Unit name must be at least 2 characters"),
+  unitHeadId: z.string().transform((val) => {
     if (val === "none" || val === "" || val === null || val === undefined) return null;
-    const num = parseInt(val as string);
+    const num = parseInt(val);
     return isNaN(num) ? null : num;
   }).nullable().optional(),
 });
 
 export const categoryInsertSchema = createInsertSchema(categories, {
-  name: (schema) => schema.min(2, "Category name must be at least 2 characters"),
+  name: z.string().min(2, "Category name must be at least 2 characters"),
 });
 
 export const taskInsertSchema = createInsertSchema(tasks, {
