@@ -212,12 +212,14 @@ interface AdminSummary {
   tasksCompletedToday: any[];
   userSummaries: Array<{
     username: string;
+    name: string;
     email: string;
     overdueTasks: number;
     pendingTasks: number;
   }>;
   usersWithCompletedWork: Array<{
     username: string;
+    name: string;
     email: string;
     completedTasks: number;
   }>;
@@ -379,6 +381,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     if (overdueTasks > 0 || pendingTasks > 0) {
       userSummaries.push({
         username: user.username,
+        name: user.name || user.username,
         email: user.email || '',
         overdueTasks,
         pendingTasks
@@ -388,6 +391,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     if (completedTasks > 0) {
       usersWithCompletedWork.push({
         username: user.username,
+        name: user.name || user.username,
         email: user.email || '',
         completedTasks
       });
@@ -588,7 +592,7 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
     summary.userSummaries.forEach(user => {
       html += `
         <tr>
-          <td style="padding: 8px; border: 1px solid #e5e7eb;">${user.username}</td>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${user.name}</td>
           <td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb; color: ${user.overdueTasks > 0 ? '#dc2626' : '#666'};">
             ${user.overdueTasks}
           </td>
@@ -624,7 +628,7 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
     summary.usersWithCompletedWork.forEach(user => {
       html += `
         <tr>
-          <td style="padding: 8px; border: 1px solid #bbf7d0;">${user.username}</td>
+          <td style="padding: 8px; border: 1px solid #bbf7d0;">${user.name}</td>
           <td style="padding: 8px; text-align: center; border: 1px solid #bbf7d0; color: #059669; font-weight: bold;">
             ${user.completedTasks}
           </td>

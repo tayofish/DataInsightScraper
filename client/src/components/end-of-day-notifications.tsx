@@ -40,12 +40,14 @@ interface AdminSummary {
   tasksCompletedToday: any[];
   userSummaries: Array<{
     username: string;
+    name: string;
     email: string;
     overdueTasks: number;
     pendingTasks: number;
   }>;
   usersWithCompletedWork: Array<{
     username: string;
+    name: string;
     email: string;
     completedTasks: number;
   }>;
@@ -449,7 +451,7 @@ export default function EndOfDayNotifications() {
                               <div className="space-y-2">
                                 {adminSummary.userSummaries.slice(0, 5).map((user, index) => (
                                   <div key={index} className="flex justify-between items-center text-sm bg-background p-2 rounded border">
-                                    <span>{user.username}</span>
+                                    <span>{user.name}</span>
                                     <div className="flex gap-2">
                                       {user.overdueTasks > 0 && (
                                         <Badge variant="destructive" className="text-xs">
@@ -482,7 +484,7 @@ export default function EndOfDayNotifications() {
                               <div className="space-y-2">
                                 {adminSummary.usersWithCompletedWork.slice(0, 5).map((user, index) => (
                                   <div key={index} className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-200">
-                                    <span className="font-medium">{user.username}</span>
+                                    <span className="font-medium">{user.name}</span>
                                     <Badge variant="outline" className="text-xs text-green-700 border-green-300">
                                       {user.completedTasks} completed
                                     </Badge>
