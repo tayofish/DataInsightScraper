@@ -1,7 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
 import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings } from '@shared/schema';
-import { eq, and, gte, lte, or, count, desc, ilike } from 'drizzle-orm';
+import { eq, and, gte, lte, or, count, desc, ilike, isNull } from 'drizzle-orm';
 
 // Email transporter
 let transporter: nodemailer.Transporter | null = null;
@@ -396,6 +396,37 @@ export async function getAdminSummary(): Promise<AdminSummary> {
         completedTasks
       });
     }
+  }
+
+  // Add unassigned tasks to user summaries
+  const unassignedOverdue = await db
+    .select({ count: count() })
+    .from(tasks)
+    .where(and(
+      eq(tasks.assigneeId, null),
+      lte(tasks.dueDate, startOfDay),
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+    ));
+
+  const unassignedPending = await db
+    .select({ count: count() })
+    .from(tasks)
+    .where(and(
+      eq(tasks.assigneeId, null),
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+    ));
+
+  const unassignedOverdueCount = unassignedOverdue[0]?.count || 0;
+  const unassignedPendingCount = unassignedPending[0]?.count || 0;
+
+  if (unassignedOverdueCount > 0 || unassignedPendingCount > 0) {
+    userSummaries.push({
+      username: 'unassigned',
+      name: 'Unassigned Tasks',
+      email: '',
+      overdueTasks: unassignedOverdueCount,
+      pendingTasks: unassignedPendingCount
+    });
   }
 
   return {
