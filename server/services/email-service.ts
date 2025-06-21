@@ -1,140 +1,94 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import { db } from '@db';
-import { smtpConfig, notifications } from '@shared/schema';
-import { eq } from 'drizzle-orm';
-import { storage } from '../storage';
+import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings } from '@shared/schema';
+import { eq, and, gte, lte, or, count, desc } from 'drizzle-orm';
 
-let transporter: Transporter | null = null;
-let smtpSettings: any = null;
+// Email transporter
+let transporter: nodemailer.Transporter | null = null;
 
-// Helper functions to generate complete URLs
-function getBaseUrl(): string {
-  return process.env.APP_URL || 'https://mist.promellon.com';
-}
-
-function getTaskUrl(taskId: number): string {
-  return `${getBaseUrl()}/tasks/${taskId}`;
-}
-
-function getLoginUrl(): string {
-  return `${getBaseUrl()}/auth`;
-}
-
-/**
- * Initialize the email service with the active SMTP configuration
- */
-// Helper function for retry with exponential backoff
-async function retryOperation(operation: () => Promise<any>, maxRetries = 3, initialDelay = 1000) {
-  let retries = 0;
-  while (retries < maxRetries) {
-    try {
-      return await operation();
-    } catch (error: any) {
-      retries++;
-      
-      // Check if it's a rate limiting error
-      const isRateLimit = error?.message?.includes('rate limit') || 
-                         error?.code === 'XX000' || 
-                         (error?.severity === 'ERROR' && error?.code === 'XX000');
-      
-      if (!isRateLimit || retries >= maxRetries) {
-        throw error; // Not a rate limit error or max retries reached
-      }
-      
-      const delay = initialDelay * Math.pow(2, retries - 1);
-      console.log(`Rate limit encountered, retry attempt ${retries}/${maxRetries} after ${delay}ms delay`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error(`Failed after ${maxRetries} retry attempts`);
-}
-
-export async function initializeEmailService() {
+// Initialize email service with existing SMTP configuration
+async function initializeEmailService(): Promise<boolean> {
   try {
-    // Get the active SMTP configuration with retry for rate limits
-    const configs = await retryOperation(async () => {
-      return await db.select().from(smtpConfig).where(eq(smtpConfig.active, true));
+    // Get active SMTP configuration
+    const activeConfig = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
     });
-    
-    if (configs.length === 0) {
-      console.log('No active SMTP configuration found. Email notifications are disabled.');
+
+    if (!activeConfig) {
+      console.log('No active SMTP configuration found');
       return false;
     }
-    
-    smtpSettings = configs[0];
-    
-    // Create the transporter
-    // Special case for Zeptomail which requires specific authentication
-    if (smtpSettings.host.includes('zeptomail')) {
-      console.log('Using Zeptomail-specific configuration');
-      
-      // Use the environment variable API key if available, otherwise fall back to database stored key
-      const apiKey = process.env.ZEPTOMAIL_API_KEY || smtpSettings.password;
-      
-      transporter = nodemailer.createTransport({
-        host: smtpSettings.host,
-        port: smtpSettings.port,
-        secure: smtpSettings.port === 465, // Only use secure for port 465
-        auth: {
-          user: smtpSettings.username,
-          pass: apiKey
-        },
-        tls: {
-          // Do not fail on invalid certs
-          rejectUnauthorized: false
-        }
-      });
-    } else {
-      // Standard configuration for other SMTP providers
-      transporter = nodemailer.createTransport({
-        host: smtpSettings.host,
-        port: smtpSettings.port,
-        secure: smtpSettings.port === 465, // Only use secure for port 465
-        auth: {
-          user: smtpSettings.username,
-          pass: smtpSettings.password,
-        },
-        tls: {
-          // Do not fail on invalid certs
-          rejectUnauthorized: false
-        }
-      });
+
+    // Create transporter with existing configuration
+    const transportConfig: any = {
+      host: activeConfig.host,
+      port: activeConfig.port,
+      secure: activeConfig.port === 465,
+      auth: {
+        user: activeConfig.username,
+        pass: activeConfig.password,
+      },
+    };
+
+    if (activeConfig.enableTls) {
+      transportConfig.tls = {
+        rejectUnauthorized: false
+      };
     }
-    
+
+    transporter = nodemailer.createTransport(transportConfig);
+
     // Verify connection
     await transporter.verify();
-    console.log('SMTP connection verified successfully. Email notifications are enabled.');
+    console.log('Email service initialized successfully');
     return true;
   } catch (error) {
     console.error('Failed to initialize email service:', error);
     transporter = null;
-    smtpSettings = null;
     return false;
   }
 }
 
-/**
- * Send an email
- */
-export async function sendEmail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
-  if (!transporter || !smtpSettings) {
-    await initializeEmailService();
-    if (!transporter) {
-      console.error('Email service not initialized. Cannot send email.');
-      return false;
-    }
+// Initialize on module load
+initializeEmailService();
+
+interface EmailData {
+  to: string;
+  from: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
+interface UserTaskSummary {
+  overdueTasks: any[];
+  pendingTasks: any[];
+  unreadNotifications: number;
+  unreadDirectMessages: number;
+  unreadChannelMessages: number;
+}
+
+interface AdminSummary {
+  totalOverdueTasks: number;
+  totalPendingTasks: number;
+  tasksCompletedToday: any[];
+  userSummaries: Array<{
+    username: string;
+    email: string;
+    overdueTasks: number;
+    pendingTasks: number;
+  }>;
+}
+
+export async function sendEmail(emailData: EmailData): Promise<boolean> {
+  if (!mailService) {
+    console.log('Email service not configured - SENDGRID_API_KEY missing');
+    return false;
   }
-  
+
   try {
-    await transporter.sendMail({
-      from: `"${smtpSettings.fromName}" <${smtpSettings.fromEmail}>`,
-      to,
-      subject,
-      text: text || '',
-      html,
-    });
-    
-    console.log(`Email sent to ${to}`);
+    await mailService.send(emailData);
+    console.log(`Email sent successfully to ${emailData.to}`);
     return true;
   } catch (error) {
     console.error('Failed to send email:', error);
@@ -142,655 +96,441 @@ export async function sendEmail({ to, subject, html, text }: { to: string; subje
   }
 }
 
-/**
- * Create an in-app notification for a user
- * @param userId - The user to notify
- * @param title - Notification title
- * @param message - Notification message
- * @param type - Notification type (task_assignment, task_comment, etc.)
- * @param referenceId - ID of the referenced object (task, project, etc.)
- * @param referenceType - Type of the referenced object (task, project, etc.)
- */
-export async function createNotification(
-  userId: number,
-  title: string,
-  message: string,
-  type: string,
-  referenceId?: number,
-  referenceType?: string
-) {
-  try {
-    if (!userId) {
-      console.log('Cannot create notification: missing userId');
-      return null;
-    }
-    
-    console.log('Creating in-app notification:', {
-      userId,
-      title,
-      type,
-      referenceType,
-      referenceId
-    });
-    
-    const notification = await storage.createNotification({
-      userId,
-      title,
-      message,
-      type,
-      referenceId,
-      referenceType,
-      isRead: false,
-    });
-    
-    console.log(`Created notification ID ${notification.id} for user ${userId}`);
-    return notification;
-  } catch (error) {
-    console.error('Failed to create notification:', error);
-    return null;
+export async function getUserTaskSummary(userId: number): Promise<UserTaskSummary> {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+  // Get overdue tasks (due date before today and not completed)
+  const overdueTasks = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.assigneeId, userId),
+      lte(tasks.dueDate, startOfDay),
+      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+    ),
+    with: {
+      category: true,
+      project: true
+    },
+    orderBy: [tasks.dueDate]
+  });
+
+  // Get pending tasks (not completed)
+  const pendingTasks = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.assigneeId, userId),
+      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+    ),
+    with: {
+      category: true,
+      project: true
+    },
+    orderBy: [tasks.dueDate],
+    limit: 10
+  });
+
+  // Get unread notifications count
+  const unreadNotificationCount = await db
+    .select({ count: count() })
+    .from(notifications)
+    .where(and(
+      eq(notifications.userId, userId),
+      eq(notifications.isRead, false)
+    ));
+
+  // Get unread direct messages count
+  const unreadDirectCount = await db
+    .select({ count: count() })
+    .from(directMessages)
+    .where(and(
+      eq(directMessages.receiverId, userId),
+      eq(directMessages.isRead, false)
+    ));
+
+  // Get unread channel messages count for user's channels
+  const userChannelIds = await db
+    .select({ channelId: userChannels.channelId })
+    .from(userChannels)
+    .where(eq(userChannels.userId, userId));
+
+  let unreadChannelCount = 0;
+  if (userChannelIds.length > 0) {
+    const channelIds = userChannelIds.map(uc => uc.channelId);
+    const unreadChannelResult = await db
+      .select({ count: count() })
+      .from(channelMessages)
+      .where(and(
+        or(...channelIds.map(id => eq(channelMessages.channelId, id))),
+        gte(channelMessages.createdAt, startOfDay),
+        eq(channelMessages.isRead, false)
+      ));
+    unreadChannelCount = unreadChannelResult[0]?.count || 0;
   }
+
+  return {
+    overdueTasks,
+    pendingTasks,
+    unreadNotifications: unreadNotificationCount[0]?.count || 0,
+    unreadDirectMessages: unreadDirectCount[0]?.count || 0,
+    unreadChannelMessages: unreadChannelCount
+  };
 }
 
-// Event-specific notification functions
+export async function getAdminSummary(): Promise<AdminSummary> {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
-/**
- * Send notification for task creation
- */
-export async function notifyTaskCreation(task: any, creator: any, assignee: any | null, projectTeam: any[] = []) {
-  if (!assignee && (!projectTeam || projectTeam.length === 0)) {
-    console.log('No recipients for task creation notification - skipping', {
-      taskId: task?.id,
-      hasAssignee: Boolean(assignee),
-      teamSize: projectTeam?.length || 0
-    });
-    return; // No one to notify
-  }
-  
-  if (!task || !task.id) {
-    console.error('Invalid task data for notification', { task });
-    return;
-  }
-  
-  const taskUrl = getTaskUrl(task.id);
-  console.log('Sending task creation notification for task:', {
-    taskId: task.id,
-    title: task.title,
-    assigneeId: assignee?.id,
-    assigneeEmail: assignee?.email,
-    creatorId: creator?.id,
-    teamSize: projectTeam?.length
+  // Get total overdue tasks count
+  const overdueCount = await db
+    .select({ count: count() })
+    .from(tasks)
+    .where(and(
+      lte(tasks.dueDate, startOfDay),
+      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+    ));
+
+  // Get total pending tasks count
+  const pendingCount = await db
+    .select({ count: count() })
+    .from(tasks)
+    .where(or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress')));
+
+  // Get tasks completed today
+  const completedToday = await db.query.tasks.findMany({
+    where: and(
+      eq(tasks.status, 'completed'),
+      gte(tasks.updatedAt, startOfDay),
+      lte(tasks.updatedAt, endOfDay)
+    ),
+    with: {
+      assignee: true,
+      category: true,
+      project: true
+    },
+    orderBy: [desc(tasks.updatedAt)]
   });
-  
-  let notificationsSent = 0;
-  
-  // Notify assignee if assigned
-  if (assignee) {
-    const assigneeName = assignee.name || assignee.username || 'User';
-    const creatorName = creator?.name || creator?.username || 'Admin';
+
+  // Get summary for each user
+  const allUsers = await db.query.users.findMany({
+    where: eq(users.role, 'user')
+  });
+
+  const userSummaries = [];
+  for (const user of allUsers) {
+    const userOverdue = await db
+      .select({ count: count() })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, user.id),
+        lte(tasks.dueDate, startOfDay),
+        or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+      ));
+
+    const userPending = await db
+      .select({ count: count() })
+      .from(tasks)
+      .where(and(
+        eq(tasks.assigneeId, user.id),
+        or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+      ));
+
+    userSummaries.push({
+      username: user.username,
+      email: user.email || '',
+      overdueTasks: userOverdue[0]?.count || 0,
+      pendingTasks: userPending[0]?.count || 0
+    });
+  }
+
+  return {
+    totalOverdueTasks: overdueCount[0]?.count || 0,
+    totalPendingTasks: pendingCount[0]?.count || 0,
+    tasksCompletedToday: completedToday,
+    userSummaries: userSummaries.filter(u => u.overdueTasks > 0 || u.pendingTasks > 0)
+  };
+}
+
+export function generateUserEmailHTML(username: string, summary: UserTaskSummary): string {
+  const hasContent = summary.overdueTasks.length > 0 || 
+                    summary.pendingTasks.length > 0 || 
+                    summary.unreadNotifications > 0 ||
+                    summary.unreadDirectMessages > 0 ||
+                    summary.unreadChannelMessages > 0;
+
+  if (!hasContent) {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #333;">Daily Summary - All Caught Up! 🎉</h2>
+        <p>Hi ${username},</p>
+        <p>Great news! You have no overdue tasks, pending items, or unread messages.</p>
+        <p>Keep up the excellent work!</p>
+        <hr style="margin: 20px 0;">
+        <p style="color: #666; font-size: 12px;">This is your daily task summary from Promellon.</p>
+      </div>
+    `;
+  }
+
+  let html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Daily Task Summary</h2>
+      <p>Hi ${username},</p>
+      <p>Here's your daily summary:</p>
+  `;
+
+  // Overdue tasks section
+  if (summary.overdueTasks.length > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #fee; border-left: 4px solid #f56565;">
+        <h3 style="color: #c53030; margin-top: 0;">⚠️ Overdue Tasks (${summary.overdueTasks.length})</h3>
+        <ul style="margin: 10px 0;">
+    `;
     
-    // Create in-app notification
-    await createNotification(
-      assignee.id,
-      `New task assigned: ${task.title}`,
-      `You have been assigned a new task with priority ${task.priority}${task.dueDate ? ` due on ${new Date(task.dueDate).toLocaleDateString()}` : ''}.`,
-      'task_assignment',
-      task.id,
-      'task'
-    );
+    summary.overdueTasks.slice(0, 5).forEach(task => {
+      const dueDate = new Date(task.dueDate).toLocaleDateString();
+      html += `
+        <li style="margin: 5px 0;">
+          <strong>${task.title}</strong> - Due: ${dueDate}
+          ${task.category ? `<br><small style="color: #666;">Category: ${task.category.name}</small>` : ''}
+        </li>
+      `;
+    });
+
+    if (summary.overdueTasks.length > 5) {
+      html += `<li style="color: #666;">... and ${summary.overdueTasks.length - 5} more</li>`;
+    }
+
+    html += `</ul></div>`;
+  }
+
+  // Pending tasks section
+  if (summary.pendingTasks.length > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #fffbeb; border-left: 4px solid #f59e0b;">
+        <h3 style="color: #d97706; margin-top: 0;">📋 Pending Tasks (${summary.pendingTasks.length})</h3>
+        <ul style="margin: 10px 0;">
+    `;
     
-    // Send email notification if email is available
-    if (assignee.email) {
+    summary.pendingTasks.slice(0, 5).forEach(task => {
+      const dueDate = task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date';
+      html += `
+        <li style="margin: 5px 0;">
+          <strong>${task.title}</strong> - Due: ${dueDate}
+          ${task.category ? `<br><small style="color: #666;">Category: ${task.category.name}</small>` : ''}
+        </li>
+      `;
+    });
+
+    if (summary.pendingTasks.length > 5) {
+      html += `<li style="color: #666;">... and ${summary.pendingTasks.length - 5} more</li>`;
+    }
+
+    html += `</ul></div>`;
+  }
+
+  // Unread notifications section
+  const totalUnread = summary.unreadNotifications + summary.unreadDirectMessages + summary.unreadChannelMessages;
+  if (totalUnread > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #eff6ff; border-left: 4px solid #3b82f6;">
+        <h3 style="color: #1d4ed8; margin-top: 0;">🔔 Unread Notifications (${totalUnread})</h3>
+        <ul style="margin: 10px 0;">
+    `;
+
+    if (summary.unreadNotifications > 0) {
+      html += `<li>General notifications: ${summary.unreadNotifications}</li>`;
+    }
+    if (summary.unreadDirectMessages > 0) {
+      html += `<li>Direct messages: ${summary.unreadDirectMessages}</li>`;
+    }
+    if (summary.unreadChannelMessages > 0) {
+      html += `<li>Channel messages: ${summary.unreadChannelMessages}</li>`;
+    }
+
+    html += `</ul></div>`;
+  }
+
+  html += `
+      <hr style="margin: 20px 0;">
+      <p style="color: #666; font-size: 12px;">This is your daily task summary from Promellon.</p>
+    </div>
+  `;
+
+  return html;
+}
+
+export function generateAdminEmailHTML(summary: AdminSummary): string {
+  let html = `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Daily Admin Summary</h2>
+      <p>Here's today's team productivity summary:</p>
+  `;
+
+  // Overall statistics
+  html += `
+    <div style="margin: 20px 0; padding: 15px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <h3 style="margin-top: 0; color: #374151;">📊 Overall Statistics</h3>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+        <div style="text-align: center; padding: 10px;">
+          <div style="font-size: 24px; font-weight: bold; color: #dc2626;">${summary.totalOverdueTasks}</div>
+          <div style="color: #666;">Overdue Tasks</div>
+        </div>
+        <div style="text-align: center; padding: 10px;">
+          <div style="font-size: 24px; font-weight: bold; color: #d97706;">${summary.totalPendingTasks}</div>
+          <div style="color: #666;">Pending Tasks</div>
+        </div>
+        <div style="text-align: center; padding: 10px;">
+          <div style="font-size: 24px; font-weight: bold; color: #059669;">${summary.tasksCompletedToday.length}</div>
+          <div style="color: #666;">Completed Today</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Tasks completed today
+  if (summary.tasksCompletedToday.length > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #ecfdf5; border-left: 4px solid #10b981;">
+        <h3 style="color: #047857; margin-top: 0;">✅ Tasks Completed Today (${summary.tasksCompletedToday.length})</h3>
+        <ul style="margin: 10px 0;">
+    `;
+    
+    summary.tasksCompletedToday.slice(0, 10).forEach(task => {
+      const assignee = task.assignee?.username || 'Unassigned';
+      const category = task.category?.name || 'No category';
+      html += `
+        <li style="margin: 8px 0;">
+          <strong>${task.title}</strong> - ${assignee}
+          <br><small style="color: #666;">Category: ${category}</small>
+        </li>
+      `;
+    });
+
+    if (summary.tasksCompletedToday.length > 10) {
+      html += `<li style="color: #666;">... and ${summary.tasksCompletedToday.length - 10} more</li>`;
+    }
+
+    html += `</ul></div>`;
+  }
+
+  // User summaries
+  if (summary.userSummaries.length > 0) {
+    html += `
+      <div style="margin: 20px 0; padding: 15px; background-color: #fefce8; border-left: 4px solid #eab308;">
+        <h3 style="color: #a16207; margin-top: 0;">👥 Users with Pending Work</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
+          <thead>
+            <tr style="background-color: #f9fafb;">
+              <th style="padding: 8px; text-align: left; border: 1px solid #e5e7eb;">User</th>
+              <th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">Overdue</th>
+              <th style="padding: 8px; text-align: center; border: 1px solid #e5e7eb;">Pending</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    summary.userSummaries.forEach(user => {
+      html += `
+        <tr>
+          <td style="padding: 8px; border: 1px solid #e5e7eb;">${user.username}</td>
+          <td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb; color: ${user.overdueTasks > 0 ? '#dc2626' : '#666'};">
+            ${user.overdueTasks}
+          </td>
+          <td style="padding: 8px; text-align: center; border: 1px solid #e5e7eb; color: ${user.pendingTasks > 0 ? '#d97706' : '#666'};">
+            ${user.pendingTasks}
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  html += `
+      <hr style="margin: 20px 0;">
+      <p style="color: #666; font-size: 12px;">This is your daily admin summary from Promellon.</p>
+    </div>
+  `;
+
+  return html;
+}
+
+export async function sendEndOfDayNotifications(): Promise<void> {
+  console.log('Starting end-of-day email notifications...');
+
+  // Get notification settings
+  const userNotificationsSetting = await db.query.appSettings.findFirst({
+    where: eq(require('@shared/schema').appSettings.key, 'end_of_day_user_notifications')
+  });
+
+  const adminNotificationsSetting = await db.query.appSettings.findFirst({
+    where: eq(require('@shared/schema').appSettings.key, 'end_of_day_admin_notifications')
+  });
+
+  const userNotificationsEnabled = userNotificationsSetting?.value === 'true';
+  const adminNotificationsEnabled = adminNotificationsSetting?.value === 'true';
+
+  // Send user notifications
+  if (userNotificationsEnabled) {
+    const regularUsers = await db.query.users.findMany({
+      where: eq(users.role, 'user')
+    });
+
+    for (const user of regularUsers) {
+      if (!user.email) continue;
+
       try {
-        const success = await sendEmail({
-          to: assignee.email,
-          subject: `[Promellon] New task assigned: ${task.title}`,
-          html: `
-            <h2>New Task Assigned</h2>
-            <p>Hello ${assigneeName},</p>
-            <p>A new task has been assigned to you:</p>
-            <p><strong>${task.title}</strong></p>
-            <p>${task.description || ''}</p>
-            <p>Priority: ${task.priority}</p>
-            <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-            <p>Created by: ${creatorName}</p>
-            <p><a href="${taskUrl}">View Task</a></p>
-          `,
-        });
+        const summary = await getUserTaskSummary(user.id);
+        const html = generateUserEmailHTML(user.username, summary);
         
-        if (success) {
-          notificationsSent++;
-        }
-      } catch (err) {
-        console.error(`Failed to send task creation notification to assignee ${assignee.id}:`, err);
-      }
-    } else {
-      console.log('Assignee has no email address:', {
-        assigneeId: assignee.id,
-        assigneeUsername: assignee.username
-      });
-    }
-  }
-  
-  // Notify project team
-  if (projectTeam && projectTeam.length > 0) {
-    console.log(`Attempting to notify ${projectTeam.length} team members about task creation`);
-    let teamNotificationCount = 0;
-    
-    for (const member of projectTeam) {
-      // Skip notification for assignee (already notified) and creator
-      if ((assignee && member.id === assignee.id) || member.id === creator?.id || !member.email) {
-        console.log(`Skipping team notification for user ${member.id}: ${
-          !member.email ? 'no email' : 
-          (assignee && member.id === assignee.id) ? 'is assignee' : 
-          'is creator'
-        }`);
-        continue;
-      }
-      
-      const memberName = member.name || member.username || 'Team Member';
-      const creatorName = creator?.name || creator?.username || 'Admin';
-      const assigneeName = assignee ? (assignee.name || assignee.username || 'User') : 'Unassigned';
-      
-      // Create in-app notification
-      await createNotification(
-        member.id,
-        `New task created in your project: ${task.title}`,
-        `A new task with priority ${task.priority} has been created in your project by ${creatorName} and assigned to ${assigneeName}.`,
-        'project_task_created',
-        task.id,
-        'task'
-      );
-      
-      // Send email notification if email is available
-      if (member.email) {
-        try {
-          const success = await sendEmail({
-            to: member.email,
-            subject: `[Promellon] New task created in your project: ${task.title}`,
-            html: `
-              <h2>New Task Created</h2>
-              <p>Hello ${memberName},</p>
-              <p>A new task has been created in your project:</p>
-              <p><strong>${task.title}</strong></p>
-              <p>${task.description || ''}</p>
-              <p>Priority: ${task.priority}</p>
-              <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-              <p>Created by: ${creatorName}</p>
-              <p>Assigned to: ${assigneeName}</p>
-              <p><a href="${taskUrl}">View Task</a></p>
-            `,
-          });
-          
-          if (success) {
-            teamNotificationCount++;
-            notificationsSent++;
-          }
-        } catch (err) {
-          console.error(`Failed to send task creation notification to team member ${member.id}:`, err);
-        }
-      }
-    }
-    
-    console.log(`Successfully notified ${teamNotificationCount} team members about task creation`);
-  }
-  
-  console.log(`Task creation notification summary: sent ${notificationsSent} notification emails`);
-}
-
-/**
- * Send notification for task assignment
- */
-export async function notifyTaskAssignment(task: any, assignee: any, assignedBy: any) {
-  if (!assignee) {
-    console.log('Cannot send task assignment notification: assignee missing', {
-      taskId: task?.id,
-      assigneeId: assignee?.id
-    });
-    return;
-  }
-  
-  console.log('Sending task assignment notification:', {
-    taskId: task.id,
-    assigneeId: assignee.id,
-    assigneeEmail: assignee.email,
-    assignedById: assignedBy?.id
-  });
-  
-  const taskUrl = getTaskUrl(task.id);
-  const assigneeName = assignee.name || assignee.username || 'User';
-  const assignerName = assignedBy?.name || assignedBy?.username || 'Admin';
-  
-  // Create in-app notification
-  await createNotification(
-    assignee.id,
-    `Task assigned: ${task.title}`,
-    `You have been assigned to a task by ${assignerName} with priority ${task.priority}${task.dueDate ? ` due on ${new Date(task.dueDate).toLocaleDateString()}` : ''}.`,
-    'task_assignment',
-    task.id,
-    'task'
-  );
-  
-  // Send email notification if email is available
-  if (assignee.email) {
-    await sendEmail({
-      to: assignee.email,
-      subject: `[Promellon] You've been assigned a task: ${task.title}`,
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb; margin-bottom: 20px;">Task Assignment</h2>
-          <p>Hello ${assigneeName},</p>
-          <p>You have been assigned to a task by ${assignerName}:</p>
-          <p style="font-size: 18px; font-weight: bold; margin: 20px 0;">${task.title}</p>
-          <p style="margin: 15px 0;">${task.description || ''}</p>
-          <p style="margin: 10px 0;"><strong>Priority:</strong> ${task.priority}</p>
-          <p style="margin: 10px 0;"><strong>Due date:</strong> ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${taskUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">View Task</a>
-          </div>
-          <p style="margin-top: 30px; font-size: 14px; color: #666;">
-            If the button doesn't work, copy and paste this link into your browser:<br>
-            <a href="${taskUrl}" style="color: #2563eb; word-break: break-all;">${taskUrl}</a>
-          </p>
-        </body>
-        </html>
-      `,
-    });
-  }
-}
-
-/**
- * Send notification for mention in task
- */
-export async function notifyMention(task: any, mentionedUser: any, mentionedBy: any, comment: string) {
-  if (!mentionedUser) {
-    console.log('Cannot send mention notification: mentioned user missing', {
-      taskId: task?.id,
-      mentionedUserId: mentionedUser?.id
-    });
-    return;
-  }
-  
-  console.log('Sending mention notification:', {
-    taskId: task.id,
-    mentionedUserId: mentionedUser.id,
-    mentionedUserEmail: mentionedUser.email || 'no-email',
-    mentionedById: mentionedBy?.id,
-    mentionerUsername: mentionedBy?.username || 'unknown',
-    mentionContent: comment.substring(0, 30) + (comment.length > 30 ? '...' : '')
-  });
-  
-  const taskUrl = getTaskUrl(task.id);
-  const userName = mentionedUser.name || mentionedUser.username || 'User';
-  const mentionerName = mentionedBy?.name || mentionedBy?.username || 'Admin';
-  
-  try {
-    // Create in-app notification (always attempt this, regardless of email status)
-    const notification = await createNotification(
-      mentionedUser.id,
-      `Mentioned in task: ${task.title}`,
-      `${mentionerName} mentioned you in a task: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
-      'task_mention',
-      task.id,
-      'task'
-    );
-    
-    console.log(`Created in-app mention notification: ${notification?.id || 'unknown'} for user ${mentionedUser.id}`);
-    
-    // Send email notification if email is available
-    if (mentionedUser.email) {
-      try {
-        const emailSent = await sendEmail({
-          to: mentionedUser.email,
-          subject: `[Promellon] You were mentioned in a task: ${task.title}`,
-          html: `
-            <h2>Mention in Task</h2>
-            <p>Hello ${userName},</p>
-            <p>${mentionerName} mentioned you in a task:</p>
-            <p><strong>${task.title}</strong></p>
-            <p>Comment: ${comment}</p>
-            <p><a href="${taskUrl}">View Task</a></p>
-          `,
-        });
-        
-        console.log(`Email notification for mention sent: ${emailSent ? 'success' : 'failed'} for user ${mentionedUser.id}`);
-      } catch (emailError) {
-        console.error(`Failed to send mention email notification to ${mentionedUser.username}:`, emailError);
-        // Email failure doesn't mean the notification failed completely
-        // The in-app notification was still created
-      }
-    } else {
-      console.log(`User ${mentionedUser.id} (${mentionedUser.username}) has no email address, skipping email notification`);
-    }
-    
-    return notification;
-  } catch (error) {
-    console.error(`Failed to process mention notification for user ${mentionedUser.id}:`, error);
-    throw error; // Rethrow to allow the caller to handle it
-  }
-}
-
-/**
- * Send notification for task comment
- */
-export async function notifyTaskComment(task: any, comment: string, commentBy: any, notifyUsers: any[]) {
-  if (!notifyUsers || notifyUsers.length === 0) {
-    console.log('No users to notify about comment');
-    return;
-  }
-  
-  console.log('Sending comment notifications:', {
-    taskId: task.id,
-    commenterUserId: commentBy?.id,
-    numberOfUsersToNotify: notifyUsers.length,
-    commentPreview: comment.substring(0, 20) + (comment.length > 20 ? '...' : '')
-  });
-  
-  const taskUrl = getTaskUrl(task.id);
-  const commenterName = commentBy?.name || commentBy?.username || 'Admin';
-  let emailsSent = 0;
-  let notificationsSent = 0;
-  
-  for (const user of notifyUsers) {
-    // Don't notify the commenter about their own comment
-    if (user.id === commentBy.id) {
-      console.log(`Skipping notification for user ${user.id}: is commenter`);
-      continue;
-    }
-    
-    const userName = user.name || user.username || 'User';
-    
-    // Create in-app notification
-    try {
-      await createNotification(
-        user.id,
-        `New comment on task: ${task.title}`,
-        `${commenterName} commented: "${comment.substring(0, 50)}${comment.length > 50 ? '...' : ''}"`,
-        'task_comment',
-        task.id,
-        'task'
-      );
-      notificationsSent++;
-    } catch (err) {
-      console.error(`Failed to create in-app comment notification for user ${user.id}:`, err);
-    }
-    
-    // Send email notification if email is available
-    if (user.email) {
-      try {
         await sendEmail({
           to: user.email,
-          subject: `[Promellon] New comment on task: ${task.title}`,
-          html: `
-            <h2>New Comment on Task</h2>
-            <p>Hello ${userName},</p>
-            <p>${commenterName} commented on a task:</p>
-            <p><strong>${task.title}</strong></p>
-            <p>Comment: ${comment}</p>
-            <p><a href="${taskUrl}">View Task</a></p>
-          `,
+          from: process.env.FROM_EMAIL || 'noreply@promellon.com',
+          subject: 'Daily Task Summary',
+          html,
+          text: `Daily task summary for ${user.username}`
         });
-        emailsSent++;
-      } catch (err) {
-        console.error(`Failed to send comment notification email to user ${user.id}:`, err);
+
+        console.log(`Sent user notification to ${user.username}`);
+      } catch (error) {
+        console.error(`Failed to send notification to ${user.username}:`, error);
       }
     }
   }
-  
-  console.log(`Sent ${emailsSent} comment notification emails and ${notificationsSent} in-app notifications`);
-}
 
-/**
- * Send notification for new user creation
- */
-export async function notifyUserCreation(user: any, password: string | null, admin: any) {
-  if (!user) {
-    console.log('Cannot send user creation notification: user missing', {
-      userId: user?.id
+  // Send admin notifications
+  if (adminNotificationsEnabled) {
+    const adminUsers = await db.query.users.findMany({
+      where: eq(users.role, 'admin')
     });
-    return;
-  }
-  
-  console.log('Sending user creation notification:', {
-    userId: user.id,
-    userEmail: user.email,
-    adminId: admin?.id
-  });
-  
-  const loginUrl = getLoginUrl();
-  const userName = user.name || user.username || 'User';
-  const adminName = admin?.name || admin?.username || 'Administrator';
-  
-  // Create in-app notification
-  try {
-    await createNotification(
-      user.id,
-      `Welcome to Promellon`,
-      `Your account has been created by ${adminName}. Please check your email for login information.`,
-      'user_creation',
-      user.id,
-      'user'
-    );
-    console.log(`Created in-app welcome notification for user ${user.id}`);
-  } catch (err) {
-    console.error(`Failed to create in-app welcome notification for user ${user.id}:`, err);
-  }
-  
-  // Send email notification if email is available
-  if (user.email) {
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: `[Promellon] Welcome to Promellon - Account Created`,
-        html: `
-          <h2>Welcome to Promellon</h2>
-          <p>Hello ${userName},</p>
-          <p>Your account has been created by ${adminName}.</p>
-          <p>Here are your login details:</p>
-          <p>Username: ${user.username}</p>
-          ${password ? `<p>Password: ${password}</p>` : ''}
-          <p>Please login at <a href="${loginUrl}">Promellon</a>.</p>
-          ${password ? `<p>For security reasons, please change your password after the first login.</p>` : ''}
-        `,
-      });
-      console.log(`Sent welcome email to user ${user.id}`);
-    } catch (err) {
-      console.error(`Failed to send welcome email to user ${user.id}:`, err);
-    }
-  }
-}
 
-/**
- * Send notification for password reset
- */
-export async function notifyPasswordReset(user: any, newPassword: string) {
-  if (!user) {
-    console.log('Cannot send password reset notification: user missing', {
-      userId: user?.id
-    });
-    return;
-  }
-  
-  console.log('Sending password reset notification:', {
-    userId: user.id,
-    userEmail: user.email
-  });
-  
-  const loginUrl = getLoginUrl();
-  const userName = user.name || user.username || 'User';
-  
-  // Create in-app notification
-  try {
-    await createNotification(
-      user.id,
-      `Password has been reset`,
-      `Your password has been reset. Please check your email for the new password.`,
-      'password_reset',
-      user.id,
-      'user'
-    );
-    console.log(`Created in-app password reset notification for user ${user.id}`);
-  } catch (err) {
-    console.error(`Failed to create in-app password reset notification for user ${user.id}:`, err);
-  }
-  
-  // Send email notification if email is available
-  if (user.email) {
-    try {
-      await sendEmail({
-        to: user.email,
-        subject: `[Promellon] Your Password Has Been Reset`,
-        html: `
-          <h2>Password Reset</h2>
-          <p>Hello ${userName},</p>
-          <p>Your password has been reset.</p>
-          <p>Your new password is: ${newPassword}</p>
-          <p>Please login at <a href="${loginUrl}">Promellon</a>.</p>
-          <p>For security reasons, please change your password after login.</p>
-        `,
-      });
-      console.log(`Sent password reset email to user ${user.id}`);
-    } catch (err) {
-      console.error(`Failed to send password reset email to user ${user.id}:`, err);
-    }
-  }
-}
+    if (adminUsers.length > 0) {
+      try {
+        const adminSummary = await getAdminSummary();
+        const html = generateAdminEmailHTML(adminSummary);
 
-/**
- * Send notification for task collaboration invitation
- */
-export async function notifyTaskCollaboration(task: any, user: any, inviter: any, role: string = 'viewer') {
-  if (!user) {
-    console.log('Cannot send task collaboration notification: user missing', {
-      taskId: task?.id,
-      userId: user?.id
-    });
-    return;
-  }
-  
-  console.log('Sending task collaboration invitation notification:', {
-    taskId: task.id,
-    taskTitle: task.title,
-    userId: user.id,
-    userEmail: user.email,
-    inviterId: inviter?.id,
-    role
-  });
-  
-  const taskUrl = getTaskUrl(task.id);
-  const userName = user.name || user.username || 'User';
-  const inviterName = inviter?.name || inviter?.username || 'Administrator';
-  
-  // Create in-app notification
-  try {
-    await createNotification(
-      user.id,
-      `Task collaboration invitation: ${task.title}`,
-      `${inviterName} invited you to collaborate on a task as a ${role}.`,
-      'task_collaboration',
-      task.id,
-      'task'
-    );
-    console.log(`Successfully created in-app task collaboration notification for user ${user.id}`);
-  } catch (err) {
-    console.error(`Failed to create in-app task collaboration notification for user ${user.id}:`, err);
-  }
-  
-  // Send email notification if email is available
-  if (user.email) {
-    try {
-      const success = await sendEmail({
-        to: user.email,
-        subject: `[Promellon] You've been invited to collaborate on: ${task.title}`,
-        html: `
-          <h2>Task Collaboration Invitation</h2>
-          <p>Hello ${userName},</p>
-          <p>You have been invited by ${inviterName} to collaborate on a task:</p>
-          <p><strong>${task.title}</strong></p>
-          <p>${task.description || ''}</p>
-          <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
-          <p>Priority: ${task.priority}</p>
-          <p>Due date: ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'Not set'}</p>
-          <p><a href="${taskUrl}">View Task</a></p>
-        `,
-      });
-      
-      if (success) {
-        console.log(`Successfully sent task collaboration invitation email to ${user.email}`);
+        for (const admin of adminUsers) {
+          if (!admin.email) continue;
+
+          await sendEmail({
+            to: admin.email,
+            from: process.env.FROM_EMAIL || 'noreply@promellon.com',
+            subject: 'Daily Admin Summary',
+            html,
+            text: 'Daily admin summary from Promellon'
+          });
+
+          console.log(`Sent admin notification to ${admin.username}`);
+        }
+      } catch (error) {
+        console.error('Failed to send admin notifications:', error);
       }
-    } catch (err) {
-      console.error(`Failed to send task collaboration invitation email to user ${user.id}:`, err);
     }
   }
-}
 
-/**
- * Send notification for project assignment
- */
-export async function notifyProjectAssignment(project: any, user: any, assignedBy: any, role: string = 'member') {
-  if (!user) {
-    console.log('Cannot send project assignment notification: user missing', {
-      projectId: project?.id,
-      userId: user?.id
-    });
-    return;
-  }
-  
-  console.log('Sending project assignment notification:', {
-    projectId: project.id,
-    projectName: project.name,
-    userId: user.id,
-    userEmail: user.email,
-    assignedById: assignedBy?.id,
-    role
-  });
-  
-  const projectUrl = `${process.env.APP_URL || ''}/projects/${project.id}`;
-  const userName = user.name || user.username || 'User';
-  const assignerName = assignedBy?.name || assignedBy?.username || 'Administrator';
-  
-  // Create in-app notification
-  try {
-    await createNotification(
-      user.id,
-      `Project assignment: ${project.name}`,
-      `${assignerName} added you to a project as a ${role}.`,
-      'project_assignment',
-      project.id,
-      'project'
-    );
-    console.log(`Successfully created in-app project assignment notification for user ${user.id}`);
-  } catch (err) {
-    console.error(`Failed to create in-app project assignment notification for user ${user.id}:`, err);
-  }
-  
-  // Send email notification if email is available
-  if (user.email) {
-    try {
-      const success = await sendEmail({
-        to: user.email,
-        subject: `[Promellon] You've been added to project: ${project.name}`,
-        html: `
-          <h2>Project Assignment</h2>
-          <p>Hello ${userName},</p>
-          <p>You have been added to a project by ${assignerName}:</p>
-          <p><strong>${project.name}</strong></p>
-          <p>${project.description || ''}</p>
-          <p>Your role: ${role.charAt(0).toUpperCase() + role.slice(1)}</p>
-          <p><a href="${projectUrl}">View Project</a></p>
-        `,
-      });
-      
-      if (success) {
-        console.log(`Successfully sent project assignment notification email to ${user.email}`);
-      }
-    } catch (err) {
-      console.error(`Failed to send project assignment notification email to user ${user.id}:`, err);
-    }
-  }
+  console.log('End-of-day email notifications completed');
 }
