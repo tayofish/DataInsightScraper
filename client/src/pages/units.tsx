@@ -20,8 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 const unitFormSchema = z.object({
   name: z.string().min(2, "Unit name must be at least 2 characters"),
   description: z.string().optional(),
-  departmentHeadId: z.string().optional(),
-  departmentId: z.string().min(1, "Department is required")
+  departmentHeadId: z.string().optional()
 });
 
 type UnitFormValues = z.infer<typeof unitFormSchema>;
@@ -45,10 +44,7 @@ export default function Units() {
     queryKey: ['/api/users']
   });
 
-  // Fetch departments for unit assignment (from what was originally categories table)
-  const { data: departments = [] } = useQuery<Array<{id: number, name: string}>>({
-    queryKey: ['/api/categories']
-  });
+
 
   // Create unit form
   const form = useForm<UnitFormValues>({
@@ -56,8 +52,7 @@ export default function Units() {
     defaultValues: {
       name: '',
       description: '',
-      departmentHeadId: "none",
-      departmentId: ""
+      departmentHeadId: "none"
     }
   });
 
@@ -90,7 +85,7 @@ export default function Units() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       form.reset();
       setIsCreateDialogOpen(false);
       setEditingUnit(null);
@@ -138,8 +133,7 @@ export default function Units() {
     form.reset({
       name: unit.name || '',
       description: unit.description || '',
-      departmentHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none",
-      departmentId: unit.departmentId ? unit.departmentId.toString() : ""
+      departmentHeadId: unit.departmentHeadId ? unit.departmentHeadId.toString() : "none"
     });
     setIsCreateDialogOpen(true);
   };
@@ -217,29 +211,7 @@ export default function Units() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="departmentId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department</FormLabel>
-                      <FormControl>
-                        <SearchableSelect
-                          value={field.value || ""}
-                          onValueChange={field.onChange}
-                          options={departments.map(dept => ({
-                            value: dept.id.toString(),
-                            label: dept.name
-                          }))}
-                          placeholder="Select department"
-                          emptyMessage="No departments found"
-                          searchPlaceholder="Search departments..."
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
                 <FormField
                   control={form.control}
                   name="departmentHeadId"
