@@ -38,7 +38,7 @@ export default function Departments() {
   
   // Fetch departments
   const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
-    queryKey: ['/api/departments']
+    queryKey: ['/api/categories']
   });
 
   // Fetch users for unit head selection
@@ -48,7 +48,7 @@ export default function Departments() {
 
   // Fetch units for department assignment
   const { data: units = [] } = useQuery<Array<{id: number, name: string, description: string, departmentId: number}>>({
-    queryKey: ['/api/units']
+    queryKey: ['/api/departments']
   });
 
   // Note: Departments are the primary organizational structure
@@ -104,19 +104,19 @@ export default function Departments() {
       
       if (editingDepartment) {
         // Update existing department
-        const result = await apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, processedValues);
+        const result = await apiRequest('PATCH', `/api/categories/${editingDepartment.id}`, processedValues);
         
         // Update unit assignments if unitIds are provided
         if (values.unitIds && values.unitIds.length > 0) {
           // First, unassign all units from this department
           const currentUnits = units.filter(unit => unit.departmentId === editingDepartment.id);
           const unassignUpdates = currentUnits.map(unit => 
-            apiRequest('PATCH', `/api/units/${unit.id}`, { departmentId: null })
+            apiRequest('PATCH', `/api/departments/${unit.id}`, { departmentId: null })
           );
           
           // Then assign selected units to this department
           const assignUpdates = values.unitIds.map(unitId => 
-            apiRequest('PATCH', `/api/units/${unitId}`, { departmentId: editingDepartment.id.toString() })
+            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: editingDepartment.id.toString() })
           );
           
           await Promise.all([...unassignUpdates, ...assignUpdates]);
@@ -125,12 +125,12 @@ export default function Departments() {
         return result;
       } else {
         // Create new department
-        const result = await apiRequest('POST', '/api/departments', processedValues) as any;
+        const result = await apiRequest('POST', '/api/categories', processedValues) as any;
         
         // Assign units to new department if unitIds are provided
         if (values.unitIds && values.unitIds.length > 0 && result?.id) {
           const unitUpdates = values.unitIds.map(unitId => 
-            apiRequest('PATCH', `/api/units/${unitId}`, { departmentId: result.id })
+            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: result.id })
           );
           await Promise.all(unitUpdates);
         }
@@ -140,8 +140,8 @@ export default function Departments() {
     },
     onSuccess: () => {
       // Invalidate and refetch both departments and units
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
@@ -167,10 +167,10 @@ export default function Departments() {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (departmentId: number) => {
-      return apiRequest('DELETE', `/api/departments/${departmentId}`);
+      return apiRequest('DELETE', `/api/categories/${departmentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
         title: 'Department Deleted',
         description: 'The department has been removed.'
