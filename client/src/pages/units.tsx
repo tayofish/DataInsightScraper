@@ -62,8 +62,8 @@ export default function Units() {
   });
 
   // Filter units based on search query
-  const filteredUnits = units.filter((unit: any) =>
-    unit.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredUnits = (units as any[] || []).filter((unit: any) =>
+    unit.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     unit.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -224,7 +224,7 @@ export default function Units() {
                 />
               </div>
               <div className="text-sm text-gray-500">
-                {filteredUnits.length} of {units.length} units
+                {filteredUnits.length} of {(units as any[] || []).length} units
               </div>
             </div>
 
@@ -242,7 +242,7 @@ export default function Units() {
               <TableBody>
                 {paginatedUnits.map((unit: any) => {
                   const unitHead = unit.unitHeadId ? users.find(u => u.id === unit.unitHeadId) : null;
-                  const department = departments.find(d => d.id === unit.departmentId);
+                  const department = (departments as any[] || []).find((d: any) => d.id === unit.departmentId);
                   return (
                     <TableRow key={unit.id}>
                       <TableCell className="font-medium">{unit.name}</TableCell>

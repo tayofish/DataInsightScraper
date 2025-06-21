@@ -69,15 +69,15 @@ export default function Departments() {
       if (editingDepartment) {
         form.reset({
           name: editingDepartment.name,
-          description: editingDepartment.description,
-          unitHeadId: editingDepartment.unitHeadId?.toString() || "none"
+          description: editingDepartment.description || "",
+          departmentHeadId: editingDepartment.departmentHeadId?.toString() || "none"
         });
 
       } else {
         form.reset({
           name: '',
           description: '',
-          unitHeadId: "none"
+          departmentHeadId: "none"
         });
 
       }
@@ -114,7 +114,7 @@ export default function Departments() {
       }
 
       // Handle units creation if this is a new department and units are selected
-      const departmentId = editingDepartment ? editingDepartment.id : departmentResponse.id;
+      const departmentId = editingDepartment ? editingDepartment.id : (departmentResponse as any).id;
       if (departmentId && selectedUnits && selectedUnits.length > 0) {
         // Create units for this department
         for (const unitName of selectedUnits) {
