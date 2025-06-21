@@ -75,7 +75,7 @@ export default function Units() {
       const processedValues = {
         name: values.name,
         description: values.description || "",
-        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
+        departmentHeadId: values.departmentHeadId === "none" ? "none" : values.departmentHeadId || "none"
       };
 
       if (editingUnit) {
