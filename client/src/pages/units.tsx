@@ -5,13 +5,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users, Building } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 const unitFormSchema = z.object({
   name: z.string().min(2, "Unit name must be at least 2 characters"),
   description: z.string().optional(),
-  headId: z.string().optional()
+  departmentHeadId: z.string().optional()
 });
 
 type UnitFormValues = z.infer<typeof unitFormSchema>;
@@ -28,7 +28,7 @@ type UnitFormValues = z.infer<typeof unitFormSchema>;
 export default function Units() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
   const itemsPerPage = 10;
 
@@ -38,8 +38,6 @@ export default function Units() {
   const { data: units = [], isLoading: unitsLoading } = useQuery({
     queryKey: ['/api/departments']
   });
-
-  // Since we're treating departments as units, we don't need a separate departments list for selection
 
   // Fetch users for unit head selection
   const { data: users = [] } = useQuery<Array<{id: number, username: string, name: string}>>({
@@ -52,7 +50,7 @@ export default function Units() {
     defaultValues: {
       name: '',
       description: '',
-      headId: "none"
+      departmentHeadId: "none"
     }
   });
 
@@ -69,379 +67,337 @@ export default function Units() {
     currentPage * itemsPerPage
   );
 
-  // Create unit mutation
+  // Create/update unit mutation (working with departments)
   const createUnitMutation = useMutation({
     mutationFn: async (values: UnitFormValues) => {
-      console.log('Form submission data:', values);
-      
-      // Handle unit head selection - convert "none" to null
       const processedValues = {
-        ...values,
-        unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null,
-        departmentId: parseInt(values.departmentId)
+        name: values.name,
+        description: values.description || "",
+        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
       };
 
-      console.log('Processed values:', processedValues);
-
-      let unitResponse;
-      
       if (editingUnit) {
-        // Update existing unit
-        unitResponse = await apiRequest('PATCH', `/api/units/${editingUnit.id}`, processedValues);
+        return await apiRequest('PATCH', `/api/departments/${editingUnit.id}`, processedValues);
       } else {
-        // Create new unit
-        unitResponse = await apiRequest('POST', '/api/units', processedValues);
+        return await apiRequest('POST', '/api/departments', processedValues);
       }
-
-      return unitResponse;
     },
     onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      // Close dialog and reset form
-      setIsDialogOpen(false);
-      setEditingUnit(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       form.reset();
-      
+      setIsCreateDialogOpen(false);
+      setEditingUnit(null);
       toast({
-        title: editingUnit ? 'Unit Updated' : 'Unit Created',
-        description: editingUnit 
-          ? `${form.getValues().name} has been updated.` 
-          : `${form.getValues().name} has been added to units.`,
+        title: "Success",
+        description: editingUnit ? "Unit updated successfully" : "Unit created successfully",
       });
     },
-    onError: (error) => {
-      console.error('Failed to save unit:', error);
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: 'Failed to save unit. Please try again.',
-        variant: 'destructive'
+        title: "Error",
+        description: error.message || `Failed to ${editingUnit ? 'update' : 'create'} unit`,
+        variant: "destructive",
       });
-    }
+    },
   });
 
   // Delete unit mutation
   const deleteUnitMutation = useMutation({
     mutationFn: async (unitId: number) => {
-      return apiRequest('DELETE', `/api/units/${unitId}`);
+      return await apiRequest('DELETE', `/api/departments/${unitId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       toast({
-        title: 'Unit Deleted',
-        description: 'The unit has been removed.'
+        title: "Success",
+        description: "Unit deleted successfully",
       });
     },
-    onError: (error) => {
-      console.error('Failed to delete unit:', error);
+    onError: (error: any) => {
       toast({
-        title: 'Error',
-        description: 'Failed to delete unit. It may be in use by tasks.',
-        variant: 'destructive'
+        title: "Error",
+        description: error.message || "Failed to delete unit",
+        variant: "destructive",
       });
-    }
+    },
   });
-  
+
   const onSubmit = (values: UnitFormValues) => {
-    console.log('onSubmit function called with values:', values);
-    console.log('Form errors during submission:', form.formState.errors);
-    
     createUnitMutation.mutate(values);
   };
 
-  const onFormError = (errors: any) => {
-    console.log('Form validation errors:', errors);
-    console.log('Current form values:', form.getValues());
-    console.log('Form state:', form.formState);
-  };
-  
-  const handleEditUnit = (unit: any) => {
+  const handleEdit = (unit: any) => {
     setEditingUnit(unit);
     form.reset({
-      name: unit.name,
+      name: unit.name || '',
       description: unit.description || '',
-      unitHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none",
-      departmentId: unit.departmentId.toString()
+      departmentHeadId: unit.departmentHeadId ? unit.departmentHeadId.toString() : "none"
     });
-    setIsDialogOpen(true);
-  };
-  
-  const handleDeleteUnit = (unitId: number) => {
-    if (confirm('Are you sure you want to delete this unit? This may affect associated tasks.')) {
-      deleteUnitMutation.mutate(unitId);
-    }
+    setIsCreateDialogOpen(true);
   };
 
-  if (unitsLoading) {
-    return <div>Loading units...</div>;
-  }
+  const handleDelete = (unitId: number) => {
+    deleteUnitMutation.mutate(unitId);
+  };
+
+  const getUserName = (userId: number | null) => {
+    if (!userId) return 'Not assigned';
+    const user = users.find(u => u.id === userId);
+    return user ? user.name : 'Unknown User';
+  };
+
+  const resetForm = () => {
+    form.reset();
+    setEditingUnit(null);
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Units Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Units Management</h1>
           <p className="text-muted-foreground">
-            Manage organizational units within departments
+            Manage organizational units and assign unit heads
           </p>
         </div>
-        <Button onClick={() => {
-          setEditingUnit(null);
-          form.reset();
-          setIsDialogOpen(true);
+        <Dialog open={isCreateDialogOpen} onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) resetForm();
         }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Unit
-        </Button>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Unit
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{editingUnit ? 'Edit Unit' : 'Create New Unit'}</DialogTitle>
+              <DialogDescription>
+                {editingUnit ? 'Update the unit information below.' : 'Fill in the information to create a new unit.'}
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter unit name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Enter unit description (optional)" 
+                          rows={3}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="headId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Head</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value || "none"}
+                          onValueChange={field.onChange}
+                          options={[
+                            { value: "none", label: "No unit head assigned" },
+                            ...users.map(user => ({
+                              value: user.id.toString(),
+                              label: user.name
+                            }))
+                          ]}
+                          placeholder="Select unit head"
+                          emptyText="No users found"
+                          searchPlaceholder="Search users..."
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsCreateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createUnitMutation.isPending}
+                  >
+                    {createUnitMutation.isPending ? 'Saving...' : (editingUnit ? 'Update Unit' : 'Create Unit')}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
+      {/* Search Bar */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Building className="h-5 w-5" />
-            <span>Units Overview</span>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Search Units
           </CardTitle>
-          <CardDescription>
-            Units are organizational subdivisions within departments, each with their own unit head
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {/* Search and filters */}
-            <div className="flex items-center justify-between">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search units..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="text-sm text-gray-500">
-                {filteredUnits.length} of {(units as any[] || []).length} units
-              </div>
-            </div>
-
-            {/* Units Table */}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Unit Name</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="w-[150px]">Unit Head</TableHead>
-                  <TableHead className="text-right w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedUnits.map((unit: any) => {
-                  const unitHead = unit.unitHeadId ? users.find(u => u.id === unit.unitHeadId) : null;
-                  const department = (departments as any[] || []).find((d: any) => d.id === unit.departmentId);
-                  return (
-                    <TableRow key={unit.id}>
-                      <TableCell className="font-medium">{unit.name}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Building className="h-4 w-4 text-gray-500" />
-                          <span>{department?.name || 'Unknown'}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">{unit.description}</TableCell>
-                      <TableCell>
-                        {unitHead ? (
-                          <div className="flex items-center space-x-2">
-                            <Users className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm">{unitHead.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No unit head</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUnit(unit)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteUnit(unit.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <div className="text-sm text-gray-500">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredUnits.length)} of {filteredUnits.length} results
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                  <span className="text-sm">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+          <Input
+            placeholder="Search by unit name or description..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1); // Reset to first page when searching
+            }}
+            className="max-w-sm"
+          />
         </CardContent>
       </Card>
 
-      {/* Add/Edit Unit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{editingUnit ? 'Edit Unit' : 'Add New Unit'}</DialogTitle>
-            <DialogDescription>
-              {editingUnit ? 'Update the unit information below.' : 'Create a new organizational unit within a department.'}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-4">
-              {/* Unit Name */}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Marketing Team" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {/* Units Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="h-5 w-5" />
+            Units ({filteredUnits.length})
+          </CardTitle>
+          <CardDescription>
+            List of all organizational units and their assigned heads
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {unitsLoading ? (
+            <div className="text-center py-8">Loading units...</div>
+          ) : filteredUnits.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              {searchQuery ? 'No units found matching your search.' : 'No units found. Create your first unit to get started.'}
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Unit Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Unit Head</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedUnits.map((unit: any) => (
+                    <TableRow key={unit.id}>
+                      <TableCell className="font-medium">{unit.name}</TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {unit.description || 'No description'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          {getUserName(unit.headId)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {unit.createdAt ? new Date(unit.createdAt).toLocaleDateString() : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(unit)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Unit</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{unit.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(unit.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-              {/* Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Brief description of the unit's purpose"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Department Selection */}
-              <FormField
-                control={form.control}
-                name="departmentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center space-x-2">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      <span>Department</span>
-                    </FormLabel>
-                    <SearchableSelect
-                      options={(departments as any[] || []).map((dept: any) => ({ 
-                        value: dept.id.toString(), 
-                        label: dept.name 
-                      }))}
-                      value={field.value || ""}
-                      onValueChange={field.onChange}
-                      placeholder="Select a department"
-                      searchPlaceholder="Search departments..."
-                      emptyText="No departments found"
-                    />
-                    <FormDescription>
-                      The department this unit belongs to
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Unit Head Selection */}
-              <FormField
-                control={form.control}
-                name="unitHeadId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span>Unit Head</span>
-                    </FormLabel>
-                    <SearchableSelect
-                      options={[
-                        { value: "none", label: "No Unit Head" },
-                        ...users.map(user => ({ 
-                          value: user.id.toString(), 
-                          label: `${user.name} (${user.username})` 
-                        }))
-                      ]}
-                      value={field.value || "none"}
-                      onValueChange={field.onChange}
-                      placeholder="Select a unit head (optional)"
-                      searchPlaceholder="Search users..."
-                      emptyText="No users found"
-                    />
-                    <FormDescription>
-                      Unit heads receive daily email summaries for their assigned units
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  disabled={createUnitMutation.isPending}
-                >
-                  {editingUnit ? 'Update' : 'Create'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between space-x-2 py-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredUnits.length)} of {filteredUnits.length} units
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <div className="text-sm">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
