@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Department, departmentInsertSchema } from '@shared/schema';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +21,7 @@ type DepartmentFormValues = z.infer<typeof departmentInsertSchema>;
 export default function Departments() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingDepartment, setEditingDepartment] = React.useState<Department | null>(null);
-  const [selectedUnitHead, setSelectedUnitHead] = React.useState<string>("");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -55,14 +55,14 @@ export default function Departments() {
           description: editingDepartment.description,
           unitHeadId: editingDepartment.unitHeadId?.toString() || "none"
         });
-        setSelectedUnitHead(editingDepartment.unitHeadId?.toString() || "");
+
       } else {
         form.reset({
           name: '',
           description: '',
           unitHeadId: "none"
         });
-        setSelectedUnitHead("");
+
       }
     }
   }, [isDialogOpen, editingDepartment, form]);
@@ -82,9 +82,8 @@ export default function Departments() {
 
       // Handle unit head assignment if provided
       const departmentId = editingDepartment ? editingDepartment.id : departmentResponse.id;
-      if (departmentId) {
-        const unitHeadId = selectedUnitHead ? parseInt(selectedUnitHead) : null;
-        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId });
+      if (departmentId && processedValues.unitHeadId) {
+        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId: processedValues.unitHeadId });
       }
 
       return departmentResponse;
@@ -95,7 +94,6 @@ export default function Departments() {
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
-      setSelectedUnitHead("");
       form.reset();
       
       toast({
