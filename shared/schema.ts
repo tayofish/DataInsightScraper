@@ -37,7 +37,17 @@ export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description"),
+  departmentHeadId: integer("department_head_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Units table - units belong to departments
+export const units = pgTable("units", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
   unitHeadId: integer("unit_head_id").references(() => users.id),
+  departmentId: integer("department_id").references(() => departments.id).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -187,10 +197,22 @@ export const projectsRelations = relations(projects, ({ many }) => ({
 
 export const departmentsRelations = relations(departments, ({ many, one }) => ({
   categories: many(categories),
+  units: many(units),
   users: many(users),
   userDepartments: many(userDepartments),
+  departmentHead: one(users, {
+    fields: [departments.departmentHeadId],
+    references: [users.id],
+  }),
+}));
+
+export const unitsRelations = relations(units, ({ one }) => ({
+  department: one(departments, {
+    fields: [units.departmentId],
+    references: [departments.id],
+  }),
   unitHead: one(users, {
-    fields: [departments.unitHeadId],
+    fields: [units.unitHeadId],
     references: [users.id],
   }),
 }));
@@ -293,6 +315,15 @@ export const projectInsertSchema = createInsertSchema(projects, {
 
 export const departmentInsertSchema = createInsertSchema(departments, {
   name: (schema) => schema.min(2, "Department name must be at least 2 characters"),
+  departmentHeadId: (schema) => schema.transform((val) => {
+    if (val === "none" || val === "" || val === null || val === undefined) return null;
+    const num = parseInt(val as string);
+    return isNaN(num) ? null : num;
+  }).nullable().optional(),
+});
+
+export const unitInsertSchema = createInsertSchema(units, {
+  name: (schema) => schema.min(2, "Unit name must be at least 2 characters"),
   unitHeadId: (schema) => schema.transform((val) => {
     if (val === "none" || val === "" || val === null || val === undefined) return null;
     const num = parseInt(val as string);
@@ -335,6 +366,11 @@ export type InsertProject = z.infer<typeof projectInsertSchema>;
 export const departmentSelectSchema = createSelectSchema(departments);
 export type Department = z.infer<typeof departmentSelectSchema>;
 export type InsertDepartment = z.infer<typeof departmentInsertSchema>;
+
+// Define unit schemas
+export const unitSelectSchema = createSelectSchema(units);
+export type Unit = z.infer<typeof unitSelectSchema>;
+export type InsertUnit = z.infer<typeof unitInsertSchema>;
 
 // Define category schemas
 export const categorySelectSchema = createSelectSchema(categories);
