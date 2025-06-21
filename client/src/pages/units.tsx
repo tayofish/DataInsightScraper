@@ -144,13 +144,6 @@ export default function Units() {
       // Always refetch after error or success to sync with server
       queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
     },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete unit",
-        variant: "destructive",
-      });
-    },
   });
 
   const onSubmit = (values: UnitFormValues) => {
