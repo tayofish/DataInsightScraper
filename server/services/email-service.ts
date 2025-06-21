@@ -489,12 +489,14 @@ export async function getUnitSummary(unitId: number): Promise<UnitSummary> {
   // Combine and deduplicate users
   const allUnitUsers = new Map();
   unitUsers.forEach(ud => {
-    if (ud.user) {
-      allUnitUsers.set(ud.user.id, ud.user);
+    if (ud.user && typeof ud.user === 'object' && 'id' in ud.user) {
+      allUnitUsers.set((ud.user as any).id, ud.user);
     }
   });
   primaryUsers.forEach(user => {
-    allUnitUsers.set(user.id, user);
+    if (user && user.id) {
+      allUnitUsers.set(user.id, user);
+    }
   });
 
   const userIds = Array.from(allUnitUsers.keys());
@@ -622,9 +624,9 @@ export async function getUnitSummary(unitId: number): Promise<UnitSummary> {
 
     if (overdueTasks > 0 || pendingTasks > 0) {
       unitMembers.push({
-        username: user.username,
-        name: user.name || user.username,
-        email: user.email || '',
+        username: (user as any).username,
+        name: (user as any).name || (user as any).username,
+        email: (user as any).email || '',
         overdueTasks,
         pendingTasks
       });
@@ -632,9 +634,9 @@ export async function getUnitSummary(unitId: number): Promise<UnitSummary> {
 
     if (completedTasks > 0) {
       membersWithCompletedWork.push({
-        username: user.username,
-        name: user.name || user.username,
-        email: user.email || '',
+        username: (user as any).username,
+        name: (user as any).name || (user as any).username,
+        email: (user as any).email || '',
         completedTasks
       });
     }
@@ -645,7 +647,7 @@ export async function getUnitSummary(unitId: number): Promise<UnitSummary> {
     unitId: unit.id,
     totalOverdueTasks: unitOverdueCount[0]?.count || 0,
     totalPendingTasks: unitPendingCount[0]?.count || 0,
-    tasksCompletedToday: unitCompletedToday,
+    tasksCompletedToday: unitCompletedToday || [],
     unitMembers,
     membersWithCompletedWork
   };
@@ -1265,8 +1267,13 @@ export async function sendEndOfDayNotifications(): Promise<void> {
     where: eq(appSettings.key, 'end_of_day_admin_notifications')
   });
 
+  const unitHeadNotificationsSetting = await db.query.appSettings.findFirst({
+    where: eq(appSettings.key, 'end_of_day_unit_head_notifications')
+  });
+
   const userNotificationsEnabled = userNotificationsSetting?.value === 'true';
   const adminNotificationsEnabled = adminNotificationsSetting?.value === 'true';
+  const unitHeadNotificationsEnabled = unitHeadNotificationsSetting?.value === 'true';
 
   const fromEmail = await getFromEmail();
 
@@ -1338,6 +1345,63 @@ export async function sendEndOfDayNotifications(): Promise<void> {
       } catch (error) {
         console.error('Failed to send admin notifications:', error);
       }
+    }
+  }
+
+  // Send unit head notifications
+  if (unitHeadNotificationsEnabled) {
+    console.log('Sending unit head notifications...');
+    
+    try {
+      // Get all departments that have unit heads assigned
+      const unitsWithHeads = await db.query.departments.findMany({
+        where: sql`${departments.unitHeadId} IS NOT NULL`
+      });
+
+      for (const unit of unitsWithHeads) {
+        if (!unit.unitHeadId) continue;
+
+        try {
+          // Get unit head user details
+          const unitHead = await db.query.users.findFirst({
+            where: eq(users.id, unit.unitHeadId)
+          });
+
+          if (!unitHead || !unitHead.email) {
+            console.log(`Unit head not found or no email for unit ${unit.name}`);
+            continue;
+          }
+
+          const unitSummary = await getUnitSummary(unit.id);
+          
+          // Only send if unit has activity to report
+          if (unitSummary.totalOverdueTasks > 0 || 
+              unitSummary.totalPendingTasks > 0 || 
+              unitSummary.tasksCompletedToday.length > 0) {
+            
+            const html = generateUnitHeadEmailHTML(
+              unitHead.name || unitHead.username, 
+              unitSummary
+            );
+            
+            await sendEmail({
+              to: unitHead.email,
+              from: fromEmail,
+              subject: `Daily Unit Summary - ${unit.name}`,
+              html,
+              text: `Unit ${unit.name} summary: ${unitSummary.totalOverdueTasks} overdue, ${unitSummary.totalPendingTasks} pending tasks.`
+            });
+            
+            console.log(`Sent unit head notification to ${unitHead.username} for unit ${unit.name}`);
+          } else {
+            console.log(`Skipped notification for unit ${unit.name} - no activity to report`);
+          }
+        } catch (error) {
+          console.error(`Failed to send unit head notification for unit ${unit.name}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send unit head notifications:', error);
     }
   }
 
