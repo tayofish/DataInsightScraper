@@ -144,10 +144,16 @@ Monitor these log patterns:
 - Email issues: Check email service configuration and API keys
 
 ## Version Information
-- **Schema Version**: user_departments_v1
+- **Schema Version**: user_departments_v1 + email_notifications_v2
 - **Deployment Date**: $(date)
 - **Major Changes**: 
   - Added user_departments table with is_primary flag
   - Enhanced settings page with department display
   - Fixed department assignment logic
   - Improved API data structure for user departments
+  - Implemented comprehensive end-of-day email notification system
+  - Added built-in scheduler service with node-cron
+  - Created admin dashboard with email notification controls
+  - Enhanced email templates with proper user name display
+  - Added configurable time and timezone settings
+  - Implemented real-time scheduler status monitoring
