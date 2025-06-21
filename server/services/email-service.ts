@@ -60,8 +60,8 @@ interface EmailData {
   text?: string;
 }
 
-// Send email using existing transporter
-async function sendEmail(emailData: EmailData): Promise<boolean> {
+// Send email using existing transporter (internal function)
+async function sendEmailInternal(emailData: EmailData): Promise<boolean> {
   if (!transporter) {
     console.log('Email service not configured - no active SMTP configuration');
     return false;
@@ -654,6 +654,242 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
   `;
 
   return html;
+}
+
+// User creation notification
+export async function notifyUserCreation(user: any, password: string, createdBy: any): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !user.email) return;
+
+    const html = `
+      <h2>Welcome to Promellon</h2>
+      <p>Hello ${user.name || user.username},</p>
+      <p>A new account has been created for you by ${createdBy?.name || createdBy?.username}.</p>
+      <p><strong>Username:</strong> ${user.username}</p>
+      <p><strong>Temporary Password:</strong> ${password}</p>
+      <p>Please log in and change your password as soon as possible.</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      from: fromEmailSetting.fromEmail,
+      subject: 'Welcome to Promellon - Account Created',
+      html,
+      text: `Welcome to Promellon! Username: ${user.username}, Password: ${password}`
+    });
+  } catch (error) {
+    console.error('Failed to send user creation notification:', error);
+  }
+}
+
+// Password reset notification
+export async function notifyPasswordReset(user: any, newPassword: string): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !user.email) return;
+
+    const html = `
+      <h2>Password Reset - Promellon</h2>
+      <p>Hello ${user.name || user.username},</p>
+      <p>Your password has been reset.</p>
+      <p><strong>New Password:</strong> ${newPassword}</p>
+      <p>Please log in and change your password as soon as possible.</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      from: fromEmailSetting.fromEmail,
+      subject: 'Password Reset - Promellon',
+      html,
+      text: `Your password has been reset. New password: ${newPassword}`
+    });
+  } catch (error) {
+    console.error('Failed to send password reset notification:', error);
+  }
+}
+
+// Project assignment notification
+export async function notifyProjectAssignment(project: any, user: any, assignedBy: any): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !user.email) return;
+
+    const html = `
+      <h2>Project Assignment - Promellon</h2>
+      <p>Hello ${user.name || user.username},</p>
+      <p>You have been assigned to a new project:</p>
+      <p><strong>Project:</strong> ${project.name}</p>
+      <p><strong>Description:</strong> ${project.description || 'No description provided'}</p>
+      <p><strong>Assigned by:</strong> ${assignedBy?.name || assignedBy?.username}</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: user.email,
+      from: fromEmailSetting.fromEmail,
+      subject: `Project Assignment: ${project.name}`,
+      html,
+      text: `You have been assigned to project: ${project.name}`
+    });
+  } catch (error) {
+    console.error('Failed to send project assignment notification:', error);
+  }
+}
+
+// Task comment notification
+export async function notifyTaskComment(task: any, comment: any, commenter: any, assignee: any): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !assignee?.email) return;
+
+    const html = `
+      <h2>New Comment on Task - Promellon</h2>
+      <p>Hello ${assignee.name || assignee.username},</p>
+      <p>A new comment has been added to your task:</p>
+      <p><strong>Task:</strong> ${task.title}</p>
+      <p><strong>Comment by:</strong> ${commenter?.name || commenter?.username}</p>
+      <p><strong>Comment:</strong> ${comment.content}</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: assignee.email,
+      from: fromEmailSetting.fromEmail,
+      subject: `New comment on: ${task.title}`,
+      html,
+      text: `New comment on task "${task.title}" by ${commenter?.name || commenter?.username}`
+    });
+  } catch (error) {
+    console.error('Failed to send task comment notification:', error);
+  }
+}
+
+// Task collaboration notification
+export async function notifyTaskCollaboration(task: any, collaborator: any, inviter: any): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !collaborator?.email) return;
+
+    const html = `
+      <h2>Task Collaboration Invitation - Promellon</h2>
+      <p>Hello ${collaborator.name || collaborator.username},</p>
+      <p>You have been invited to collaborate on a task:</p>
+      <p><strong>Task:</strong> ${task.title}</p>
+      <p><strong>Description:</strong> ${task.description || 'No description provided'}</p>
+      <p><strong>Invited by:</strong> ${inviter?.name || inviter?.username}</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: collaborator.email,
+      from: fromEmailSetting.fromEmail,
+      subject: `Collaboration invitation: ${task.title}`,
+      html,
+      text: `You have been invited to collaborate on task: ${task.title}`
+    });
+  } catch (error) {
+    console.error('Failed to send task collaboration notification:', error);
+  }
+}
+
+// Mention notification
+export async function sendMentionNotification(mentionedUser: any, message: any, mentionedBy: any): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    const fromEmailSetting = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+
+    if (!fromEmailSetting || !mentionedUser?.email) return;
+
+    const html = `
+      <h2>You were mentioned - Promellon</h2>
+      <p>Hello ${mentionedUser.name || mentionedUser.username},</p>
+      <p>You were mentioned in a message:</p>
+      <p><strong>From:</strong> ${mentionedBy?.name || mentionedBy?.username}</p>
+      <p><strong>Message:</strong> ${message.content}</p>
+      <p>Best regards,<br>Promellon Team</p>
+    `;
+
+    await sendEmail({
+      to: mentionedUser.email,
+      from: fromEmailSetting.fromEmail,
+      subject: 'You were mentioned in Promellon',
+      html,
+      text: `You were mentioned by ${mentionedBy?.name || mentionedBy?.username}: ${message.content}`
+    });
+  } catch (error) {
+    console.error('Failed to send mention notification:', error);
+  }
+}
+
+// Generic send email function
+export async function sendEmail(emailData: {
+  to: string;
+  from: string;
+  subject: string;
+  html: string;
+  text: string;
+}): Promise<void> {
+  if (!transporter) {
+    console.log('Email service not initialized');
+    return;
+  }
+
+  try {
+    await transporter.sendMail(emailData);
+    console.log(`Email sent to ${emailData.to}: ${emailData.subject}`);
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    throw error;
+  }
 }
 
 export async function sendEndOfDayNotifications(): Promise<void> {
