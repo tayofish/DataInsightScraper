@@ -21,7 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 const departmentFormSchema = z.object({
   name: z.string().min(2, "Department name must be at least 2 characters"),
   description: z.string().optional(),
-  departmentHeadId: z.string().optional()
+  departmentHeadId: z.string().optional(),
+  unitIds: z.array(z.string()).optional()
 });
 
 type DepartmentFormValues = z.infer<typeof departmentFormSchema>;
@@ -45,6 +46,11 @@ export default function Departments() {
     queryKey: ['/api/users']
   });
 
+  // Fetch units for department assignment
+  const { data: units = [] } = useQuery<Array<{id: number, name: string, description: string, departmentId: number}>>({
+    queryKey: ['/api/departments']
+  });
+
   // Note: Departments are the primary organizational structure
   
   // Create department form
@@ -53,7 +59,8 @@ export default function Departments() {
     defaultValues: {
       name: '',
       description: '',
-      departmentHeadId: "none"
+      departmentHeadId: "none",
+      unitIds: []
     }
   });
   
@@ -61,22 +68,26 @@ export default function Departments() {
   React.useEffect(() => {
     if (isDialogOpen) {
       if (editingDepartment) {
+        // Get units assigned to this department
+        const assignedUnits = units.filter(unit => unit.departmentId === editingDepartment.id);
         form.reset({
           name: editingDepartment.name,
           description: editingDepartment.description || "",
-          departmentHeadId: editingDepartment.departmentHeadId?.toString() || "none"
+          departmentHeadId: editingDepartment.departmentHeadId?.toString() || "none",
+          unitIds: assignedUnits.map(unit => unit.id.toString())
         });
 
       } else {
         form.reset({
           name: '',
           description: '',
-          departmentHeadId: "none"
+          departmentHeadId: "none",
+          unitIds: []
         });
 
       }
     }
-  }, [isDialogOpen, editingDepartment, form]);
+  }, [isDialogOpen, editingDepartment, form, units]);
   
   // Create department mutation
   const createDepartmentMutation = useMutation({
@@ -93,10 +104,30 @@ export default function Departments() {
       
       if (editingDepartment) {
         // Update existing department
-        return await apiRequest('PATCH', `/api/categories/${editingDepartment.id}`, processedValues);
+        const result = await apiRequest('PATCH', `/api/categories/${editingDepartment.id}`, processedValues);
+        
+        // Update unit assignments if unitIds are provided
+        if (values.unitIds && values.unitIds.length > 0) {
+          const unitUpdates = values.unitIds.map(unitId => 
+            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: editingDepartment.id })
+          );
+          await Promise.all(unitUpdates);
+        }
+        
+        return result;
       } else {
         // Create new department
-        return await apiRequest('POST', '/api/categories', processedValues);
+        const result = await apiRequest('POST', '/api/categories', processedValues);
+        
+        // Assign units to new department if unitIds are provided
+        if (values.unitIds && values.unitIds.length > 0 && result.id) {
+          const unitUpdates = values.unitIds.map(unitId => 
+            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: result.id })
+          );
+          await Promise.all(unitUpdates);
+        }
+        
+        return result;
       }
     },
     onSuccess: () => {
@@ -413,6 +444,38 @@ export default function Departments() {
                 )}
               />
 
+              {/* Units Multi-Select Field */}
+              <FormField
+                control={form.control}
+                name="unitIds"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center space-x-2">
+                      <Building className="h-4 w-4 text-muted-foreground" />
+                      <span>Units</span>
+                    </FormLabel>
+                    <FormControl>
+                      <SearchableSelect
+                        multiple
+                        options={units.map(unit => ({
+                          value: unit.id.toString(),
+                          label: unit.name,
+                          description: unit.description
+                        }))}
+                        value={field.value || []}
+                        onValueChange={field.onChange}
+                        placeholder="Select units for this department"
+                        searchPlaceholder="Search units..."
+                        emptyMessage="No units found"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Select which units belong to this department
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               
               <DialogFooter>
