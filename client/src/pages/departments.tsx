@@ -20,7 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 const departmentFormSchema = z.object({
   name: z.string().min(2, "Department name must be at least 2 characters"),
   description: z.string().optional(),
-  unitHeadId: z.string().optional()
+  departmentHeadId: z.string().optional(),
+  selectedUnits: z.array(z.string()).optional()
 });
 
 type DepartmentFormValues = z.infer<typeof departmentFormSchema>;

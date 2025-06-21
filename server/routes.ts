@@ -6,7 +6,7 @@ import { db } from "@db";
 import { 
   taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
-  smtpConfigFormSchema, smtpConfig, tasks, departments, categories, projects, InsertTask, 
+  smtpConfigFormSchema, smtpConfig, tasks, departments, units, categories, projects, InsertTask, 
   InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
   users, appSettings, notifications, notificationInsertSchema, userDepartments,
   // Collaboration features
@@ -1614,11 +1614,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all departments
   app.get("/api/departments", async (req, res) => {
     try {
-      const departments = await storage.getAllDepartments();
-      return res.status(200).json(departments);
+      const allDepartments = await db.query.departments.findMany({
+        with: {
+          departmentHead: {
+            columns: {
+              id: true,
+              username: true,
+              name: true,
+            }
+          },
+          units: {
+            with: {
+              unitHead: {
+                columns: {
+                  id: true,
+                  username: true,
+                  name: true,
+                }
+              }
+            }
+          }
+        }
+      });
+      return res.json(allDepartments);
     } catch (error) {
-      console.error("Error fetching departments:", error);
+      console.error('Error fetching departments:', error);
       return res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+
+  // === UNITS ROUTES ===
+  // Get all units
+  app.get("/api/units", async (req, res) => {
+    try {
+      const allUnits = await db.query.units.findMany({
+        with: {
+          unitHead: {
+            columns: {
+              id: true,
+              username: true,
+              name: true,
+            }
+          },
+          department: {
+            columns: {
+              id: true,
+              name: true,
+            }
+          }
+        }
+      });
+      return res.json(allUnits);
+    } catch (error) {
+      console.error('Error fetching units:', error);
+      return res.status(500).json({ message: "Failed to fetch units" });
+    }
+  });
+
+  // Create unit
+  app.post("/api/units", async (req, res) => {
+    try {
+      const { name, description, unitHeadId, departmentId } = req.body;
+
+      if (!name || !departmentId) {
+        return res.status(400).json({ message: "Unit name and department are required" });
+      }
+
+      const [newUnit] = await db.insert(units).values({
+        name,
+        description,
+        unitHeadId: unitHeadId && unitHeadId !== "none" ? parseInt(unitHeadId) : null,
+        departmentId: parseInt(departmentId)
+      }).returning();
+
+      return res.status(201).json(newUnit);
+    } catch (error) {
+      console.error("Error creating unit:", error);
+      return res.status(500).json({ message: "Failed to create unit" });
+    }
+  });
+
+  // Update unit
+  app.patch("/api/units/:id", async (req, res) => {
+    try {
+      const unitId = parseInt(req.params.id);
+      const { name, description, unitHeadId } = req.body;
+
+      if (isNaN(unitId)) {
+        return res.status(400).json({ message: "Invalid unit ID" });
+      }
+
+      const [updatedUnit] = await db.update(units)
+        .set({
+          name,
+          description,
+          unitHeadId: unitHeadId && unitHeadId !== "none" ? parseInt(unitHeadId) : null
+        })
+        .where(eq(units.id, unitId))
+        .returning();
+
+      if (!updatedUnit) {
+        return res.status(404).json({ message: "Unit not found" });
+      }
+
+      return res.json(updatedUnit);
+    } catch (error) {
+      console.error("Error updating unit:", error);
+      return res.status(500).json({ message: "Failed to update unit" });
+    }
+  });
+
+  // Delete unit
+  app.delete("/api/units/:id", async (req, res) => {
+    try {
+      const unitId = parseInt(req.params.id);
+
+      if (isNaN(unitId)) {
+        return res.status(400).json({ message: "Invalid unit ID" });
+      }
+
+      await db.delete(units).where(eq(units.id, unitId));
+
+      return res.json({ message: "Unit deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting unit:", error);
+      return res.status(500).json({ message: "Failed to delete unit" });
     }
   });
   
