@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { MultiSelectDropdown } from '@/components/ui/multi-select-dropdown';
 import { useToast } from '@/hooks/use-toast';
 
 // Custom form schema that handles string values from Select components
@@ -44,6 +45,11 @@ export default function Departments() {
   // Fetch users for unit head selection
   const { data: users = [] } = useQuery<Array<{id: number, username: string, name: string}>>({
     queryKey: ['/api/users']
+  });
+
+  // Fetch units for multi-select dropdown
+  const { data: units = [] } = useQuery<Array<{id: number, name: string}>>({
+    queryKey: ['/api/units']
   });
   
   // Create department form
@@ -219,20 +225,20 @@ export default function Departments() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Units</h1>
+        <h1 className="text-2xl font-bold">Departments</h1>
         <Button onClick={() => {
           setEditingDepartment(null);
           setIsDialogOpen(true);
         }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Unit
+          <Plus className="mr-2 h-4 w-4" /> Add Department
         </Button>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>All Units</CardTitle>
+          <CardTitle>All Departments</CardTitle>
           <CardDescription>
-            Manage units that can be assigned to departments
+            Manage departments and their organizational structure
           </CardDescription>
         </CardHeader>
         <CardContent>
