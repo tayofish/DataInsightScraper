@@ -86,6 +86,7 @@ export default function Units() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.refetchQueries({ queryKey: ['/api/departments'] });
       form.reset();
       setIsCreateDialogOpen(false);
       setEditingUnit(null);
