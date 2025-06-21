@@ -403,7 +403,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .select({ count: count() })
     .from(tasks)
     .where(and(
-      eq(tasks.assigneeId, null),
+      isNull(tasks.assigneeId),
       lte(tasks.dueDate, startOfDay),
       or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ));
@@ -412,7 +412,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .select({ count: count() })
     .from(tasks)
     .where(and(
-      eq(tasks.assigneeId, null),
+      isNull(tasks.assigneeId),
       or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ));
 
