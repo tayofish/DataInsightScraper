@@ -1,13 +1,13 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
 import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings } from '@shared/schema';
-import { eq, and, gte, lte, or, count, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, or, count, desc, ilike } from 'drizzle-orm';
 
 // Email transporter
 let transporter: nodemailer.Transporter | null = null;
 
 // Initialize email service with existing SMTP configuration
-async function initializeEmailService(): Promise<boolean> {
+export async function initializeEmailService(): Promise<boolean> {
   try {
     // Get active SMTP configuration
     const activeConfig = await db.query.smtpConfig.findFirst({
@@ -60,6 +60,144 @@ interface EmailData {
   text?: string;
 }
 
+// Send email using existing transporter
+async function sendEmail(emailData: EmailData): Promise<boolean> {
+  if (!transporter) {
+    console.log('Email service not configured - no active SMTP configuration');
+    return false;
+  }
+
+  try {
+    await transporter.sendMail(emailData);
+    console.log(`Email sent successfully to ${emailData.to}`);
+    return true;
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return false;
+  }
+}
+
+// Get from email from SMTP configuration
+async function getFromEmail(): Promise<string> {
+  try {
+    const activeConfig = await db.query.smtpConfig.findFirst({
+      where: eq(smtpConfig.active, true)
+    });
+    return activeConfig?.fromEmail || 'noreply@promellon.com';
+  } catch (error) {
+    console.error('Error getting from email:', error);
+    return 'noreply@promellon.com';
+  }
+}
+
+// Existing notification functions (preserved from your working system)
+export async function notifyTaskAssignment(task: any, assignee: any, assignedBy: any): Promise<void> {
+  const fromEmail = await getFromEmail();
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Task Assigned to You</h2>
+      <p>Hi ${assignee.name || assignee.username},</p>
+      <p>You have been assigned a new task by ${assignedBy.name || assignedBy.username}:</p>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #0066cc;">${task.title}</h3>
+        ${task.description ? `<p><strong>Description:</strong> ${task.description}</p>` : ''}
+        ${task.priority ? `<p><strong>Priority:</strong> ${task.priority}</p>` : ''}
+        ${task.dueDate ? `<p><strong>Due Date:</strong> ${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+      </div>
+      
+      <p>You can view and manage this task in your dashboard.</p>
+      <hr style="margin: 20px 0;">
+      <p style="color: #666; font-size: 12px;">This notification was sent from Promellon Task Management System.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: assignee.email,
+    from: fromEmail,
+    subject: `Task Assigned: ${task.title}`,
+    html,
+    text: `You have been assigned a new task: ${task.title}`
+  });
+}
+
+export async function notifyTaskCreation(task: any, creator: any, assignee: any, projectTeam: any[]): Promise<void> {
+  const fromEmail = await getFromEmail();
+  
+  // Notify assignee if different from creator
+  if (assignee && assignee.id !== creator.id && assignee.email) {
+    await notifyTaskAssignment(task, assignee, creator);
+  }
+  
+  // Notify project team members
+  for (const member of projectTeam) {
+    if (member.id !== creator.id && member.id !== assignee?.id && member.email) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #333;">New Task Created</h2>
+          <p>Hi ${member.name || member.username},</p>
+          <p>A new task has been created in your project by ${creator.name || creator.username}:</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #0066cc;">${task.title}</h3>
+            ${task.description ? `<p><strong>Description:</strong> ${task.description}</p>` : ''}
+            ${assignee ? `<p><strong>Assigned to:</strong> ${assignee.name || assignee.username}</p>` : ''}
+            ${task.priority ? `<p><strong>Priority:</strong> ${task.priority}</p>` : ''}
+          </div>
+          
+          <p>You can view this task in your project dashboard.</p>
+          <hr style="margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">This notification was sent from Promellon Task Management System.</p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: member.email,
+        from: fromEmail,
+        subject: `New Task Created: ${task.title}`,
+        html,
+        text: `A new task has been created: ${task.title}`
+      });
+    }
+  }
+}
+
+export async function notifyMention(task: any, mentionedUser: any, mentionedBy: any, content: string): Promise<void> {
+  const fromEmail = await getFromEmail();
+  
+  if (!mentionedUser.email) return;
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">You were mentioned in a task</h2>
+      <p>Hi ${mentionedUser.name || mentionedUser.username},</p>
+      <p>You were mentioned by ${mentionedBy.name || mentionedBy.username} in task:</p>
+      
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #0066cc;">${task.title}</h3>
+        <p><strong>Content:</strong></p>
+        <div style="background-color: #fff; padding: 10px; border-left: 3px solid #0066cc; margin: 10px 0;">
+          ${content}
+        </div>
+      </div>
+      
+      <p>You can view this task to see the full context.</p>
+      <hr style="margin: 20px 0;">
+      <p style="color: #666; font-size: 12px;">This notification was sent from Promellon Task Management System.</p>
+    </div>
+  `;
+
+  await sendEmail({
+    to: mentionedUser.email,
+    from: fromEmail,
+    subject: `You were mentioned in: ${task.title}`,
+    html,
+    text: `You were mentioned in task: ${task.title}`
+  });
+}
+
+// NEW: End-of-day notification functionality
 interface UserTaskSummary {
   overdueTasks: any[];
   pendingTasks: any[];
@@ -80,33 +218,16 @@ interface AdminSummary {
   }>;
 }
 
-export async function sendEmail(emailData: EmailData): Promise<boolean> {
-  if (!mailService) {
-    console.log('Email service not configured - SENDGRID_API_KEY missing');
-    return false;
-  }
-
-  try {
-    await mailService.send(emailData);
-    console.log(`Email sent successfully to ${emailData.to}`);
-    return true;
-  } catch (error) {
-    console.error('Failed to send email:', error);
-    return false;
-  }
-}
-
 export async function getUserTaskSummary(userId: number): Promise<UserTaskSummary> {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
   // Get overdue tasks (due date before today and not completed)
   const overdueTasks = await db.query.tasks.findMany({
     where: and(
       eq(tasks.assigneeId, userId),
       lte(tasks.dueDate, startOfDay),
-      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ),
     with: {
       category: true,
@@ -119,7 +240,7 @@ export async function getUserTaskSummary(userId: number): Promise<UserTaskSummar
   const pendingTasks = await db.query.tasks.findMany({
     where: and(
       eq(tasks.assigneeId, userId),
-      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ),
     with: {
       category: true,
@@ -149,20 +270,19 @@ export async function getUserTaskSummary(userId: number): Promise<UserTaskSummar
 
   // Get unread channel messages count for user's channels
   const userChannelIds = await db
-    .select({ channelId: userChannels.channelId })
-    .from(userChannels)
-    .where(eq(userChannels.userId, userId));
+    .select({ channelId: channelMembers.channelId })
+    .from(channelMembers)
+    .where(eq(channelMembers.userId, userId));
 
   let unreadChannelCount = 0;
   if (userChannelIds.length > 0) {
     const channelIds = userChannelIds.map(uc => uc.channelId);
     const unreadChannelResult = await db
       .select({ count: count() })
-      .from(channelMessages)
+      .from(messages)
       .where(and(
-        or(...channelIds.map(id => eq(channelMessages.channelId, id))),
-        gte(channelMessages.createdAt, startOfDay),
-        eq(channelMessages.isRead, false)
+        or(...channelIds.map(id => eq(messages.channelId, id))),
+        gte(messages.createdAt, startOfDay)
       ));
     unreadChannelCount = unreadChannelResult[0]?.count || 0;
   }
@@ -187,14 +307,14 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .from(tasks)
     .where(and(
       lte(tasks.dueDate, startOfDay),
-      or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ));
 
   // Get total pending tasks count
   const pendingCount = await db
     .select({ count: count() })
     .from(tasks)
-    .where(or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress')));
+    .where(or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress')));
 
   // Get tasks completed today
   const completedToday = await db.query.tasks.findMany({
@@ -213,7 +333,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
 
   // Get summary for each user
   const allUsers = await db.query.users.findMany({
-    where: eq(users.role, 'user')
+    where: eq(users.isAdmin, false)
   });
 
   const userSummaries = [];
@@ -224,7 +344,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
       .where(and(
         eq(tasks.assigneeId, user.id),
         lte(tasks.dueDate, startOfDay),
-        or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+        or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
       ));
 
     const userPending = await db
@@ -232,7 +352,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
       .from(tasks)
       .where(and(
         eq(tasks.assigneeId, user.id),
-        or(eq(tasks.status, 'pending'), eq(tasks.status, 'in_progress'))
+        or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
       ));
 
     userSummaries.push({
@@ -464,20 +584,22 @@ export async function sendEndOfDayNotifications(): Promise<void> {
 
   // Get notification settings
   const userNotificationsSetting = await db.query.appSettings.findFirst({
-    where: eq(require('@shared/schema').appSettings.key, 'end_of_day_user_notifications')
+    where: eq(appSettings.key, 'end_of_day_user_notifications')
   });
 
   const adminNotificationsSetting = await db.query.appSettings.findFirst({
-    where: eq(require('@shared/schema').appSettings.key, 'end_of_day_admin_notifications')
+    where: eq(appSettings.key, 'end_of_day_admin_notifications')
   });
 
   const userNotificationsEnabled = userNotificationsSetting?.value === 'true';
   const adminNotificationsEnabled = adminNotificationsSetting?.value === 'true';
 
+  const fromEmail = await getFromEmail();
+
   // Send user notifications
   if (userNotificationsEnabled) {
     const regularUsers = await db.query.users.findMany({
-      where: eq(users.role, 'user')
+      where: eq(users.isAdmin, false)
     });
 
     for (const user of regularUsers) {
@@ -489,7 +611,7 @@ export async function sendEndOfDayNotifications(): Promise<void> {
         
         await sendEmail({
           to: user.email,
-          from: process.env.FROM_EMAIL || 'noreply@promellon.com',
+          from: fromEmail,
           subject: 'Daily Task Summary',
           html,
           text: `Daily task summary for ${user.username}`
@@ -505,7 +627,7 @@ export async function sendEndOfDayNotifications(): Promise<void> {
   // Send admin notifications
   if (adminNotificationsEnabled) {
     const adminUsers = await db.query.users.findMany({
-      where: eq(users.role, 'admin')
+      where: eq(users.isAdmin, true)
     });
 
     if (adminUsers.length > 0) {
@@ -518,7 +640,7 @@ export async function sendEndOfDayNotifications(): Promise<void> {
 
           await sendEmail({
             to: admin.email,
-            from: process.env.FROM_EMAIL || 'noreply@promellon.com',
+            from: fromEmail,
             subject: 'Daily Admin Summary',
             html,
             text: 'Daily admin summary from Promellon'

@@ -6747,5 +6747,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === END-OF-DAY EMAIL NOTIFICATION ROUTES ===
+  
+  // Get end-of-day notification settings
+  app.get("/api/end-of-day-notifications/settings", isAdmin, async (req, res) => {
+    try {
+      const userNotificationsSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_user_notifications')
+      });
+
+      const adminNotificationsSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_admin_notifications')
+      });
+
+      res.json({
+        userNotificationsEnabled: userNotificationsSetting?.value === 'true',
+        adminNotificationsEnabled: adminNotificationsSetting?.value === 'true'
+      });
+    } catch (error) {
+      console.error('Error fetching end-of-day notification settings:', error);
+      res.status(500).json({ message: 'Failed to fetch notification settings' });
+    }
+  });
+
+  // Update end-of-day notification settings
+  app.post("/api/end-of-day-notifications/settings", isAdmin, async (req, res) => {
+    try {
+      const { userNotificationsEnabled, adminNotificationsEnabled } = req.body;
+
+      // Update user notifications setting
+      const userSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_user_notifications')
+      });
+
+      if (userSetting) {
+        await storage.updateAppSetting(userSetting.id, {
+          value: userNotificationsEnabled ? 'true' : 'false',
+          updatedAt: new Date()
+        });
+      } else {
+        await storage.createAppSetting({
+          key: 'end_of_day_user_notifications',
+          value: userNotificationsEnabled ? 'true' : 'false',
+          description: 'Enable/disable end-of-day email notifications for users'
+        });
+      }
+
+      // Update admin notifications setting
+      const adminSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_admin_notifications')
+      });
+
+      if (adminSetting) {
+        await storage.updateAppSetting(adminSetting.id, {
+          value: adminNotificationsEnabled ? 'true' : 'false',
+          updatedAt: new Date()
+        });
+      } else {
+        await storage.createAppSetting({
+          key: 'end_of_day_admin_notifications',
+          value: adminNotificationsEnabled ? 'true' : 'false',
+          description: 'Enable/disable end-of-day email notifications for admins'
+        });
+      }
+
+      res.json({ 
+        message: 'End-of-day notification settings updated successfully',
+        userNotificationsEnabled,
+        adminNotificationsEnabled
+      });
+    } catch (error) {
+      console.error('Error updating end-of-day notification settings:', error);
+      res.status(500).json({ message: 'Failed to update notification settings' });
+    }
+  });
+
+  // Trigger end-of-day notifications manually (admin only)
+  app.post("/api/end-of-day-notifications/send", isAdmin, async (req, res) => {
+    try {
+      await emailService.sendEndOfDayNotifications();
+      res.json({ message: 'End-of-day notifications sent successfully' });
+    } catch (error) {
+      console.error('Error sending end-of-day notifications:', error);
+      res.status(500).json({ message: 'Failed to send end-of-day notifications' });
+    }
+  });
+
+  // Get user task summary (for testing/preview)
+  app.get("/api/end-of-day-notifications/user-summary", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const summary = await emailService.getUserTaskSummary(req.user.id);
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching user task summary:', error);
+      res.status(500).json({ message: 'Failed to fetch user task summary' });
+    }
+  });
+
+  // Get admin summary (admin only, for testing/preview)
+  app.get("/api/end-of-day-notifications/admin-summary", isAdmin, async (req, res) => {
+    try {
+      const summary = await emailService.getAdminSummary();
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching admin summary:', error);
+      res.status(500).json({ message: 'Failed to fetch admin summary' });
+    }
+  });
+
   return httpServer;
 }
