@@ -33,6 +33,7 @@ import LogoUpload from "@/components/logo-upload";
 import FaviconUpload from "@/components/favicon-upload";
 import AppNameEditor from "@/components/app-name-editor";
 import EndOfDayNotifications from "@/components/end-of-day-notifications";
+import MicrosoftAuthConfig from "@/components/microsoft-auth-config";
 
 // User management form schema
 const userFormSchema = z.object({

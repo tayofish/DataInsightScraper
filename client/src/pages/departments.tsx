@@ -401,7 +401,7 @@ export default function Departments() {
                         onValueChange={field.onChange}
                         placeholder="Select a department head (optional)"
                         searchPlaceholder="Search users..."
-                        emptyText="No users found"
+                        emptyMessage="No users found"
                       />
                     </FormControl>
                     <FormDescription>

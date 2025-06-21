@@ -227,7 +227,7 @@ export default function Units() {
                             }))
                           ]}
                           placeholder="Select unit head"
-                          emptyText="No users found"
+                          emptyMessage="No users found"
                           searchPlaceholder="Search users..."
                         />
                       </FormControl>
