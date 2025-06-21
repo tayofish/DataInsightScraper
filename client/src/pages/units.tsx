@@ -110,7 +110,8 @@ export default function Units() {
       return await apiRequest('DELETE', `/api/units/${unitId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.refetchQueries({ queryKey: ['/api/departments'] });
       toast({
         title: "Success",
         description: "Unit deleted successfully",
