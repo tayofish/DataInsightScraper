@@ -229,30 +229,43 @@ export default function Departments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedDepartments.map((department) => (
-                  <TableRow key={department.id}>
-                    <TableCell className="font-medium">{department.name}</TableCell>
-                    <TableCell className="max-w-xs truncate">{department.description}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditDepartment(department)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteDepartment(department.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                  {paginatedDepartments.map((department) => {
+                    const unitHead = department.unitHeadId ? users.find(u => u.id === department.unitHeadId) : null;
+                    return (
+                      <TableRow key={department.id}>
+                        <TableCell className="font-medium">{department.name}</TableCell>
+                        <TableCell className="max-w-xs truncate">{department.description}</TableCell>
+                        <TableCell>
+                          {unitHead ? (
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm">{unitHead.name}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">No unit head</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditDepartment(department)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteDepartment(department.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
 
