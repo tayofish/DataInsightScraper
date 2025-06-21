@@ -472,7 +472,11 @@ export function generateUserEmailHTML(username: string, summary: UserTaskSummary
 
   html += `
       <hr style="margin: 20px 0;">
-      <p style="color: #666; font-size: 12px;">This is your daily task summary from Promellon.</p>
+      <p style="color: #666; font-size: 12px;">
+        This is your daily task summary from Promellon.
+        <br>
+        <a href="https://mist.promellon.com" style="color: #3b82f6; text-decoration: none;">Visit Application →</a>
+      </p>
     </div>
   `;
 
@@ -572,7 +576,11 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
 
   html += `
       <hr style="margin: 20px 0;">
-      <p style="color: #666; font-size: 12px;">This is your daily admin summary from Promellon.</p>
+      <p style="color: #666; font-size: 12px;">
+        This is your daily admin summary from Promellon.
+        <br>
+        <a href="https://mist.promellon.com" style="color: #3b82f6; text-decoration: none;">Visit Application →</a>
+      </p>
     </div>
   `;
 
@@ -607,6 +615,19 @@ export async function sendEndOfDayNotifications(): Promise<void> {
 
       try {
         const summary = await getUserTaskSummary(user.id);
+        
+        // Skip sending email if user has no pending items
+        const hasPendingItems = summary.overdueTasks.length > 0 || 
+                               summary.pendingTasks.length > 0 || 
+                               summary.unreadNotifications > 0 || 
+                               summary.unreadDirectMessages > 0 || 
+                               summary.unreadChannelMessages > 0;
+        
+        if (!hasPendingItems) {
+          console.log(`Skipped notification for ${user.username} - no pending items`);
+          continue;
+        }
+        
         const html = generateUserEmailHTML(user.username, summary);
         
         await sendEmail({
