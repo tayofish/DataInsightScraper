@@ -1,7 +1,7 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
 import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings } from '@shared/schema';
-import { eq, and, gte, lte, or, count, desc, ilike, isNull } from 'drizzle-orm';
+import { eq, and, gte, lte, or, count, desc, ilike, sql } from 'drizzle-orm';
 
 // Email transporter
 let transporter: nodemailer.Transporter | null = null;
@@ -403,7 +403,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .select({ count: count() })
     .from(tasks)
     .where(and(
-      isNull(tasks.assigneeId),
+      sql`${tasks.assigneeId} IS NULL`,
       lte(tasks.dueDate, startOfDay),
       or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ));
@@ -412,7 +412,7 @@ export async function getAdminSummary(): Promise<AdminSummary> {
     .select({ count: count() })
     .from(tasks)
     .where(and(
-      isNull(tasks.assigneeId),
+      sql`${tasks.assigneeId} IS NULL`,
       or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
     ));
 
