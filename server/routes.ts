@@ -6887,10 +6887,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         where: eq(appSettings.key, 'end_of_day_unit_head_notifications')
       });
 
+      const departmentHeadNotificationsSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_department_head_notifications')
+      });
+
       res.json({
         userNotificationsEnabled: userNotificationsSetting?.value === 'true',
         adminNotificationsEnabled: adminNotificationsSetting?.value === 'true',
-        unitHeadNotificationsEnabled: unitHeadNotificationsSetting?.value === 'true'
+        unitHeadNotificationsEnabled: unitHeadNotificationsSetting?.value === 'true',
+        departmentHeadNotificationsEnabled: departmentHeadNotificationsSetting?.value === 'true'
       });
     } catch (error) {
       console.error('Error fetching end-of-day notification settings:', error);
@@ -6901,7 +6906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update end-of-day notification settings
   app.post("/api/end-of-day-notifications/settings", isAdmin, async (req, res) => {
     try {
-      const { userNotificationsEnabled, adminNotificationsEnabled, unitHeadNotificationsEnabled } = req.body;
+      const { userNotificationsEnabled, adminNotificationsEnabled, unitHeadNotificationsEnabled, departmentHeadNotificationsEnabled } = req.body;
 
       // Update user notifications setting
       const userSetting = await db.query.appSettings.findFirst({
@@ -6957,11 +6962,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Update department head notifications setting
+      const departmentHeadSetting = await db.query.appSettings.findFirst({
+        where: eq(appSettings.key, 'end_of_day_department_head_notifications')
+      });
+
+      if (departmentHeadSetting) {
+        await storage.updateAppSetting(departmentHeadSetting.id, {
+          value: departmentHeadNotificationsEnabled ? 'true' : 'false',
+          updatedAt: new Date()
+        });
+      } else {
+        await storage.createAppSetting({
+          key: 'end_of_day_department_head_notifications',
+          value: departmentHeadNotificationsEnabled ? 'true' : 'false',
+          description: 'Enable/disable end-of-day email notifications for department heads'
+        });
+      }
+
       res.json({ 
         message: 'End-of-day notification settings updated successfully',
         userNotificationsEnabled,
         adminNotificationsEnabled,
-        unitHeadNotificationsEnabled
+        unitHeadNotificationsEnabled,
+        departmentHeadNotificationsEnabled
       });
     } catch (error) {
       console.error('Error updating end-of-day notification settings:', error);
@@ -7065,6 +7089,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching admin summary:', error);
       res.status(500).json({ message: 'Failed to fetch admin summary' });
+    }
+  });
+
+  // Get department head summary (for department heads or admins)
+  app.get("/api/end-of-day-notifications/department-summary/:departmentId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const departmentId = parseInt(req.params.departmentId);
+      if (isNaN(departmentId)) {
+        return res.status(400).json({ message: "Invalid department ID" });
+      }
+
+      // Check if user is admin or department head of the requested department
+      const department = await storage.getCategoryById(departmentId);
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+
+      const isUserAdmin = req.user.isAdmin;
+      const isDepartmentHead = department.departmentHeadId === req.user.id;
+
+      if (!isUserAdmin && !isDepartmentHead) {
+        return res.status(403).json({ message: "Access denied. Only department heads and admins can view department summaries." });
+      }
+
+      const summary = await emailService.getDepartmentSummary(departmentId);
+      res.json(summary);
+    } catch (error) {
+      console.error('Error fetching department summary:', error);
+      res.status(500).json({ message: 'Failed to fetch department summary' });
     }
   });
 
