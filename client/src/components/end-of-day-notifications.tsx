@@ -430,7 +430,7 @@ export default function EndOfDayNotifications() {
                               <ul className="text-sm space-y-1 ml-4">
                                 {adminSummary.tasksCompletedToday.slice(0, 5).map((task, index) => (
                                   <li key={index}>
-                                    • {task.title} - {task.assignee?.username || 'Unassigned'}
+                                    • {task.title} - {task.assignee?.name || 'Unassigned'}
                                   </li>
                                 ))}
                                 {adminSummary.tasksCompletedToday.length > 5 && (

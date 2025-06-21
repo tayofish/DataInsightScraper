@@ -556,7 +556,7 @@ export function generateAdminEmailHTML(summary: AdminSummary): string {
     `;
     
     summary.tasksCompletedToday.slice(0, 10).forEach(task => {
-      const assignee = task.assignee?.username || 'Unassigned';
+      const assignee = task.assignee?.name || 'Unassigned';
       const category = task.category?.name || 'No category';
       html += `
         <li style="margin: 8px 0;">
