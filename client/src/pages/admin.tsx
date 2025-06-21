@@ -1375,7 +1375,7 @@ export default function AdminPage() {
               <CardHeader>
                 <CardTitle>Authentication Settings</CardTitle>
                 <CardDescription>
-                  Configure user authentication methods and registration options.
+                  Configure local authentication and user registration settings.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
