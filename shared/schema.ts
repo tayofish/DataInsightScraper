@@ -330,6 +330,11 @@ export const unitInsertSchema = createInsertSchema(units, {
     const num = parseInt(val);
     return isNaN(num) ? null : num;
   }).nullable().optional(),
+  departmentId: z.string().transform((val) => {
+    if (val === "none" || val === "" || val === null || val === undefined) return null;
+    const num = parseInt(val);
+    return isNaN(num) ? null : num;
+  }).nullable().optional(),
 });
 
 export const categoryInsertSchema = createInsertSchema(categories, {

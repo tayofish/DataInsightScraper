@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { db } from "@db";
 import { 
-  taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema,
+  taskInsertSchema, taskUpdateSchema, projectInsertSchema, categoryInsertSchema, departmentInsertSchema, unitInsertSchema,
   projectAssignmentInsertSchema, taskUpdateInsertSchema, taskCollaboratorInsertSchema, reportInsertSchema,
   smtpConfigFormSchema, smtpConfig, tasks, departments, units, categories, projects, InsertTask, 
   InsertCategory, InsertDepartment, InsertProject, projectAssignments, InsertProjectAssignment,
@@ -1788,14 +1788,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bodyKeys: Object.keys(req.body)
       });
 
-      const departmentData = departmentInsertSchema.partial().parse(req.body);
-      const updatedDepartment = await storage.updateDepartment(id, departmentData);
+      const unitData = unitInsertSchema.partial().parse(req.body);
+      const updatedUnit = await storage.updateDepartment(id, unitData);
       
-      if (!updatedDepartment) {
-        return res.status(404).json({ message: "Department not found" });
+      if (!updatedUnit) {
+        return res.status(404).json({ message: "Unit not found" });
       }
 
-      return res.status(200).json(updatedDepartment);
+      return res.status(200).json(updatedUnit);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid department data", errors: error.errors });

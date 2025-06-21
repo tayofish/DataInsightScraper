@@ -108,10 +108,18 @@ export default function Departments() {
         
         // Update unit assignments if unitIds are provided
         if (values.unitIds && values.unitIds.length > 0) {
-          const unitUpdates = values.unitIds.map(unitId => 
-            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: editingDepartment.id })
+          // First, unassign all units from this department
+          const currentUnits = units.filter(unit => unit.departmentId === editingDepartment.id);
+          const unassignUpdates = currentUnits.map(unit => 
+            apiRequest('PATCH', `/api/departments/${unit.id}`, { departmentId: null })
           );
-          await Promise.all(unitUpdates);
+          
+          // Then assign selected units to this department
+          const assignUpdates = values.unitIds.map(unitId => 
+            apiRequest('PATCH', `/api/departments/${unitId}`, { departmentId: editingDepartment.id.toString() })
+          );
+          
+          await Promise.all([...unassignUpdates, ...assignUpdates]);
         }
         
         return result;
