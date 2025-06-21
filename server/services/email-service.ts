@@ -1,6 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
-import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings, departments, userDepartments, units } from '@shared/schema';
+import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings, departments, userDepartments, categories } from '@shared/schema';
 import { eq, and, gte, lte, or, count, desc, ilike, sql } from 'drizzle-orm';
 
 // Email transporter
@@ -243,6 +243,32 @@ interface UnitSummary {
     name: string;
     email: string;
     completedTasks: number;
+  }>;
+}
+
+interface DepartmentSummary {
+  departmentName: string;
+  departmentId: number;
+  totalOverdueTasks: number;
+  totalPendingTasks: number;
+  tasksCompletedToday: any[];
+  departmentUnits: Array<{
+    unitName: string;
+    unitId: number;
+    unitHeadName?: string;
+    unitHeadEmail?: string;
+    overdueTasks: number;
+    pendingTasks: number;
+    completedTasks: number;
+    memberCount: number;
+  }>;
+  allDepartmentMembers: Array<{
+    username: string;
+    name: string;
+    email: string;
+    unitName: string;
+    overdueTasks: number;
+    pendingTasks: number;
   }>;
 }
 
@@ -763,6 +789,149 @@ export function generateUserEmailHTML(username: string, summary: UserTaskSummary
   `;
 
   return html;
+}
+
+
+
+// NEW: Get department summary for department heads
+export async function getDepartmentSummary(departmentId: number): Promise<DepartmentSummary | null> {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+  // Get department information (from categories table)
+  const department = await db.query.categories.findFirst({
+    where: eq(categories.id, departmentId)
+  });
+
+  if (!department) return null;
+
+  // Get all units within this department
+  const departmentUnits = await db.query.departments.findMany({
+    where: eq(departments.departmentId, departmentId),
+    with: {
+      departmentHead: true
+    }
+  });
+
+  // Get all users across all units in this department
+  const allUnitIds = departmentUnits.map(unit => unit.id);
+  const allDepartmentMembers = [];
+  
+  for (const unitId of allUnitIds) {
+    const unitMembers = await db.query.userDepartments.findMany({
+      where: eq(userDepartments.departmentId, unitId),
+      with: {
+        user: true,
+        department: true
+      }
+    });
+    allDepartmentMembers.push(...unitMembers);
+  }
+
+  const allMemberIds = allDepartmentMembers.map(ud => ud.userId);
+
+  if (allMemberIds.length === 0) {
+    return {
+      departmentName: department.name,
+      departmentId: department.id,
+      totalOverdueTasks: 0,
+      totalPendingTasks: 0,
+      tasksCompletedToday: [],
+      departmentUnits: [],
+      allDepartmentMembers: []
+    };
+  }
+
+  // Get overdue tasks for all department members
+  const overdueTasks = await db.query.tasks.findMany({
+    where: and(
+      sql`${tasks.assigneeId} IN (${allMemberIds.join(',')})`,
+      lte(tasks.dueDate, startOfDay),
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+    ),
+    with: {
+      assignee: true,
+      category: true,
+      project: true
+    }
+  });
+
+  // Get pending tasks for all department members
+  const pendingTasks = await db.query.tasks.findMany({
+    where: and(
+      sql`${tasks.assigneeId} IN (${allMemberIds.join(',')})`,
+      or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+    ),
+    with: {
+      assignee: true,
+      category: true,
+      project: true
+    }
+  });
+
+  // Get tasks completed today
+  const completedToday = await db.query.tasks.findMany({
+    where: and(
+      sql`${tasks.assigneeId} IN (${allMemberIds.join(',')})`,
+      eq(tasks.status, 'completed'),
+      gte(tasks.updatedAt, startOfDay),
+      lte(tasks.updatedAt, endOfDay)
+    ),
+    with: {
+      assignee: true,
+      category: true,
+      project: true
+    }
+  });
+
+  // Build unit summaries
+  const unitSummaries = departmentUnits.map(unit => {
+    const unitMemberIds = allDepartmentMembers
+      .filter(ud => ud.departmentId === unit.id)
+      .map(ud => ud.userId);
+
+    const unitOverdue = overdueTasks.filter(t => unitMemberIds.includes(t.assigneeId));
+    const unitPending = pendingTasks.filter(t => unitMemberIds.includes(t.assigneeId));
+    const unitCompleted = completedToday.filter(t => unitMemberIds.includes(t.assigneeId));
+
+    return {
+      unitName: unit.name,
+      unitId: unit.id,
+      unitHeadName: unit.departmentHead?.name,
+      unitHeadEmail: unit.departmentHead?.email,
+      overdueTasks: unitOverdue.length,
+      pendingTasks: unitPending.length,
+      completedTasks: unitCompleted.length,
+      memberCount: unitMemberIds.length
+    };
+  });
+
+  // Build member summaries
+  const memberSummaries = allDepartmentMembers.map(ud => {
+    const user = ud.user;
+    const memberOverdue = overdueTasks.filter(t => t.assigneeId === user.id);
+    const memberPending = pendingTasks.filter(t => t.assigneeId === user.id);
+    
+    return {
+      username: user.username,
+      name: user.name || user.username,
+      email: user.email || '',
+      unitName: ud.department?.name || 'Unknown Unit',
+      overdueTasks: memberOverdue.length,
+      pendingTasks: memberPending.length
+    };
+  });
+
+  return {
+    departmentName: department.name,
+    departmentId: department.id,
+    totalOverdueTasks: overdueTasks.length,
+    totalPendingTasks: pendingTasks.length,
+    tasksCompletedToday: completedToday,
+    departmentUnits: unitSummaries,
+    allDepartmentMembers: memberSummaries
+  };
 }
 
 export function generateAdminEmailHTML(summary: AdminSummary): string {
