@@ -70,20 +70,28 @@ export default function Departments() {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (values: DepartmentFormValues) => {
+      // Handle unit head selection - convert "none" to null
+      const processedValues = {
+        ...values,
+        unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
+      };
+
+      // Remove unitHeadId from department data as it's handled separately
+      const { unitHeadId, ...departmentData } = processedValues;
       let departmentResponse;
       
       if (editingDepartment) {
         // Update existing department
-        departmentResponse = await apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, values);
+        departmentResponse = await apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, departmentData);
       } else {
         // Create new department
-        departmentResponse = await apiRequest('POST', '/api/departments', values);
+        departmentResponse = await apiRequest('POST', '/api/departments', departmentData);
       }
 
-      // Handle unit head assignment if provided
+      // Handle unit head assignment
       const departmentId = editingDepartment ? editingDepartment.id : departmentResponse.id;
-      if (departmentId && processedValues.unitHeadId) {
-        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId: processedValues.unitHeadId });
+      if (departmentId) {
+        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId });
       }
 
       return departmentResponse;
