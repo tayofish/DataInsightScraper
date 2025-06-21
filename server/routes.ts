@@ -1789,7 +1789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const unitData = unitInsertSchema.partial().parse(req.body);
-      const updatedUnit = await storage.updateDepartment(id, unitData);
+      const updatedUnit = await storage.updateUnit(id, unitData);
       
       if (!updatedUnit) {
         return res.status(404).json({ message: "Unit not found" });

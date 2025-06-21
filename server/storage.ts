@@ -1,10 +1,10 @@
 import { db } from "@db";
 import { pool } from "@db";
 import { 
-  users, tasks, projects, categories, departments, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings, userDepartments,
-  type User, type Task, type Project, type Category, type Department, 
+  users, tasks, projects, categories, departments, units, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings, userDepartments,
+  type User, type Task, type Project, type Category, type Department, type Unit,
   type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification, type AppSetting,
-  type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment,
+  type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment, type InsertUnit,
   type InsertProjectAssignment, type InsertTaskUpdate, type InsertTaskCollaborator, type InsertReport, type InsertNotification,
   type InsertAppSetting, type UpdateTask
 } from "@shared/schema";
@@ -361,6 +361,49 @@ export const storage = {
 
   deleteDepartment: async (id: number): Promise<boolean> => {
     await db.delete(departments).where(eq(departments.id, id));
+    return true;
+  },
+
+  // Unit operations
+  getAllUnits: async (): Promise<Unit[]> => {
+    return db.query.units.findMany();
+  },
+
+  getUnitById: async (id: number): Promise<Unit | undefined> => {
+    return db.query.units.findFirst({
+      where: eq(units.id, id)
+    });
+  },
+
+  createUnit: async (unitData: InsertUnit): Promise<Unit> => {
+    // Handle null values for departmentId by converting to undefined
+    const processedData = {
+      ...unitData,
+      departmentId: unitData.departmentId === null ? undefined : unitData.departmentId,
+      unitHeadId: unitData.unitHeadId === null ? undefined : unitData.unitHeadId
+    };
+    
+    const [newUnit] = await db.insert(units).values(processedData).returning();
+    return newUnit;
+  },
+
+  updateUnit: async (id: number, unitData: Partial<InsertUnit>): Promise<Unit | undefined> => {
+    // Handle null values for departmentId by converting to undefined
+    const processedData = {
+      ...unitData,
+      departmentId: unitData.departmentId === null ? undefined : unitData.departmentId,
+      unitHeadId: unitData.unitHeadId === null ? undefined : unitData.unitHeadId
+    };
+    
+    const [updatedUnit] = await db.update(units)
+      .set(processedData)
+      .where(eq(units.id, id))
+      .returning();
+    return updatedUnit;
+  },
+
+  deleteUnit: async (id: number): Promise<boolean> => {
+    await db.delete(units).where(eq(units.id, id));
     return true;
   },
 
