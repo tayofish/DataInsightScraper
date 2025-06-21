@@ -16,7 +16,14 @@ import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
-type DepartmentFormValues = z.infer<typeof departmentInsertSchema>;
+// Custom form schema that handles string values from Select components
+const departmentFormSchema = z.object({
+  name: z.string().min(2, "Department name must be at least 2 characters"),
+  description: z.string().optional(),
+  unitHeadId: z.string().optional()
+});
+
+type DepartmentFormValues = z.infer<typeof departmentFormSchema>;
 
 export default function Departments() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -39,7 +46,7 @@ export default function Departments() {
   
   // Create department form
   const form = useForm<DepartmentFormValues>({
-    resolver: zodResolver(departmentInsertSchema),
+    resolver: zodResolver(departmentFormSchema),
     defaultValues: {
       name: '',
       description: '',
