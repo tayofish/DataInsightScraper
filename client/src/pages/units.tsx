@@ -20,7 +20,8 @@ import { useToast } from '@/hooks/use-toast';
 const unitFormSchema = z.object({
   name: z.string().min(2, "Unit name must be at least 2 characters"),
   description: z.string().optional(),
-  departmentHeadId: z.string().optional()
+  departmentHeadId: z.string().optional(),
+  departmentId: z.string().min(1, "Department is required")
 });
 
 type UnitFormValues = z.infer<typeof unitFormSchema>;
@@ -34,14 +35,19 @@ export default function Units() {
 
   const { toast } = useToast();
 
-  // Fetch units data
+  // Fetch units data (from what was originally departments table)
   const { data: units = [], isLoading: unitsLoading } = useQuery({
-    queryKey: ['/api/units']
+    queryKey: ['/api/departments']
   });
 
   // Fetch users for unit head selection
   const { data: users = [] } = useQuery<Array<{id: number, username: string, name: string}>>({
     queryKey: ['/api/users']
+  });
+
+  // Fetch departments for unit assignment (from what was originally categories table)
+  const { data: departments = [] } = useQuery<Array<{id: number, name: string}>>({
+    queryKey: ['/api/categories']
   });
 
   // Create unit form
@@ -50,7 +56,8 @@ export default function Units() {
     defaultValues: {
       name: '',
       description: '',
-      departmentHeadId: "none"
+      departmentHeadId: "none",
+      departmentId: ""
     }
   });
 
@@ -73,13 +80,13 @@ export default function Units() {
       const processedValues = {
         name: values.name,
         description: values.description || "",
-        unitHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
+        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
       };
 
       if (editingUnit) {
-        return await apiRequest('PATCH', `/api/units/${editingUnit.id}`, processedValues);
+        return await apiRequest('PATCH', `/api/departments/${editingUnit.id}`, processedValues);
       } else {
-        return await apiRequest('POST', '/api/units', processedValues);
+        return await apiRequest('POST', '/api/departments', processedValues);
       }
     },
     onSuccess: () => {
@@ -131,7 +138,8 @@ export default function Units() {
     form.reset({
       name: unit.name || '',
       description: unit.description || '',
-      departmentHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none"
+      departmentHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none",
+      departmentId: unit.departmentId ? unit.departmentId.toString() : ""
     });
     setIsCreateDialogOpen(true);
   };
@@ -203,6 +211,29 @@ export default function Units() {
                           placeholder="Enter unit description (optional)" 
                           rows={3}
                           {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="departmentId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Department</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value || ""}
+                          onValueChange={field.onChange}
+                          options={departments.map(dept => ({
+                            value: dept.id.toString(),
+                            label: dept.name
+                          }))}
+                          placeholder="Select department"
+                          emptyMessage="No departments found"
+                          searchPlaceholder="Search departments..."
                         />
                       </FormControl>
                       <FormMessage />
