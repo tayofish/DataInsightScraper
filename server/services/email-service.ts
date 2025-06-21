@@ -1,6 +1,6 @@
 import * as nodemailer from 'nodemailer';
 import { db } from '@db';
-import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings, departments, userDepartments } from '@shared/schema';
+import { users, tasks, notifications, directMessages, messages, channels, channelMembers, smtpConfig, appSettings, departments, userDepartments, units } from '@shared/schema';
 import { eq, and, gte, lte, or, count, desc, ilike, sql } from 'drizzle-orm';
 
 // Email transporter
@@ -1353,9 +1353,9 @@ export async function sendEndOfDayNotifications(): Promise<void> {
     console.log('Sending unit head notifications...');
     
     try {
-      // Get all departments that have unit heads assigned
-      const unitsWithHeads = await db.query.departments.findMany({
-        where: sql`${departments.unitHeadId} IS NOT NULL`
+      // Get all units that have unit heads assigned
+      const unitsWithHeads = await db.query.units.findMany({
+        where: sql`${units.unitHeadId} IS NOT NULL`
       });
 
       for (const unit of unitsWithHeads) {

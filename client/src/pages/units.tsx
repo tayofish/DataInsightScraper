@@ -378,7 +378,7 @@ export default function Units() {
                       <span>Department</span>
                     </FormLabel>
                     <SearchableSelect
-                      options={departments.map(dept => ({ 
+                      options={(departments as any[] || []).map((dept: any) => ({ 
                         value: dept.id.toString(), 
                         label: dept.name 
                       }))}

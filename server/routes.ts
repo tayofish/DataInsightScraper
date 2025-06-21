@@ -23,7 +23,7 @@ import { v4 as uuidv4 } from "uuid";
 import * as emailService from "./services/email-service";
 import nodemailer from "nodemailer";
 import { eq, and, or, desc, asc, sql, isNull, isNotNull, ilike } from "drizzle-orm";
-import { getWebSocketServer, type ExtendedWebSocket } from "./websocket-helper";
+import { initializeWebSocketServer, getWebSocketServer, broadcastDatabaseStatus, type ExtendedWebSocket } from './websocket-helper';
 
 // Add a global store for cached data when database is unavailable
 const fallbackCache = {
@@ -36,9 +36,6 @@ const fallbackCache = {
 let isDatabaseAvailable = false;
 let lastDatabaseCheck = 0;
 const DB_CHECK_INTERVAL = 30000; // 30 seconds
-
-// Import the WebSocket helpers
-import { initializeWebSocketServer, getWebSocketServer, broadcastDatabaseStatus, ExtendedWebSocket } from './websocket-helper';
 
 // Check database availability
 async function checkDatabaseAvailability() {
@@ -7018,10 +7015,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Update the department with the new unit head
-      await db.update(departments)
+      // Update the unit with the new unit head
+      await db.update(units)
         .set({ unitHeadId: processedUnitHeadId })
-        .where(eq(departments.id, departmentId));
+        .where(eq(units.departmentId, departmentId));
 
       res.json({ 
         message: processedUnitHeadId ? 'Unit head assigned successfully' : 'Unit head removed successfully',
