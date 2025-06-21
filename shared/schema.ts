@@ -293,6 +293,7 @@ export const projectInsertSchema = createInsertSchema(projects, {
 
 export const departmentInsertSchema = createInsertSchema(departments, {
   name: (schema) => schema.min(2, "Department name must be at least 2 characters"),
+  unitHeadId: (schema) => schema.nullable().optional(),
 });
 
 export const categoryInsertSchema = createInsertSchema(categories, {
