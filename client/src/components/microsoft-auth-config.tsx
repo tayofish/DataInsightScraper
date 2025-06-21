@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,7 +57,7 @@ export default function MicrosoftAuthConfig() {
   });
 
   // Update form values when data loads
-  useState(() => {
+  React.useEffect(() => {
     if (authSettings) {
       form.reset({
         enabled: authSettings.enabled || false,
@@ -72,10 +73,20 @@ export default function MicrosoftAuthConfig() {
 
   const saveMutation = useMutation({
     mutationFn: async (values: MicrosoftAuthFormValues) => {
-      return apiRequest("/api/app-settings/auth/microsoft", {
+      const response = await fetch("/api/app-settings/auth/microsoft", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(values)
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to save Microsoft auth settings");
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -96,14 +107,24 @@ export default function MicrosoftAuthConfig() {
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
       const values = form.getValues();
-      return apiRequest("/api/auth/microsoft/test", {
+      const response = await fetch("/api/auth/microsoft/test", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           clientId: values.clientId,
           clientSecret: values.clientSecret,
           tenantId: values.tenantId
         })
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to test Microsoft auth connection");
+      }
+      
+      return response.json();
     },
     onSuccess: (data) => {
       toast({

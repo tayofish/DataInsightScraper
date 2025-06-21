@@ -1265,6 +1265,12 @@ export default function AdminPage() {
             </div>
           </TabsComponentContent>
           
+          <TabsComponentContent value="auth" className="mt-6">
+            <div className="space-y-6">
+              <MicrosoftAuthConfig />
+            </div>
+          </TabsComponentContent>
+          
           <TabsComponentContent value="backup" className="mt-6">
             <Card>
               <CardHeader>
