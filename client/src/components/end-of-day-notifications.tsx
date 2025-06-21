@@ -15,6 +15,7 @@ interface NotificationSettings {
   userNotificationsEnabled: boolean;
   adminNotificationsEnabled: boolean;
   unitHeadNotificationsEnabled: boolean;
+  departmentHeadNotificationsEnabled: boolean;
 }
 
 interface SchedulerConfig {
@@ -255,6 +256,24 @@ export default function EndOfDayNotifications() {
               id="unit-head-notifications"
               checked={settings?.unitHeadNotificationsEnabled || false}
               onCheckedChange={(checked) => handleSettingChange('unitHeadNotificationsEnabled', checked)}
+              disabled={updateSettingsMutation.isPending}
+            />
+          </div>
+
+          {/* Department Head Notifications Setting */}
+          <div className="flex items-center justify-between space-x-4">
+            <div className="space-y-1">
+              <Label htmlFor="department-head-notifications" className="text-base font-medium">
+                Department Head Daily Summaries
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Send daily department-wide summaries to department heads including all units and member activity within their department.
+              </p>
+            </div>
+            <Switch
+              id="department-head-notifications"
+              checked={settings?.departmentHeadNotificationsEnabled || false}
+              onCheckedChange={(checked) => handleSettingChange('departmentHeadNotificationsEnabled', checked)}
               disabled={updateSettingsMutation.isPending}
             />
           </div>
