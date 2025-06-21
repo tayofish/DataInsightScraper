@@ -1753,18 +1753,18 @@ export async function sendEndOfDayNotifications(): Promise<void> {
     console.log('Sending unit head notifications...');
     
     try {
-      // Get all units that have unit heads assigned
-      const unitsWithHeads = await db.query.units.findMany({
-        where: sql`${units.unitHeadId} IS NOT NULL`
+      // Get all departments (units) that have unit heads assigned
+      const unitsWithHeads = await db.query.departments.findMany({
+        where: sql`${departments.departmentHeadId} IS NOT NULL`
       });
 
       for (const unit of unitsWithHeads) {
-        if (!unit.unitHeadId) continue;
+        if (!unit.departmentHeadId) continue;
 
         try {
           // Get unit head user details
           const unitHead = await db.query.users.findFirst({
-            where: eq(users.id, unit.unitHeadId)
+            where: eq(users.id, unit.departmentHeadId)
           });
 
           if (!unitHead || !unitHead.email) {

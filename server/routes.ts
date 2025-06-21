@@ -7211,5 +7211,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual trigger for testing notifications
+  app.post("/api/scheduler/trigger", isAdmin, async (req, res) => {
+    try {
+      console.log('Manual trigger for end-of-day notifications initiated by admin...');
+      await emailService.sendEndOfDayNotifications();
+      res.json({ message: 'End-of-day notifications triggered successfully' });
+    } catch (error) {
+      console.error('Error triggering notifications:', error);
+      res.status(500).json({ message: 'Failed to trigger notifications' });
+    }
+  });
+
   return httpServer;
 }
