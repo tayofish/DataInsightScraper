@@ -1241,6 +1241,9 @@ export default function AdminPage() {
             <TabsComponentTrigger value="smtp" className="flex items-center">
               <Mail className="mr-2 h-4 w-4" /> Email Notifications
             </TabsComponentTrigger>
+            <TabsComponentTrigger value="auth" className="flex items-center">
+              <Users className="mr-2 h-4 w-4" /> Authentication
+            </TabsComponentTrigger>
             <TabsComponentTrigger value="backup" className="flex items-center">
               <RefreshCw className="mr-2 h-4 w-4" /> Backup & Restore
             </TabsComponentTrigger>
@@ -1367,6 +1370,53 @@ export default function AdminPage() {
             </Card>
           </TabsComponentContent>
           
+          <TabsComponentContent value="auth" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Authentication Settings</CardTitle>
+                <CardDescription>
+                  Configure user authentication methods and registration options.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">Local Authentication</h4>
+                    <p className="text-sm text-muted-foreground">Allow users to login with username and password</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="local-auth" 
+                      checked={authSettings.localAuth}
+                      onCheckedChange={() => handleAuthToggle('localAuth')}
+                    />
+                    <Badge variant={authSettings.localAuth ? "default" : "outline"}>
+                      {authSettings.localAuth ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">User Registration</h4>
+                    <p className="text-sm text-muted-foreground">Allow new users to register accounts</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="user-registration" 
+                      checked={authSettings.userRegistration}
+                      onCheckedChange={() => handleAuthToggle('userRegistration')}
+                    />
+                    <Badge variant={authSettings.userRegistration ? "default" : "outline"}>
+                      {authSettings.userRegistration ? "Enabled" : "Disabled"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsComponentContent>
 
         </TabsComponent>
       </div>
