@@ -6856,6 +6856,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid department ID" });
       }
 
+      // Convert unitHeadId to number if it's a string, or null if not provided
+      const processedUnitHeadId = unitHeadId ? (typeof unitHeadId === 'string' ? parseInt(unitHeadId) : unitHeadId) : null;
+
       // Verify the department exists
       const department = await db.query.departments.findFirst({
         where: eq(departments.id, departmentId)
@@ -6866,9 +6869,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // If unitHeadId is provided, verify the user exists
-      if (unitHeadId) {
+      if (processedUnitHeadId) {
         const user = await db.query.users.findFirst({
-          where: eq(users.id, unitHeadId)
+          where: eq(users.id, processedUnitHeadId)
         });
 
         if (!user) {
@@ -6878,13 +6881,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update the department with the new unit head
       await db.update(departments)
-        .set({ unitHeadId: unitHeadId || null })
+        .set({ unitHeadId: processedUnitHeadId })
         .where(eq(departments.id, departmentId));
 
       res.json({ 
-        message: unitHeadId ? 'Unit head assigned successfully' : 'Unit head removed successfully',
+        message: processedUnitHeadId ? 'Unit head assigned successfully' : 'Unit head removed successfully',
         departmentId,
-        unitHeadId
+        unitHeadId: processedUnitHeadId
       });
     } catch (error) {
       console.error('Error setting unit head:', error);
