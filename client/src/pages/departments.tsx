@@ -37,7 +37,11 @@ export default function Departments() {
   
   // Fetch departments
   const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
-    queryKey: ['/api/departments']
+    queryKey: ['/api/departments'],
+    select: (data) => {
+      console.log('Departments API response:', data);
+      return data;
+    }
   });
 
   // Fetch users for unit head selection
