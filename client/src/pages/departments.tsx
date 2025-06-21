@@ -52,14 +52,15 @@ export default function Departments() {
       if (editingDepartment) {
         form.reset({
           name: editingDepartment.name,
-          description: editingDepartment.description
+          description: editingDepartment.description,
+          unitHeadId: editingDepartment.unitHeadId?.toString() || "none"
         });
-        // Set the current unit head if exists
         setSelectedUnitHead(editingDepartment.unitHeadId?.toString() || "");
       } else {
         form.reset({
           name: '',
-          description: ''
+          description: '',
+          unitHeadId: "none"
         });
         setSelectedUnitHead("");
       }
@@ -137,7 +138,12 @@ export default function Departments() {
   });
   
   const onSubmit = (values: DepartmentFormValues) => {
-    createDepartmentMutation.mutate(values);
+    // Handle unit head selection - convert "none" to null
+    const processedValues = {
+      ...values,
+      unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
+    };
+    createDepartmentMutation.mutate(processedValues);
   };
   
   const handleEditDepartment = (department: Department) => {
@@ -360,31 +366,38 @@ export default function Departments() {
               />
 
               {/* Unit Head Selection */}
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <label className="text-sm font-medium">Unit Head</label>
-                </div>
-                <Select
-                  value={selectedUnitHead}
-                  onValueChange={setSelectedUnitHead}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a unit head (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No Unit Head</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.name} ({user.username})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Unit heads receive daily email summaries for their assigned units
-                </p>
-              </div>
+              <FormField
+                control={form.control}
+                name="unitHeadId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center space-x-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span>Unit Head</span>
+                    </FormLabel>
+                    <Select
+                      value={field.value || "none"}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a unit head (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Unit Head</SelectItem>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.name} ({user.username})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Unit heads receive daily email summaries for their assigned units
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <DialogFooter>
                 <Button
