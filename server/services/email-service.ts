@@ -679,6 +679,220 @@ export async function getUnitSummary(unitId: number): Promise<UnitSummary> {
   };
 }
 
+export async function getDepartmentSummary(departmentId: number): Promise<DepartmentSummary> {
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+  // Get department information
+  const department = await db.query.categories.findFirst({
+    where: eq(categories.id, departmentId)
+  });
+
+  if (!department) {
+    throw new Error(`Department with ID ${departmentId} not found`);
+  }
+
+  // Get all units that belong to this department
+  const departmentUnits = await db.query.departments.findMany({
+    where: eq(departments.departmentId, departmentId)
+  });
+
+  const departmentUnitsInfo = [];
+  const allDepartmentMembers = [];
+  let totalOverdueTasks = 0;
+  let totalPendingTasks = 0;
+  const tasksCompletedToday = [];
+
+  // Process each unit in the department
+  for (const unit of departmentUnits) {
+    // Get unit head information
+    let unitHeadName = undefined;
+    let unitHeadEmail = undefined;
+    if (unit.unitHeadId) {
+      const unitHead = await db.query.users.findFirst({
+        where: eq(users.id, unit.unitHeadId)
+      });
+      if (unitHead) {
+        unitHeadName = unitHead.name || unitHead.username;
+        unitHeadEmail = unitHead.email || undefined;
+      }
+    }
+
+    // Get all users in this unit
+    const unitUsers = await db.query.userDepartments.findMany({
+      where: eq(userDepartments.departmentId, unit.id),
+      with: {
+        user: true
+      }
+    });
+
+    // Also get users whose primary department is this unit
+    const primaryUsers = await db.query.users.findMany({
+      where: eq(users.departmentId, unit.id)
+    });
+
+    // Combine and deduplicate users
+    const allUnitUsers = new Map();
+    unitUsers.forEach(ud => {
+      if (ud.user && typeof ud.user === 'object' && 'id' in ud.user) {
+        allUnitUsers.set((ud.user as any).id, ud.user);
+      }
+    });
+    primaryUsers.forEach(user => {
+      if (user && user.id) {
+        allUnitUsers.set(user.id, user);
+      }
+    });
+
+    const userIds = Array.from(allUnitUsers.keys());
+
+    // Get unit's overdue tasks count
+    let unitOverdueCount;
+    if (userIds.length > 0) {
+      unitOverdueCount = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          or(
+            ...userIds.map(userId => eq(tasks.assigneeId, userId)),
+            eq(tasks.departmentId, unit.id)
+          ),
+          lte(tasks.dueDate, startOfDay),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+    } else {
+      unitOverdueCount = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          eq(tasks.departmentId, unit.id),
+          lte(tasks.dueDate, startOfDay),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+    }
+
+    // Get unit's pending tasks count
+    let unitPendingCount;
+    if (userIds.length > 0) {
+      unitPendingCount = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          or(
+            ...userIds.map(userId => eq(tasks.assigneeId, userId)),
+            eq(tasks.departmentId, unit.id)
+          ),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+    } else {
+      unitPendingCount = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          eq(tasks.departmentId, unit.id),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+    }
+
+    // Get tasks completed today in this unit
+    let unitCompletedToday;
+    if (userIds.length > 0) {
+      unitCompletedToday = await db.query.tasks.findMany({
+        where: and(
+          or(
+            ...userIds.map(userId => eq(tasks.assigneeId, userId)),
+            eq(tasks.departmentId, unit.id)
+          ),
+          eq(tasks.status, 'completed'),
+          gte(tasks.updatedAt, startOfDay),
+          lte(tasks.updatedAt, endOfDay)
+        ),
+        with: {
+          assignee: true,
+          category: true,
+          project: true
+        },
+        orderBy: [desc(tasks.updatedAt)]
+      });
+    } else {
+      unitCompletedToday = await db.query.tasks.findMany({
+        where: and(
+          eq(tasks.departmentId, unit.id),
+          eq(tasks.status, 'completed'),
+          gte(tasks.updatedAt, startOfDay),
+          lte(tasks.updatedAt, endOfDay)
+        ),
+        with: {
+          assignee: true,
+          category: true,
+          project: true
+        },
+        orderBy: [desc(tasks.updatedAt)]
+      });
+    }
+
+    // Add to department summary
+    const unitOverdue = unitOverdueCount[0]?.count || 0;
+    const unitPending = unitPendingCount[0]?.count || 0;
+    const unitCompleted = unitCompletedToday?.length || 0;
+
+    totalOverdueTasks += unitOverdue;
+    totalPendingTasks += unitPending;
+    tasksCompletedToday.push(...(unitCompletedToday || []));
+
+    departmentUnitsInfo.push({
+      unitName: unit.name,
+      unitId: unit.id,
+      unitHeadName,
+      unitHeadEmail,
+      overdueTasks: unitOverdue,
+      pendingTasks: unitPending,
+      completedTasks: unitCompleted,
+      memberCount: allUnitUsers.size
+    });
+
+    // Add unit members to department members list
+    for (const user of allUnitUsers.values()) {
+      const userOverdue = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          eq(tasks.assigneeId, (user as any).id),
+          lte(tasks.dueDate, startOfDay),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+
+      const userPending = await db
+        .select({ count: count() })
+        .from(tasks)
+        .where(and(
+          eq(tasks.assigneeId, (user as any).id),
+          or(eq(tasks.status, 'todo'), eq(tasks.status, 'in_progress'))
+        ));
+
+      allDepartmentMembers.push({
+        username: (user as any).username,
+        name: (user as any).name || (user as any).username,
+        email: (user as any).email || '',
+        unitName: unit.name,
+        overdueTasks: userOverdue[0]?.count || 0,
+        pendingTasks: userPending[0]?.count || 0
+      });
+    }
+  }
+
+  return {
+    departmentName: department.name,
+    departmentId: department.id,
+    totalOverdueTasks,
+    totalPendingTasks,
+    tasksCompletedToday,
+    departmentUnits: departmentUnitsInfo,
+    allDepartmentMembers
+  };
+}
+
 export function generateUserEmailHTML(username: string, summary: UserTaskSummary): string {
   const hasContent = summary.overdueTasks.length > 0 || 
                     summary.pendingTasks.length > 0 || 
@@ -1049,6 +1263,157 @@ export function generateUnitHeadEmailHTML(unitHeadName: string, summary: UnitSum
   return html;
 }
 
+export function generateDepartmentHeadEmailHTML(departmentHeadName: string, summary: DepartmentSummary): string {
+  let html = `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+      <h2 style="color: #333;">Department Daily Summary - ${summary.departmentName}</h2>
+      <p>Hi ${departmentHeadName},</p>
+      <p>Here's your daily department summary for <strong>${summary.departmentName}</strong>:</p>
+      
+      <!-- Summary Overview -->
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #495057;">Department Overview</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+          <div style="text-align: center; padding: 10px; background-color: ${summary.totalOverdueTasks > 0 ? '#fee' : '#fff'}; border-radius: 5px;">
+            <h4 style="margin: 0; color: ${summary.totalOverdueTasks > 0 ? '#dc3545' : '#28a745'}; font-size: 24px;">${summary.totalOverdueTasks}</h4>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Overdue Tasks</p>
+          </div>
+          <div style="text-align: center; padding: 10px; background-color: ${summary.totalPendingTasks > 0 ? '#fffbeb' : '#fff'}; border-radius: 5px;">
+            <h4 style="margin: 0; color: ${summary.totalPendingTasks > 0 ? '#f59e0b' : '#28a745'}; font-size: 24px;">${summary.totalPendingTasks}</h4>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Pending Tasks</p>
+          </div>
+          <div style="text-align: center; padding: 10px; background-color: #d4edda; border-radius: 5px;">
+            <h4 style="margin: 0; color: #28a745; font-size: 24px;">${summary.tasksCompletedToday.length}</h4>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Completed Today</p>
+          </div>
+          <div style="text-align: center; padding: 10px; background-color: #d1ecf1; border-radius: 5px;">
+            <h4 style="margin: 0; color: #0c5460; font-size: 24px;">${summary.departmentUnits.length}</h4>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 14px;">Units</p>
+          </div>
+        </div>
+      </div>
+  `;
+
+  // Units breakdown
+  if (summary.departmentUnits.length > 0) {
+    html += `
+      <!-- Units Breakdown -->
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #495057;">Units in ${summary.departmentName}</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #e9ecef;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Unit</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Unit Head</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Members</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Overdue</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Pending</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${summary.departmentUnits.map(unit => `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                  <strong>${unit.unitName}</strong>
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">
+                  ${unit.unitHeadName || 'No head assigned'}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">
+                  ${unit.memberCount}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd; color: ${unit.overdueTasks > 0 ? '#dc3545' : '#666'};">
+                  ${unit.overdueTasks}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd; color: ${unit.pendingTasks > 0 ? '#ffc107' : '#666'};">
+                  ${unit.pendingTasks}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd; color: ${unit.completedTasks > 0 ? '#28a745' : '#666'};">
+                  ${unit.completedTasks}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Department members with pending work
+  if (summary.allDepartmentMembers.some(member => member.overdueTasks > 0 || member.pendingTasks > 0)) {
+    const membersWithWork = summary.allDepartmentMembers.filter(member => member.overdueTasks > 0 || member.pendingTasks > 0);
+    html += `
+      <!-- Department Members with Pending Work -->
+      <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #856404;">Department Members with Pending Work</h3>
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead>
+            <tr style="background-color: #ffeaa7;">
+              <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Member</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Unit</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Overdue Tasks</th>
+              <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Pending Tasks</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${membersWithWork.map(member => `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #ddd;">
+                  <strong>${member.name}</strong><br>
+                  <small style="color: #666;">${member.username}</small>
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd;">
+                  ${member.unitName}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd; color: ${member.overdueTasks > 0 ? '#dc3545' : '#666'};">
+                  ${member.overdueTasks}
+                </td>
+                <td style="padding: 10px; text-align: center; border-bottom: 1px solid #ddd; color: ${member.pendingTasks > 0 ? '#ffc107' : '#666'};">
+                  ${member.pendingTasks}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Tasks completed today
+  if (summary.tasksCompletedToday.length > 0) {
+    html += `
+      <!-- Tasks Completed Today -->
+      <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #155724;">Tasks Completed Today in ${summary.departmentName}</h3>
+        ${summary.tasksCompletedToday.slice(0, 10).map(task => `
+          <div style="background-color: #fff; padding: 10px; border-left: 3px solid #28a745; margin: 10px 0;">
+            <h4 style="margin: 0 0 5px 0; color: #333;">${task.title}</h4>
+            <p style="margin: 0; color: #666; font-size: 14px;">
+              <strong>Completed by:</strong> ${task.assignee?.name || task.assignee?.username || 'Unknown'}<br>
+              ${task.category ? `<strong>Category:</strong> ${task.category.name}<br>` : ''}
+              ${task.project ? `<strong>Project:</strong> ${task.project.name}` : ''}
+            </p>
+          </div>
+        `).join('')}
+        ${summary.tasksCompletedToday.length > 10 ? `
+          <p style="color: #666; font-style: italic; margin-top: 15px;">
+            ... and ${summary.tasksCompletedToday.length - 10} more completed tasks
+          </p>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  html += `
+      <hr style="margin: 20px 0;">
+      <p style="color: #666; font-size: 12px;">This notification was sent from Promellon Task Management System.</p>
+    </div>
+  `;
+
+  return html;
+}
+
 // User creation notification
 export async function notifyUserCreation(user: any, password: string, createdBy: any): Promise<void> {
   if (!transporter) {
@@ -1301,9 +1666,14 @@ export async function sendEndOfDayNotifications(): Promise<void> {
     where: eq(appSettings.key, 'end_of_day_unit_head_notifications')
   });
 
+  const departmentHeadNotificationsSetting = await db.query.appSettings.findFirst({
+    where: eq(appSettings.key, 'end_of_day_department_head_notifications')
+  });
+
   const userNotificationsEnabled = userNotificationsSetting?.value === 'true';
   const adminNotificationsEnabled = adminNotificationsSetting?.value === 'true';
   const unitHeadNotificationsEnabled = unitHeadNotificationsSetting?.value === 'true';
+  const departmentHeadNotificationsEnabled = departmentHeadNotificationsSetting?.value === 'true';
 
   const fromEmail = await getFromEmail();
 
@@ -1432,6 +1802,63 @@ export async function sendEndOfDayNotifications(): Promise<void> {
       }
     } catch (error) {
       console.error('Failed to send unit head notifications:', error);
+    }
+  }
+
+  // Send department head notifications
+  if (departmentHeadNotificationsEnabled) {
+    console.log('Sending department head notifications...');
+    
+    try {
+      // Get all categories (departments) that have department heads assigned
+      const departmentsWithHeads = await db.query.categories.findMany({
+        where: sql`${categories.departmentHeadId} IS NOT NULL`
+      });
+
+      for (const department of departmentsWithHeads) {
+        if (!department.departmentHeadId) continue;
+
+        try {
+          // Get department head user details
+          const departmentHead = await db.query.users.findFirst({
+            where: eq(users.id, department.departmentHeadId)
+          });
+
+          if (!departmentHead || !departmentHead.email) {
+            console.log(`Department head not found or no email for department ${department.name}`);
+            continue;
+          }
+
+          const departmentSummary = await getDepartmentSummary(department.id);
+          
+          // Only send if department has activity to report
+          if (departmentSummary.totalOverdueTasks > 0 || 
+              departmentSummary.totalPendingTasks > 0 || 
+              departmentSummary.tasksCompletedToday.length > 0) {
+            
+            const html = generateDepartmentHeadEmailHTML(
+              departmentHead.name || departmentHead.username, 
+              departmentSummary
+            );
+            
+            await sendEmail({
+              to: departmentHead.email,
+              from: fromEmail,
+              subject: `Daily Department Summary - ${department.name}`,
+              html,
+              text: `Department ${department.name} summary: ${departmentSummary.totalOverdueTasks} overdue, ${departmentSummary.totalPendingTasks} pending tasks.`
+            });
+            
+            console.log(`Sent department head notification to ${departmentHead.username} for department ${department.name}`);
+          } else {
+            console.log(`Skipped notification for department ${department.name} - no activity to report`);
+          }
+        } catch (error) {
+          console.error(`Failed to send department head notification for department ${department.name}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to send department head notifications:', error);
     }
   }
 
