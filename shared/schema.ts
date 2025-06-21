@@ -334,6 +334,11 @@ export const unitInsertSchema = createInsertSchema(units, {
 
 export const categoryInsertSchema = createInsertSchema(categories, {
   name: z.string().min(2, "Category name must be at least 2 characters"),
+  departmentHeadId: z.string().transform((val) => {
+    if (val === "none" || val === "" || val === null || val === undefined) return null;
+    const num = parseInt(val);
+    return isNaN(num) ? null : num;
+  }).nullable().optional(),
 });
 
 export const taskInsertSchema = createInsertSchema(tasks, {
