@@ -35,13 +35,9 @@ export default function Departments() {
   const itemsPerPage = 10;
   const { toast } = useToast();
   
-  // Fetch departments
+  // Fetch departments (from categories endpoint)
   const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
-    queryKey: ['/api/departments'],
-    select: (data) => {
-      console.log('Departments API response:', data);
-      return data;
-    }
+    queryKey: ['/api/categories']
   });
 
   // Fetch users for unit head selection
@@ -97,15 +93,15 @@ export default function Departments() {
       
       if (editingDepartment) {
         // Update existing department
-        return await apiRequest('PUT', `/api/departments/${editingDepartment.id}`, processedValues);
+        return await apiRequest('PUT', `/api/categories/${editingDepartment.id}`, processedValues);
       } else {
         // Create new department
-        return await apiRequest('POST', '/api/departments', processedValues);
+        return await apiRequest('POST', '/api/categories', processedValues);
       }
     },
     onSuccess: () => {
       // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
@@ -131,10 +127,10 @@ export default function Departments() {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (departmentId: number) => {
-      return apiRequest('DELETE', `/api/departments/${departmentId}`);
+      return apiRequest('DELETE', `/api/categories/${departmentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
       toast({
         title: 'Department Deleted',
         description: 'The department has been removed.'
