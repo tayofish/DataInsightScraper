@@ -33,7 +33,6 @@ import LogoUpload from "@/components/logo-upload";
 import FaviconUpload from "@/components/favicon-upload";
 import AppNameEditor from "@/components/app-name-editor";
 import EndOfDayNotifications from "@/components/end-of-day-notifications";
-import MicrosoftAuthConfig from "@/components/microsoft-auth-config";
 
 // User management form schema
 const userFormSchema = z.object({
@@ -1245,9 +1244,7 @@ export default function AdminPage() {
             <TabsComponentTrigger value="backup" className="flex items-center">
               <RefreshCw className="mr-2 h-4 w-4" /> Backup & Restore
             </TabsComponentTrigger>
-            <TabsComponentTrigger value="auth" className="flex items-center">
-              <Users className="mr-2 h-4 w-4" /> Authentication
-            </TabsComponentTrigger>
+
           </TabsComponentList>
           
           <TabsComponentContent value="branding" className="mt-6">
@@ -1262,12 +1259,6 @@ export default function AdminPage() {
             <div className="space-y-6">
               <SmtpConfigForm />
               <EndOfDayNotifications />
-            </div>
-          </TabsComponentContent>
-          
-          <TabsComponentContent value="auth" className="mt-6">
-            <div className="space-y-6">
-              <MicrosoftAuthConfig />
             </div>
           </TabsComponentContent>
           
