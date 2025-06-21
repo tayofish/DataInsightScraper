@@ -473,6 +473,30 @@ export default function EndOfDayNotifications() {
                             </div>
                           )}
 
+                          {/* Users with Completed Work */}
+                          {adminSummary.usersWithCompletedWork.length > 0 && (
+                            <div className="mb-4">
+                              <Badge variant="default" className="mb-2 bg-green-600">
+                                Users with Completed Work ({adminSummary.usersWithCompletedWork.length})
+                              </Badge>
+                              <div className="space-y-2">
+                                {adminSummary.usersWithCompletedWork.slice(0, 5).map((user, index) => (
+                                  <div key={index} className="flex justify-between items-center text-sm bg-green-50 p-2 rounded border border-green-200">
+                                    <span className="font-medium">{user.username}</span>
+                                    <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                      {user.completedTasks} completed
+                                    </Badge>
+                                  </div>
+                                ))}
+                                {adminSummary.usersWithCompletedWork.length > 5 && (
+                                  <p className="text-xs text-muted-foreground ml-2">
+                                    ... and {adminSummary.usersWithCompletedWork.length - 5} more users
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {adminSummary.totalOverdueTasks === 0 && 
                            adminSummary.totalPendingTasks === 0 && 
                            adminSummary.tasksCompletedToday.length === 0 && (
