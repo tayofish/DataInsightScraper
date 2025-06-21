@@ -6846,6 +6846,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Set unit head for a department
+  app.post("/api/departments/:id/unit-head", isAdmin, async (req, res) => {
+    try {
+      const departmentId = parseInt(req.params.id);
+      const { unitHeadId } = req.body;
+
+      if (!departmentId) {
+        return res.status(400).json({ message: "Invalid department ID" });
+      }
+
+      // Verify the department exists
+      const department = await db.query.departments.findFirst({
+        where: eq(departments.id, departmentId)
+      });
+
+      if (!department) {
+        return res.status(404).json({ message: "Department not found" });
+      }
+
+      // If unitHeadId is provided, verify the user exists
+      if (unitHeadId) {
+        const user = await db.query.users.findFirst({
+          where: eq(users.id, unitHeadId)
+        });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+      }
+
+      // Update the department with the new unit head
+      await db.update(departments)
+        .set({ unitHeadId: unitHeadId || null })
+        .where(eq(departments.id, departmentId));
+
+      res.json({ 
+        message: unitHeadId ? 'Unit head assigned successfully' : 'Unit head removed successfully',
+        departmentId,
+        unitHeadId
+      });
+    } catch (error) {
+      console.error('Error setting unit head:', error);
+      res.status(500).json({ message: 'Failed to set unit head' });
+    }
+  });
+
   // Trigger end-of-day notifications manually (admin only)
   app.post("/api/end-of-day-notifications/send", isAdmin, async (req, res) => {
     try {

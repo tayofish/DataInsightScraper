@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 type DepartmentFormValues = z.infer<typeof departmentInsertSchema>;
@@ -20,6 +21,7 @@ type DepartmentFormValues = z.infer<typeof departmentInsertSchema>;
 export default function Departments() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingDepartment, setEditingDepartment] = React.useState<Department | null>(null);
+  const [selectedUnitHead, setSelectedUnitHead] = React.useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -28,6 +30,11 @@ export default function Departments() {
   // Fetch departments
   const { data: departments = [] as Department[], isLoading } = useQuery<Department[]>({
     queryKey: ['/api/departments']
+  });
+
+  // Fetch users for unit head selection
+  const { data: users = [] } = useQuery<Array<{id: number, username: string, name: string}>>({
+    queryKey: ['/api/users']
   });
   
   // Create department form
@@ -47,11 +54,14 @@ export default function Departments() {
           name: editingDepartment.name,
           description: editingDepartment.description
         });
+        // Set the current unit head if exists
+        setSelectedUnitHead(editingDepartment.unitHeadId?.toString() || "");
       } else {
         form.reset({
           name: '',
           description: ''
         });
+        setSelectedUnitHead("");
       }
     }
   }, [isDialogOpen, editingDepartment, form]);
@@ -59,13 +69,24 @@ export default function Departments() {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (values: DepartmentFormValues) => {
+      let departmentResponse;
+      
       if (editingDepartment) {
         // Update existing department
-        return apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, values);
+        departmentResponse = await apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, values);
       } else {
         // Create new department
-        return apiRequest('POST', '/api/departments', values);
+        departmentResponse = await apiRequest('POST', '/api/departments', values);
       }
+
+      // Handle unit head assignment if provided
+      const departmentId = editingDepartment ? editingDepartment.id : departmentResponse.id;
+      if (departmentId) {
+        const unitHeadId = selectedUnitHead ? parseInt(selectedUnitHead) : null;
+        await apiRequest('POST', `/api/departments/${departmentId}/unit-head`, { unitHeadId });
+      }
+
+      return departmentResponse;
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -73,20 +94,21 @@ export default function Departments() {
       // Close dialog and reset form
       setIsDialogOpen(false);
       setEditingDepartment(null);
+      setSelectedUnitHead("");
       form.reset();
       
       toast({
-        title: editingDepartment ? 'Department Updated' : 'Department Created',
+        title: editingDepartment ? 'Unit Updated' : 'Unit Created',
         description: editingDepartment 
           ? `${form.getValues().name} has been updated.` 
-          : `${form.getValues().name} has been added to departments.`,
+          : `${form.getValues().name} has been added to units.`,
       });
     },
     onError: (error) => {
-      console.error('Failed to save department:', error);
+      console.error('Failed to save unit:', error);
       toast({
         title: 'Error',
-        description: 'Failed to save department. Please try again.',
+        description: 'Failed to save unit. Please try again.',
         variant: 'destructive'
       });
     }
@@ -202,6 +224,7 @@ export default function Departments() {
                   <TableRow>
                     <TableHead className="w-[200px]">Name</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead className="w-[150px]">Unit Head</TableHead>
                     <TableHead className="text-right w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -322,6 +345,33 @@ export default function Departments() {
                   </FormItem>
                 )}
               />
+
+              {/* Unit Head Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <label className="text-sm font-medium">Unit Head</label>
+                </div>
+                <Select
+                  value={selectedUnitHead}
+                  onValueChange={setSelectedUnitHead}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a unit head (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Unit Head</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.name} ({user.username})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Unit heads receive daily email summaries for their assigned units
+                </p>
+              </div>
               
               <DialogFooter>
                 <Button
