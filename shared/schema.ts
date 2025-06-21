@@ -38,6 +38,7 @@ export const departments = pgTable("departments", {
   name: text("name").notNull().unique(),
   description: text("description"),
   departmentHeadId: integer("department_head_id"),
+  departmentId: integer("department_id").references(() => categories.id), // Link to parent department
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
