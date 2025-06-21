@@ -130,9 +130,9 @@ export default function EndOfDayNotifications() {
     enabled: previewType === 'unitHead',
   });
 
-  // Fetch department summary for preview (using first available department)
+  // Fetch department summary for preview (using App Dev department where admin is department head)
   const { data: departmentSummary, isLoading: departmentSummaryLoading } = useQuery<DepartmentSummary>({
-    queryKey: ['/api/end-of-day-notifications/department-summary/13'], // Using Database Unit ID
+    queryKey: ['/api/end-of-day-notifications/department-summary/7'], // Using App Dev department ID where admin is department head
     enabled: previewType === 'departmentHead',
   });
 
