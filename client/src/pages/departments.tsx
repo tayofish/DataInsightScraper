@@ -167,10 +167,10 @@ export default function Departments() {
   // Delete department mutation
   const deleteDepartmentMutation = useMutation({
     mutationFn: async (departmentId: number) => {
-      return apiRequest('DELETE', `/api/categories/${departmentId}`);
+      return apiRequest('DELETE', `/api/departments/${departmentId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
       toast({
         title: 'Department Deleted',
         description: 'The department has been removed.'
