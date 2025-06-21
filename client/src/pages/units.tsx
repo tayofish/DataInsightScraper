@@ -34,9 +34,9 @@ export default function Units() {
 
   const { toast } = useToast();
 
-  // Fetch units data directly from units endpoint
+  // Fetch units data (from what was originally departments table)
   const { data: units = [], isLoading: unitsLoading } = useQuery({
-    queryKey: ['/api/units']
+    queryKey: ['/api/departments']
   });
 
   // Fetch users for unit head selection
@@ -75,19 +75,18 @@ export default function Units() {
       const processedValues = {
         name: values.name,
         description: values.description || "",
-        unitHeadId: values.departmentHeadId === "none" ? null : parseInt(values.departmentHeadId),
-        departmentId: 1 // Default to first department for now
+        departmentHeadId: values.departmentHeadId === "none" ? "none" : values.departmentHeadId || "none"
       };
 
       if (editingUnit) {
-        return await apiRequest('PATCH', `/api/units/${editingUnit.id}`, processedValues);
+        return await apiRequest('PATCH', `/api/departments/${editingUnit.id}`, processedValues);
       } else {
-        return await apiRequest('POST', '/api/units', processedValues);
+        return await apiRequest('POST', '/api/departments', processedValues);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
-      queryClient.refetchQueries({ queryKey: ['/api/units'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.refetchQueries({ queryKey: ['/api/departments'] });
       form.reset();
       setIsCreateDialogOpen(false);
       setEditingUnit(null);
@@ -108,35 +107,53 @@ export default function Units() {
   // Delete unit mutation
   const deleteUnitMutation = useMutation({
     mutationFn: async (unitId: number) => {
-      const result = await apiRequest('DELETE', `/api/units/${unitId}`);
-      console.log('Delete unit result:', result);
-      return result;
+      return await apiRequest('DELETE', `/api/units/${unitId}`);
     },
-    onSuccess: async (data, unitId) => {
-      console.log('Unit deletion successful:', data);
+    onMutate: async (unitId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/departments'] });
       
-      // Clear all relevant cache keys immediately
-      queryClient.clear();
+      // Snapshot the previous value
+      const previousUnits = queryClient.getQueryData(['/api/departments']);
       
-      // Force immediate refetch of units data from correct endpoint
-      await queryClient.refetchQueries({ 
-        queryKey: ['/api/units'],
-        type: 'active'
+      // Optimistically update to the new value
+      queryClient.setQueryData(['/api/departments'], (old: any) => {
+        if (!old) return old;
+        return old.filter((unit: any) => unit.id !== unitId);
       });
       
-      toast({
-        title: "Success",
-        description: "Unit deleted successfully",
-      });
+      // Return a context object with the snapshotted value
+      return { previousUnits };
     },
-    onError: (error) => {
-      console.error('Failed to delete unit:', error);
+    onError: (err, unitId, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      queryClient.setQueryData(['/api/departments'], context.previousUnits);
       toast({
         title: "Error",
         description: "Failed to delete unit",
         variant: "destructive",
       });
-    }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Unit deleted successfully",
+      });
+      
+      // Force page reload for production cache clearing if needed
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    },
+    onSettled: async () => {
+      // Force clear cache and refetch from server for production reliability
+      queryClient.removeQueries({ queryKey: ['/api/departments'] });
+      await queryClient.refetchQueries({ queryKey: ['/api/departments'] });
+      
+      // Also invalidate related caches
+      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
+    },
   });
 
   const onSubmit = (values: UnitFormValues) => {
@@ -148,7 +165,7 @@ export default function Units() {
     form.reset({
       name: unit.name || '',
       description: unit.description || '',
-      departmentHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none"
+      departmentHeadId: unit.departmentHeadId ? unit.departmentHeadId.toString() : "none"
     });
     setIsCreateDialogOpen(true);
   };
@@ -335,7 +352,7 @@ export default function Units() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {unit.unitHead ? unit.unitHead.name : 'No unit head assigned'}
+                          {getUserName(unit.departmentHeadId)}
                         </div>
                       </TableCell>
                       <TableCell>
