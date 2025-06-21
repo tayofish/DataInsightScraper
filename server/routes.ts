@@ -1665,6 +1665,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid department ID" });
       }
 
+      console.log('Department update request:', {
+        id,
+        requestBody: req.body,
+        bodyKeys: Object.keys(req.body)
+      });
+
       const departmentData = departmentInsertSchema.partial().parse(req.body);
       const updatedDepartment = await storage.updateDepartment(id, departmentData);
       
@@ -6852,12 +6858,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const departmentId = parseInt(req.params.id);
       const { unitHeadId } = req.body;
 
+      console.log('Unit head assignment request:', {
+        departmentId,
+        unitHeadId,
+        unitHeadIdType: typeof unitHeadId,
+        requestBody: req.body
+      });
+
       if (!departmentId) {
         return res.status(400).json({ message: "Invalid department ID" });
       }
 
       // Convert unitHeadId to number if it's a string, or null if not provided
       const processedUnitHeadId = unitHeadId ? (typeof unitHeadId === 'string' ? parseInt(unitHeadId) : unitHeadId) : null;
+      
+      console.log('Processed unit head ID:', {
+        original: unitHeadId,
+        processed: processedUnitHeadId,
+        processedType: typeof processedUnitHeadId
+      });
 
       // Verify the department exists
       const department = await db.query.departments.findFirst({
