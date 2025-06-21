@@ -34,9 +34,9 @@ export default function Units() {
 
   const { toast } = useToast();
 
-  // Fetch departments as units (respecting original data structure)
+  // Fetch units data
   const { data: units = [], isLoading: unitsLoading } = useQuery({
-    queryKey: ['/api/departments']
+    queryKey: ['/api/units']
   });
 
   // Fetch users for unit head selection
@@ -67,23 +67,23 @@ export default function Units() {
     currentPage * itemsPerPage
   );
 
-  // Create/update unit mutation (working with departments)
+  // Create/update unit mutation
   const createUnitMutation = useMutation({
     mutationFn: async (values: UnitFormValues) => {
       const processedValues = {
         name: values.name,
         description: values.description || "",
-        departmentHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
+        unitHeadId: values.departmentHeadId === "none" ? null : values.departmentHeadId ? parseInt(values.departmentHeadId) : null
       };
 
       if (editingUnit) {
-        return await apiRequest('PATCH', `/api/departments/${editingUnit.id}`, processedValues);
+        return await apiRequest('PATCH', `/api/units/${editingUnit.id}`, processedValues);
       } else {
-        return await apiRequest('POST', '/api/departments', processedValues);
+        return await apiRequest('POST', '/api/units', processedValues);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       form.reset();
       setIsCreateDialogOpen(false);
       setEditingUnit(null);
@@ -104,10 +104,10 @@ export default function Units() {
   // Delete unit mutation
   const deleteUnitMutation = useMutation({
     mutationFn: async (unitId: number) => {
-      return await apiRequest('DELETE', `/api/departments/${unitId}`);
+      return await apiRequest('DELETE', `/api/units/${unitId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/departments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/units'] });
       toast({
         title: "Success",
         description: "Unit deleted successfully",
@@ -131,7 +131,7 @@ export default function Units() {
     form.reset({
       name: unit.name || '',
       description: unit.description || '',
-      departmentHeadId: unit.departmentHeadId ? unit.departmentHeadId.toString() : "none"
+      departmentHeadId: unit.unitHeadId ? unit.unitHeadId.toString() : "none"
     });
     setIsCreateDialogOpen(true);
   };
@@ -317,7 +317,7 @@ export default function Units() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {getUserName(unit.departmentHeadId)}
+                          {getUserName(unit.unitHeadId)}
                         </div>
                       </TableCell>
                       <TableCell>
