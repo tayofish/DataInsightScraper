@@ -321,7 +321,7 @@ export default function Units() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {getUserName(unit.unitHeadId)}
+                          {getUserName(unit.departmentHeadId)}
                         </div>
                       </TableCell>
                       <TableCell>
