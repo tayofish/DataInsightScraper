@@ -70,14 +70,22 @@ export default function Departments() {
   // Create department mutation
   const createDepartmentMutation = useMutation({
     mutationFn: async (values: DepartmentFormValues) => {
+      console.log('Form submission data:', values);
+      
       // Handle unit head selection - convert "none" to null
       const processedValues = {
         ...values,
         unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
       };
 
+      console.log('Processed values:', processedValues);
+
       // Remove unitHeadId from department data as it's handled separately
       const { unitHeadId, ...departmentData } = processedValues;
+      
+      console.log('Department data (without unitHeadId):', departmentData);
+      console.log('Unit head ID to assign:', unitHeadId);
+      
       let departmentResponse;
       
       if (editingDepartment) {
