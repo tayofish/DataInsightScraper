@@ -211,7 +211,7 @@ export default function Units() {
                 />
                 <FormField
                   control={form.control}
-                  name="headId"
+                  name="departmentHeadId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unit Head</FormLabel>
@@ -317,7 +317,7 @@ export default function Units() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {getUserName(unit.headId)}
+                          {getUserName(unit.departmentHeadId)}
                         </div>
                       </TableCell>
                       <TableCell>
