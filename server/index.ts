@@ -132,6 +132,14 @@ process.on('unhandledRejection', (reason, promise) => {
       throw new Error("Failed to initialize server after multiple retries");
     }
 
+    // Initialize the scheduler service
+    try {
+      const schedulerService = await import('./services/scheduler-service');
+      await schedulerService.initializeScheduler();
+    } catch (error) {
+      console.error('Failed to initialize scheduler service:', error);
+    }
+
     // Add specific handler for JSON parsing errors
     app.use((err: any, req: Request, res: Response, next: NextFunction) => {
       // Express adds status and body properties to the error object for body-parser errors

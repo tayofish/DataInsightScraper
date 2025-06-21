@@ -6859,5 +6859,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === SCHEDULER ROUTES ===
+  
+  // Get scheduler configuration
+  app.get("/api/scheduler/config", isAdmin, async (req, res) => {
+    try {
+      const schedulerService = await import('./services/scheduler-service');
+      const config = await schedulerService.getSchedulerConfig();
+      const status = schedulerService.getSchedulerStatus();
+      res.json({ ...config, status });
+    } catch (error) {
+      console.error('Error fetching scheduler config:', error);
+      res.status(500).json({ message: 'Failed to fetch scheduler configuration' });
+    }
+  });
+
+  // Update scheduler configuration
+  app.post("/api/scheduler/config", isAdmin, async (req, res) => {
+    try {
+      const { enabled, time, timezone } = req.body;
+      const schedulerService = await import('./services/scheduler-service');
+      
+      await schedulerService.updateSchedulerConfig({
+        enabled,
+        time,
+        timezone
+      });
+
+      const updatedConfig = await schedulerService.getSchedulerConfig();
+      const status = schedulerService.getSchedulerStatus();
+      
+      res.json({ 
+        message: 'Scheduler configuration updated successfully',
+        config: { ...updatedConfig, status }
+      });
+    } catch (error) {
+      console.error('Error updating scheduler config:', error);
+      res.status(500).json({ message: 'Failed to update scheduler configuration' });
+    }
+  });
+
+  // Get scheduler status
+  app.get("/api/scheduler/status", isAdmin, async (req, res) => {
+    try {
+      const schedulerService = await import('./services/scheduler-service');
+      const status = schedulerService.getSchedulerStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Error fetching scheduler status:', error);
+      res.status(500).json({ message: 'Failed to fetch scheduler status' });
+    }
+  });
+
   return httpServer;
 }
