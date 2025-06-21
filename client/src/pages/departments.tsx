@@ -42,7 +42,8 @@ export default function Departments() {
     resolver: zodResolver(departmentInsertSchema),
     defaultValues: {
       name: '',
-      description: ''
+      description: '',
+      unitHeadId: "none"
     }
   });
   
@@ -152,12 +153,22 @@ export default function Departments() {
   });
   
   const onSubmit = (values: DepartmentFormValues) => {
+    console.log('onSubmit function called with values:', values);
+    console.log('Form errors during submission:', form.formState.errors);
+    
     // Handle unit head selection - convert "none" to null
     const processedValues = {
       ...values,
       unitHeadId: values.unitHeadId === "none" ? null : values.unitHeadId ? parseInt(values.unitHeadId) : null
     };
+    console.log('Processed values before mutation:', processedValues);
     createDepartmentMutation.mutate(processedValues);
+  };
+
+  const onFormError = (errors: any) => {
+    console.log('Form validation errors:', errors);
+    console.log('Current form values:', form.getValues());
+    console.log('Form state:', form.formState);
   };
   
   const handleEditDepartment = (department: Department) => {
@@ -345,7 +356,7 @@ export default function Departments() {
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit, onFormError)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="name"
