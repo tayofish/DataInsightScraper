@@ -417,20 +417,22 @@ export default function Departments() {
                       <Users className="h-4 w-4 text-muted-foreground" />
                       <span>Department Head</span>
                     </FormLabel>
-                    <SearchableSelect
-                      options={[
-                        { value: "none", label: "No Department Head" },
-                        ...users.map(user => ({ 
-                          value: user.id.toString(), 
-                          label: `${user.name} (${user.username})` 
-                        }))
-                      ]}
-                      value={field.value || "none"}
-                      onValueChange={field.onChange}
-                      placeholder="Select a department head (optional)"
-                      searchPlaceholder="Search users..."
-                      emptyText="No users found"
-                    />
+                    <FormControl>
+                      <SearchableSelect
+                        options={[
+                          { value: "none", label: "No Department Head" },
+                          ...users.map(user => ({ 
+                            value: user.id.toString(), 
+                            label: `${user.name} (${user.username})` 
+                          }))
+                        ]}
+                        value={field.value || "none"}
+                        onValueChange={field.onChange}
+                        placeholder="Select a department head (optional)"
+                        searchPlaceholder="Search users..."
+                        emptyText="No users found"
+                      />
+                    </FormControl>
                     <FormDescription>
                       Department heads oversee multiple units and receive consolidated email summaries
                     </FormDescription>
@@ -439,23 +441,28 @@ export default function Departments() {
                 )}
               />
 
-              {/* Units Input */}
+              {/* Units Multi-Select */}
               <FormField
                 control={form.control}
                 name="selectedUnits"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Units (Optional)</FormLabel>
-                    <Input
-                      placeholder="Enter unit names separated by commas (e.g., Sales Team, Marketing Team)"
-                      value={field.value?.join(', ') || ''}
-                      onChange={(e) => {
-                        const units = e.target.value.split(',').map(unit => unit.trim()).filter(unit => unit);
-                        field.onChange(units);
-                      }}
-                    />
+                    <FormControl>
+                      <MultiSelectDropdown
+                        options={units.map(unit => ({ 
+                          value: unit.id.toString(), 
+                          label: unit.name 
+                        }))}
+                        value={field.value || []}
+                        onValueChange={field.onChange}
+                        placeholder="Select units for this department"
+                        searchPlaceholder="Search units..."
+                        emptyText="No units found. Create units first in the Units page."
+                      />
+                    </FormControl>
                     <FormDescription>
-                      Add units that belong to this department. You can create units later if needed.
+                      Select existing units that belong to this department. Units can be managed separately in the Units page.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
