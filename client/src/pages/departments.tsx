@@ -15,7 +15,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Pencil, Plus, Trash2, Search, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { MultiSelectDropdown } from '@/components/ui/multi-select-dropdown';
 import { useToast } from '@/hooks/use-toast';
 
 // Custom form schema that handles string values from Select components
@@ -91,33 +90,14 @@ export default function Departments() {
       };
 
       console.log('Processed values:', processedValues);
-
-      console.log('Department data:', processedValues);
-      
-      let departmentResponse;
       
       if (editingDepartment) {
         // Update existing department
-        departmentResponse = await apiRequest('PATCH', `/api/departments/${editingDepartment.id}`, departmentData);
+        return await apiRequest('PUT', `/api/departments/${editingDepartment.id}`, processedValues);
       } else {
         // Create new department
-        departmentResponse = await apiRequest('POST', '/api/departments', departmentData);
+        return await apiRequest('POST', '/api/departments', processedValues);
       }
-
-      // Handle units creation if this is a new department and units are selected
-      const departmentId = editingDepartment ? editingDepartment.id : (departmentResponse as any).id;
-      if (departmentId && selectedUnits && selectedUnits.length > 0) {
-        // Create units for this department
-        for (const unitName of selectedUnits) {
-          await apiRequest('POST', '/api/units', {
-            name: unitName,
-            description: '',
-            departmentId: departmentId
-          });
-        }
-      }
-
-      return departmentResponse;
     },
     onSuccess: () => {
       // Invalidate and refetch
@@ -432,33 +412,7 @@ export default function Departments() {
                 )}
               />
 
-              {/* Units Multi-Select */}
-              <FormField
-                control={form.control}
-                name="selectedUnits"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Units (Optional)</FormLabel>
-                    <FormControl>
-                      <MultiSelectDropdown
-                        options={units.map(unit => ({ 
-                          value: unit.id.toString(), 
-                          label: unit.name 
-                        }))}
-                        value={field.value || []}
-                        onValueChange={field.onChange}
-                        placeholder="Select units for this department"
-                        searchPlaceholder="Search units..."
-                        emptyText="No units found. Create units first in the Units page."
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Select existing units that belong to this department. Units can be managed separately in the Units page.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               
               <DialogFooter>
                 <Button
