@@ -288,7 +288,18 @@ export default function AdminInsights() {
                   width={100}
                   tick={{ fontSize: 10 }}
                 />
-                <Tooltip formatter={(value) => [`${value}%`, 'Completion Rate']} />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'completionRate') return [`${value}%`, 'Completion Rate'];
+                    return [value, name];
+                  }}
+                  labelFormatter={(label) => {
+                    const project = insights.projectStats.find(p => p.name === label);
+                    return project ? 
+                      `${label} (${project.completedTasks}/${project.totalTasks} tasks)` : 
+                      label;
+                  }}
+                />
                 <Bar dataKey="completionRate" fill="#82ca9d" />
               </BarChart>
             </ResponsiveContainer>
