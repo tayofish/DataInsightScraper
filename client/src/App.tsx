@@ -17,6 +17,7 @@ import Units from "@/pages/units";
 import Teams from "@/pages/teams";
 import Settings from "@/pages/settings";
 import AdminPage from "@/pages/admin";
+import AdminInsights from "@/pages/admin-insights";
 import AuthPage from "@/pages/auth-page";
 import NotificationsPage from "@/pages/notifications";
 import ChannelsPage from "@/pages/channels";
@@ -164,6 +165,12 @@ function Router() {
       <AdminRoute path="/admin" component={() => (
         <AppLayout>
           <AdminPage />
+        </AppLayout>
+      )} />
+      
+      <AdminRoute path="/admin-insights" component={() => (
+        <AppLayout>
+          <AdminInsights />
         </AppLayout>
       )} />
       

@@ -170,6 +170,9 @@ export function Sidebar() {
             <NavItem href="/admin" icon={<Shield size={20} />} isActive={location === '/admin'}>
               Admin Dashboard
             </NavItem>
+            <NavItem href="/admin-insights" icon={<BarChart2 size={20} />} isActive={location === '/admin-insights'}>
+              Admin Insights
+            </NavItem>
           </>
         )}
       </nav>

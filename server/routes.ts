@@ -2142,6 +2142,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin insights endpoint
+  app.get("/api/admin/insights", isAdmin, async (req, res) => {
+    try {
+      // Get all users and calculate active users (users with tasks in last 30 days)
+      const allUsers = await storage.getAllUsers();
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Get all tasks for calculations
+      const allTasks = await storage.getAllTasks();
+      const completedTasks = allTasks.filter(task => task.status === 'completed').length;
+      const overdueTasks = allTasks.filter(task => 
+        task.dueDate && 
+        new Date(task.dueDate) < new Date() && 
+        task.status !== 'completed'
+      ).length;
+
+      // Calculate active users (users who have created or been assigned tasks recently)
+      const recentTaskUserIds = new Set();
+      allTasks.forEach(task => {
+        if (new Date(task.createdAt) >= thirtyDaysAgo) {
+          if (task.assigneeId) recentTaskUserIds.add(task.assigneeId);
+        }
+      });
+      const activeUsers = recentTaskUserIds.size;
+
+      // Get departments with performance metrics
+      const departments = await storage.getAllDepartments();
+      const departmentStats = await Promise.all(departments.map(async (dept) => {
+        const deptTasks = allTasks.filter(task => task.departmentId === dept.id);
+        const deptCompletedTasks = deptTasks.filter(task => task.status === 'completed').length;
+        const deptOverdueTasks = deptTasks.filter(task => 
+          task.dueDate && 
+          new Date(task.dueDate) < new Date() && 
+          task.status !== 'completed'
+        ).length;
+        
+        // Get users in this department
+        const deptUsers = allUsers.filter(user => user.departmentId === dept.id);
+        const deptActiveUsers = deptUsers.filter(user => recentTaskUserIds.has(user.id)).length;
+        
+        const completionRate = deptTasks.length > 0 ? Math.round((deptCompletedTasks / deptTasks.length) * 100) : 0;
+        
+        return {
+          id: dept.id,
+          name: dept.name,
+          totalTasks: deptTasks.length,
+          completedTasks: deptCompletedTasks,
+          overdueTasks: deptOverdueTasks,
+          completionRate,
+          activeUsers: deptActiveUsers
+        };
+      }));
+
+      // Get projects with performance metrics
+      const projects = await storage.getAllProjects();
+      const projectStats = await Promise.all(projects.map(async (project) => {
+        const projectTasks = allTasks.filter(task => task.projectId === project.id);
+        const projectCompletedTasks = projectTasks.filter(task => task.status === 'completed').length;
+        const completionRate = projectTasks.length > 0 ? Math.round((projectCompletedTasks / projectTasks.length) * 100) : 0;
+        
+        return {
+          id: project.id,
+          name: project.name,
+          totalTasks: projectTasks.length,
+          completedTasks: projectCompletedTasks,
+          completionRate,
+          status: projectTasks.length === projectCompletedTasks ? 'completed' : 'active'
+        };
+      }));
+
+      // Task priority distribution
+      const taskPriorityDistribution = [
+        {
+          priority: 'High',
+          count: allTasks.filter(task => task.priority === 'high').length,
+          color: '#ff4444'
+        },
+        {
+          priority: 'Medium', 
+          count: allTasks.filter(task => task.priority === 'medium').length,
+          color: '#ffaa00'
+        },
+        {
+          priority: 'Low',
+          count: allTasks.filter(task => task.priority === 'low').length,
+          color: '#44ff44'
+        }
+      ];
+
+      // Task status distribution
+      const taskStatusDistribution = [
+        {
+          status: 'To Do',
+          count: allTasks.filter(task => task.status === 'todo').length,
+          color: '#6b7280'
+        },
+        {
+          status: 'In Progress',
+          count: allTasks.filter(task => task.status === 'in_progress').length,
+          color: '#3b82f6'
+        },
+        {
+          status: 'Completed',
+          count: allTasks.filter(task => task.status === 'completed').length,
+          color: '#10b981'
+        }
+      ];
+
+      // User activity trends (last 4 weeks)
+      const userActivityStats = [];
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = new Date(Date.now() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000);
+        
+        const weekTasks = allTasks.filter(task => {
+          const taskDate = new Date(task.createdAt);
+          return taskDate >= weekStart && taskDate < weekEnd;
+        });
+        
+        const weekCompletedTasks = allTasks.filter(task => {
+          const taskDate = new Date(task.updatedAt);
+          return task.status === 'completed' && taskDate >= weekStart && taskDate < weekEnd;
+        });
+        
+        const weekActiveUserIds = new Set();
+        weekTasks.forEach(task => {
+          if (task.assigneeId) weekActiveUserIds.add(task.assigneeId);
+        });
+        
+        userActivityStats.push({
+          period: `Week ${4 - i}`,
+          activeUsers: weekActiveUserIds.size,
+          tasksCreated: weekTasks.length,
+          tasksCompleted: weekCompletedTasks.length
+        });
+      }
+
+      const insights = {
+        totalUsers: allUsers.length,
+        activeUsers,
+        totalProjects: projects.length,
+        totalTasks: allTasks.length,
+        completedTasks,
+        overdueTasks,
+        departmentStats,
+        projectStats,
+        userActivityStats,
+        taskPriorityDistribution,
+        taskStatusDistribution
+      };
+
+      return res.status(200).json(insights);
+    } catch (error) {
+      console.error("Error fetching admin insights:", error);
+      return res.status(500).json({ message: "Failed to fetch admin insights" });
+    }
+  });
+
   // Get task by ID
   app.get("/api/tasks/:id", async (req, res) => {
     try {
