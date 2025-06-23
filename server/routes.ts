@@ -2418,7 +2418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const mentions = extractMentions(commentData.comment);
           console.log(`DEBUG: Comment content: "${commentData.comment}"`);
           console.log(`DEBUG: Extracted mentions: [${mentions.join(', ')}]`);
-          console.log(`DEBUG: Available users:`, (await storage.getAllUsers()).map(u => `${u.username} (${u.id})`));
+          // Debug: Show available users for mention matching
+          // console.log(`DEBUG: Available users:`, (await storage.getAllUsers()).map(u => `${u.username} (${u.id})`));
           
           // Collect users to notify (task assignee, mentioned users, task collaborators)
           const usersToNotify: any[] = [];
@@ -2448,17 +2449,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   mentionedUser = await storage.getUserByUsername(alternativeUsername);
                 }
                 
-                // If still not found, try case-insensitive search
+                // If still not found, try case-insensitive search and name-based matching
                 if (!mentionedUser) {
                   const allUsers = await storage.getAllUsers();
-                  mentionedUser = allUsers.find(user => 
-                    user.username.toLowerCase() === username.toLowerCase() ||
-                    user.username.toLowerCase() === username.replace(/_/g, '.').toLowerCase() ||
-                    user.username.toLowerCase() === username.replace(/\./g, '_').toLowerCase()
-                  );
+                  mentionedUser = allUsers.find(user => {
+                    const usernameMatch = user.username.toLowerCase() === username.toLowerCase() ||
+                      user.username.toLowerCase() === username.replace(/_/g, '.').toLowerCase() ||
+                      user.username.toLowerCase() === username.replace(/\./g, '_').toLowerCase();
+                    
+                    // Also try matching against user's name (e.g., "Evelyn_Ayansola" matches "Evelyn Ayansola")
+                    const nameMatch = user.name && (
+                      user.name.toLowerCase() === username.toLowerCase() ||
+                      user.name.toLowerCase() === username.replace(/_/g, ' ').toLowerCase() ||
+                      user.name.toLowerCase() === username.replace(/\./g, ' ').toLowerCase() ||
+                      // Try reverse: convert name to underscore format
+                      user.name.replace(/\s+/g, '_').toLowerCase() === username.toLowerCase() ||
+                      user.name.replace(/\s+/g, '.').toLowerCase() === username.toLowerCase()
+                    );
+                    
+                    return usernameMatch || nameMatch;
+                  });
                 }
                 
-                console.log(`DEBUG: Looking for username "${username}", found user:`, mentionedUser ? `${mentionedUser.username} (${mentionedUser.id})` : 'not found');
+                console.log(`DEBUG: Looking for username "${username}", found user:`, mentionedUser ? `${mentionedUser.username} (${mentionedUser.id}) [name: ${mentionedUser.name}]` : 'not found');
+                
+                if (!mentionedUser) {
+                  console.log(`DEBUG: Failed to find user for "${username}". Attempted matches:`);
+                  const allUsers = await storage.getAllUsers();
+                  allUsers.slice(0, 5).forEach(user => {
+                    console.log(`  - ${user.username} (name: ${user.name})`);
+                  });
+                }
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== commentUser.id) {
