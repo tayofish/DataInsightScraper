@@ -275,68 +275,73 @@ export default function AdminInsights() {
             Project Performance Overview
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Comprehensive project metrics and completion status
+            Project metrics with completion status and task breakdown
           </p>
         </CardHeader>
         <CardContent>
-          <div className="space-y-6">
-            {insights.projectStats.slice(0, 6).map((project) => {
-              const inProgressTasks = project.totalTasks - project.completedTasks;
-              const overdueTasks = 0; // Will be calculated from API if available
-              
-              return (
-                <div key={project.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="font-semibold text-lg">{project.name}</h3>
-                      <p className="text-sm text-muted-foreground">Status: {project.status}</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">
-                        {project.completionRate}%
-                      </div>
-                      <p className="text-xs text-muted-foreground">Complete</p>
-                    </div>
-                  </div>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 font-medium">Project</th>
+                  <th className="text-center p-3 font-medium">Status</th>
+                  <th className="text-center p-3 font-medium">Completion</th>
+                  <th className="text-center p-3 font-medium">Total Tasks</th>
+                  <th className="text-center p-3 font-medium">In Progress</th>
+                  <th className="text-center p-3 font-medium">Completed</th>
+                  <th className="text-center p-3 font-medium">Overdue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insights.projectStats.map((project) => {
+                  const inProgressTasks = project.totalTasks - project.completedTasks;
+                  const overdueTasks = 0; // Will be calculated from API if available
                   
-                  {/* Progress Bar */}
-                  <div className="mb-4">
-                    <Progress value={project.completionRate} className="h-2" />
-                  </div>
-                  
-                  {/* Task Metrics Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                        {project.totalTasks}
-                      </div>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">Total Tasks</p>
-                    </div>
-                    
-                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
-                      <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
-                        {inProgressTasks}
-                      </div>
-                      <p className="text-xs text-yellow-600 dark:text-yellow-400">In Progress</p>
-                    </div>
-                    
-                    <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
-                      <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                        {project.completedTasks}
-                      </div>
-                      <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
-                    </div>
-                    
-                    <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
-                      <div className="text-xl font-bold text-red-600 dark:text-red-400">
-                        {overdueTasks}
-                      </div>
-                      <p className="text-xs text-red-600 dark:text-red-400">Overdue</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  return (
+                    <tr key={project.id} className="border-b hover:bg-muted/50">
+                      <td className="p-3">
+                        <div className="font-medium">{project.name}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <Progress value={project.completionRate} className="w-24 h-1" />
+                        </div>
+                      </td>
+                      <td className="text-center p-3">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          project.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                          project.status === 'on-hold' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                          'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                        }`}>
+                          {project.status}
+                        </span>
+                      </td>
+                      <td className="text-center p-3">
+                        <div className="font-bold text-lg">{project.completionRate}%</div>
+                      </td>
+                      <td className="text-center p-3">
+                        <span className="font-medium text-blue-600 dark:text-blue-400">
+                          {project.totalTasks}
+                        </span>
+                      </td>
+                      <td className="text-center p-3">
+                        <span className="font-medium text-yellow-600 dark:text-yellow-400">
+                          {inProgressTasks}
+                        </span>
+                      </td>
+                      <td className="text-center p-3">
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          {project.completedTasks}
+                        </span>
+                      </td>
+                      <td className="text-center p-3">
+                        <span className={`font-medium ${overdueTasks > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-400'}`}>
+                          {overdueTasks}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>
