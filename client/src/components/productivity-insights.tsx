@@ -256,7 +256,7 @@ export default function ProductivityInsights() {
           value={insights.activeTasks}
           icon={<Activity size={20} />}
           color="blue"
-          href="/tasks?status=in_progress"
+          href="/tasks?status=pending,in_progress"
           trend={insights.activeTasks > 0 ? "neutral" : "up"}
           trendValue={insights.activeTasks > 0 ? "In Progress" : "All Clear"}
         />
