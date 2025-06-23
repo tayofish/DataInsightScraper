@@ -17,6 +17,7 @@ import {
   Target,
   Award
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface AdminInsightsData {
   // Overall Stats
@@ -76,7 +77,8 @@ const MetricCard = ({
   icon, 
   color = "blue",
   trend,
-  trendValue 
+  trendValue,
+  onClick 
 }: {
   title: string;
   value: number | string;
@@ -84,6 +86,7 @@ const MetricCard = ({
   color?: "blue" | "green" | "red" | "orange" | "purple";
   trend?: "up" | "down" | "neutral";
   trendValue?: string;
+  onClick?: () => void;
 }) => {
   const colorClasses = {
     blue: "bg-blue-50 text-blue-600 border-blue-200",
@@ -100,7 +103,14 @@ const MetricCard = ({
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card 
+      className={`transition-all duration-200 ${
+        onClick 
+          ? "hover:shadow-lg hover:scale-[1.02] cursor-pointer hover:bg-gray-50" 
+          : "hover:shadow-md"
+      }`}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
@@ -125,9 +135,29 @@ const MetricCard = ({
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function AdminInsights() {
+  const [, setLocation] = useLocation();
   const { data: insights, isLoading } = useQuery<AdminInsightsData>({
     queryKey: ['/api/admin/insights'],
   });
+
+  const handleCardClick = (type: string) => {
+    switch (type) {
+      case 'users':
+        setLocation('/teams');
+        break;
+      case 'projects':
+        setLocation('/projects');
+        break;
+      case 'completed':
+        setLocation('/tasks?status=completed');
+        break;
+      case 'overdue':
+        setLocation('/tasks?customFilter=overdue');
+        break;
+      default:
+        break;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -172,6 +202,7 @@ export default function AdminInsights() {
           color="blue"
           trend="up"
           trendValue={`${insights.activeUsers} active`}
+          onClick={() => handleCardClick('users')}
         />
         <MetricCard
           title="Total Projects"
@@ -180,6 +211,7 @@ export default function AdminInsights() {
           color="green"
           trend="neutral"
           trendValue="Active projects"
+          onClick={() => handleCardClick('projects')}
         />
         <MetricCard
           title="Task Completion Rate"
@@ -188,6 +220,7 @@ export default function AdminInsights() {
           color="green"
           trend={overallCompletionRate >= 70 ? "up" : "down"}
           trendValue={`${insights.completedTasks}/${insights.totalTasks} tasks`}
+          onClick={() => handleCardClick('completed')}
         />
         <MetricCard
           title="Overdue Tasks"
@@ -196,6 +229,7 @@ export default function AdminInsights() {
           color="red"
           trend={insights.overdueTasks > 0 ? "down" : "up"}
           trendValue={insights.overdueTasks > 0 ? "Needs attention" : "On track"}
+          onClick={() => handleCardClick('overdue')}
         />
       </div>
 
