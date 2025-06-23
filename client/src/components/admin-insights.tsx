@@ -281,26 +281,16 @@ export default function AdminInsights() {
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={insights.projectStats.slice(0, 8)} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} />
+                <XAxis type="number" />
                 <YAxis 
                   dataKey="name" 
                   type="category" 
                   width={100}
                   tick={{ fontSize: 10 }}
                 />
-                <Tooltip 
-                  formatter={(value, name) => {
-                    if (name === 'completionRate') return [`${value}%`, 'Completion Rate'];
-                    return [value, name];
-                  }}
-                  labelFormatter={(label) => {
-                    const project = insights.projectStats.find(p => p.name === label);
-                    return project ? 
-                      `${label} (${project.completedTasks}/${project.totalTasks} tasks)` : 
-                      label;
-                  }}
-                />
-                <Bar dataKey="completionRate" fill="#82ca9d" />
+                <Tooltip />
+                <Bar dataKey="totalTasks" fill="#8884d8" name="Total Tasks" />
+                <Bar dataKey="completedTasks" fill="#82ca9d" name="Completed Tasks" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
