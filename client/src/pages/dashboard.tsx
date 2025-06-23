@@ -4,14 +4,17 @@ import { Plus, TrendingUp, Activity } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import DashboardStats from '@/components/dashboard-stats';
 import ProductivityInsights from '@/components/productivity-insights';
+import AdminInsights from '@/components/admin-insights';
 import TaskFilters, { TaskFilterValues } from '@/components/task-filters';
 import TaskList from '@/components/task-list';
 import TaskForm from '@/components/task-form';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Shield } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [isTaskFormOpen, setIsTaskFormOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<TaskFilterValues>({
     assigneeId: -2,
@@ -51,8 +54,14 @@ export default function Dashboard() {
 
       {/* Enhanced Dashboard with Tabs */}
       <div className="px-4 sm:px-6 md:px-8">
-        <Tabs defaultValue="insights" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
+        <Tabs defaultValue={user?.isAdmin ? "admin-insights" : "insights"} className="space-y-6">
+          <TabsList className={`grid w-full ${user?.isAdmin ? 'grid-cols-3 lg:w-[600px]' : 'grid-cols-2 lg:w-[400px]'}`}>
+            {user?.isAdmin && (
+              <TabsTrigger value="admin-insights" className="flex items-center gap-2">
+                <Shield size={16} />
+                Admin Insights
+              </TabsTrigger>
+            )}
             <TabsTrigger value="insights" className="flex items-center gap-2">
               <TrendingUp size={16} />
               Productivity Insights
@@ -62,6 +71,13 @@ export default function Dashboard() {
               Task Management
             </TabsTrigger>
           </TabsList>
+
+          {/* Admin Insights Tab (only for admin users) */}
+          {user?.isAdmin && (
+            <TabsContent value="admin-insights" className="space-y-6">
+              <AdminInsights />
+            </TabsContent>
+          )}
 
           {/* Productivity Insights Tab */}
           <TabsContent value="insights" className="space-y-6">
