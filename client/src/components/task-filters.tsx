@@ -226,6 +226,11 @@ export default function TaskFilters({ onFilterChange }: TaskFiltersProps) {
                         value: "completed",
                         label: "Completed",
                         icon: <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      },
+                      {
+                        value: "overdue",
+                        label: "Overdue",
+                        icon: <div className="w-3 h-3 rounded-full bg-red-500"></div>
                       }
                     ]}
                     value={form.watch("status")}

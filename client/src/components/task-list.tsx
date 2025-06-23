@@ -55,7 +55,12 @@ export default function TaskList({ filters }: TaskListProps) {
     const params = new URLSearchParams();
     
     if (filters.status && filters.status !== 'all') {
-      params.append('status', filters.status);
+      if (filters.status === 'overdue') {
+        // Map overdue status to customFilter parameter
+        params.append('customFilter', 'overdue');
+      } else {
+        params.append('status', filters.status);
+      }
     }
     
     if (filters.priority && filters.priority !== 'all') {
