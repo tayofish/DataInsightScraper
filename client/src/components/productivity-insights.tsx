@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'wouter';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -14,7 +15,10 @@ import {
   Award,
   AlertCircle,
   CheckCircle2,
-  BarChart3
+  BarChart3,
+  MessageSquare,
+  Bell,
+  AtSign
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -23,6 +27,9 @@ interface ProductivityInsights {
   completedTasks: number;
   activeTasks: number;
   overdueTasks: number;
+  unreadMessages: number;
+  unreadNotifications: number;
+  mentions: number;
   completedThisWeek: number;
   completedLastWeek: number;
   completionTrend: number;
@@ -64,7 +71,9 @@ const MetricCard = ({
   trend, 
   trendValue, 
   color = "blue",
-  isLoading = false 
+  isLoading = false,
+  href,
+  onClick
 }: {
   title: string;
   value: string | number;
@@ -73,6 +82,8 @@ const MetricCard = ({
   trendValue?: string;
   color?: "blue" | "green" | "amber" | "red" | "purple";
   isLoading?: boolean;
+  href?: string;
+  onClick?: () => void;
 }) => {
   const colorClasses = {
     blue: "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800",
@@ -90,36 +101,61 @@ const MetricCard = ({
     purple: "text-purple-600 dark:text-purple-400"
   };
 
+  const cardContent = (
+    <CardContent className="p-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className={`${iconColors[color]} p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm`}>
+            {icon}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
+            {isLoading ? (
+              <Skeleton className="h-7 w-16 mt-1" />
+            ) : (
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+            )}
+          </div>
+        </div>
+        {trend && trendValue && !isLoading && (
+          <div className={`flex items-center space-x-1 ${
+            trend === 'up' ? 'text-green-600' : 
+            trend === 'down' ? 'text-red-600' : 
+            'text-gray-600'
+          }`}>
+            {trend === 'up' ? <TrendingUp size={16} /> : 
+             trend === 'down' ? <TrendingDown size={16} /> : null}
+            <span className="text-sm font-medium">{trendValue}</span>
+          </div>
+        )}
+      </div>
+    </CardContent>
+  );
+
+  if (href) {
+    return (
+      <Link href={href}>
+        <Card className={`${colorClasses[color]} transition-all duration-200 hover:shadow-md cursor-pointer hover:scale-105`}>
+          {cardContent}
+        </Card>
+      </Link>
+    );
+  }
+
+  if (onClick) {
+    return (
+      <Card 
+        className={`${colorClasses[color]} transition-all duration-200 hover:shadow-md cursor-pointer hover:scale-105`}
+        onClick={onClick}
+      >
+        {cardContent}
+      </Card>
+    );
+  }
+
   return (
     <Card className={`${colorClasses[color]} transition-all duration-200 hover:shadow-md`}>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className={`${iconColors[color]} p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm`}>
-              {icon}
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{title}</p>
-              {isLoading ? (
-                <Skeleton className="h-7 w-16 mt-1" />
-              ) : (
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-              )}
-            </div>
-          </div>
-          {trend && trendValue && !isLoading && (
-            <div className={`flex items-center space-x-1 ${
-              trend === 'up' ? 'text-green-600' : 
-              trend === 'down' ? 'text-red-600' : 
-              'text-gray-600'
-            }`}>
-              {trend === 'up' ? <TrendingUp size={16} /> : 
-               trend === 'down' ? <TrendingDown size={16} /> : null}
-              <span className="text-sm font-medium">{trendValue}</span>
-            </div>
-          )}
-        </div>
-      </CardContent>
+      {cardContent}
     </Card>
   );
 };
@@ -210,6 +246,65 @@ export default function ProductivityInsights() {
           color={insights.avgCompletionDays <= 3 ? "green" : insights.avgCompletionDays <= 7 ? "amber" : "red"}
           trend={insights.avgCompletionDays <= 3 ? "up" : insights.avgCompletionDays <= 7 ? "neutral" : "down"}
           trendValue={insights.avgCompletionDays <= 3 ? "Fast" : insights.avgCompletionDays <= 7 ? "Normal" : "Slow"}
+        />
+      </div>
+
+      {/* Task Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricCard
+          title="Total Tasks"
+          value={insights.totalTasks}
+          icon={<Target size={20} />}
+          color="blue"
+          href="/tasks"
+        />
+        <MetricCard
+          title="Completed"
+          value={insights.completedTasks}
+          icon={<CheckCircle2 size={20} />}
+          trend="up"
+          trendValue={`+${insights.completionTrend}%`}
+          color="green"
+          href="/tasks?status=completed"
+        />
+        <MetricCard
+          title="Active Tasks"
+          value={insights.activeTasks}
+          icon={<Activity size={20} />}
+          color="amber"
+          href="/tasks?status=active"
+        />
+        <MetricCard
+          title="Overdue"
+          value={insights.overdueTasks}
+          icon={<AlertCircle size={20} />}
+          color="red"
+          href="/tasks?status=overdue"
+        />
+      </div>
+
+      {/* Communication Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <MetricCard
+          title="Unread Messages"
+          value={insights.unreadMessages || 0}
+          icon={<MessageSquare size={20} />}
+          color="blue"
+          href="/direct-messages"
+        />
+        <MetricCard
+          title="Mentions"
+          value={insights.mentions || 0}
+          icon={<AtSign size={20} />}
+          color="purple"
+          href="/notifications"
+        />
+        <MetricCard
+          title="Notifications"
+          value={insights.unreadNotifications || 0}
+          icon={<Bell size={20} />}
+          color="amber"
+          href="/notifications"
         />
       </div>
 

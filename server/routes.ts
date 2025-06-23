@@ -2077,12 +2077,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         (Math.min(20, allTasks.length * 0.5)) * 0.3
       ));
 
+      // Get unread notifications count
+      const unreadNotifications = await db.query.notifications.findMany({
+        where: and(
+          eq(notifications.userId, user.id),
+          eq(notifications.isRead, false)
+        )
+      });
+
+      // Get unread direct messages count
+      const unreadMessages = await db.query.directMessages.findMany({
+        where: and(
+          eq(directMessages.receiverId, user.id),
+          eq(directMessages.isRead, false)
+        )
+      });
+
+      // Get mention notifications count
+      const mentionNotifications = unreadNotifications.filter(notification => 
+        notification.type === 'mention' || 
+        notification.message.includes('@') ||
+        notification.title.toLowerCase().includes('mention')
+      );
+
       const insights = {
         // Summary metrics
         totalTasks: statistics.total,
         completedTasks: statistics.completed,
         activeTasks: statistics.total - statistics.completed,
         overdueTasks: statistics.overdue,
+
+        // Communication metrics
+        unreadMessages: unreadMessages.length,
+        unreadNotifications: unreadNotifications.length,
+        mentions: mentionNotifications.length,
 
         // Trends (simplified)
         completedThisWeek: Math.floor(statistics.completed * 0.2), // Estimate
