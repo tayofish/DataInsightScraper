@@ -293,7 +293,9 @@ export default function AdminInsights() {
                 </tr>
               </thead>
               <tbody>
-                {insights.projectStats.map((project) => {
+                {insights.projectStats
+                  .sort((a, b) => a.completionRate - b.completionRate)
+                  .map((project) => {
                   const inProgressTasks = project.totalTasks - project.completedTasks;
                   const overdueTasks = 0; // Will be calculated from API if available
                   
