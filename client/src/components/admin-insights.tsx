@@ -15,7 +15,8 @@ import {
   TrendingUp,
   Activity,
   Target,
-  Award
+  Award,
+  Trophy
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -233,36 +234,43 @@ export default function AdminInsights() {
         />
       </div>
 
-      {/* Task Distribution Charts */}
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Task Priority Distribution */}
+        {/* Top Performing Projects */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target size={20} />
-              Task Priority Distribution
+              <Trophy size={20} />
+              Top Performing Projects
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={insights.taskPriorityDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ priority, count, percent }) => `${priority}: ${count} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {insights.taskPriorityDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {insights.projectStats
+                .sort((a, b) => b.completionRate - a.completionRate)
+                .slice(0, 5)
+                .map((project, index) => (
+                  <div 
+                    key={project.id} 
+                    className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => setLocation(`/projects/${project.id}`)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{project.name}</div>
+                        <div className="text-xs text-muted-foreground">{project.totalTasks} tasks</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-green-600">{project.completionRate}%</div>
+                      <div className="text-xs text-muted-foreground">{project.completedTasks}/{project.totalTasks}</div>
+                    </div>
+                  </div>
+                ))}
+            </div>
           </CardContent>
         </Card>
 
