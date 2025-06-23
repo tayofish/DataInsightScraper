@@ -298,9 +298,13 @@ export default function AdminInsights() {
                   const overdueTasks = 0; // Will be calculated from API if available
                   
                   return (
-                    <tr key={project.id} className="border-b hover:bg-muted/50">
+                    <tr 
+                      key={project.id} 
+                      className="border-b hover:bg-muted/50 cursor-pointer transition-colors"
+                      onClick={() => setLocation(`/projects/${project.id}`)}
+                    >
                       <td className="p-3">
-                        <div className="font-medium">{project.name}</div>
+                        <div className="font-medium text-primary hover:underline">{project.name}</div>
                         <div className="text-xs text-muted-foreground mt-1">
                           <Progress value={project.completionRate} className="w-24 h-1" />
                         </div>
