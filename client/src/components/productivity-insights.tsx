@@ -249,55 +249,25 @@ export default function ProductivityInsights() {
         />
       </div>
 
-      {/* Task Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Tasks"
-          value={insights.totalTasks}
-          icon={<Target size={20} />}
-          color="blue"
-          href="/tasks"
-        />
-        <MetricCard
-          title="Completed"
-          value={insights.completedTasks}
-          icon={<CheckCircle2 size={20} />}
-          trend="up"
-          trendValue={`+${insights.completionTrend}%`}
-          color="green"
-          href="/tasks?status=completed"
-        />
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <MetricCard
           title="Active Tasks"
           value={insights.activeTasks}
           icon={<Activity size={20} />}
-          color="amber"
+          color="blue"
           href="/tasks?status=active"
+          trend={insights.activeTasks > 0 ? "neutral" : "up"}
+          trendValue={insights.activeTasks > 0 ? "In Progress" : "All Clear"}
         />
-        <MetricCard
-          title="Overdue"
-          value={insights.overdueTasks}
-          icon={<AlertCircle size={20} />}
-          color="red"
-          href="/tasks?status=overdue"
-        />
-      </div>
-
-      {/* Communication Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard
           title="Unread Messages"
           value={insights.unreadMessages || 0}
           icon={<MessageSquare size={20} />}
-          color="blue"
-          href="/direct-messages"
-        />
-        <MetricCard
-          title="Mentions"
-          value={insights.mentions || 0}
-          icon={<AtSign size={20} />}
           color="purple"
-          href="/notifications"
+          href="/direct-messages"
+          trend={insights.unreadMessages > 0 ? "down" : "up"}
+          trendValue={insights.unreadMessages > 0 ? "Needs Attention" : "All Read"}
         />
         <MetricCard
           title="Notifications"
@@ -305,6 +275,8 @@ export default function ProductivityInsights() {
           icon={<Bell size={20} />}
           color="amber"
           href="/notifications"
+          trend={insights.unreadNotifications > 0 ? "down" : "up"}
+          trendValue={insights.unreadNotifications > 0 ? "New Updates" : "Up to Date"}
         />
       </div>
 
