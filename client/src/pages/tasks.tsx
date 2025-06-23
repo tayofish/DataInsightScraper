@@ -21,6 +21,7 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
   const searchParams = new URLSearchParams(window.location.search);
   const projectIdParam = searchParams.get('projectId');
   const taskIdParam = searchParams.get('id');
+  const statusParam = searchParams.get('status');
   
   // Check if we're on a task detail route (/tasks/:id) or have task ID in query
   const taskIdMatch = location.match(/^\/tasks\/(\d+)$/);
@@ -33,7 +34,7 @@ export default function Tasks({ showNewTaskForm = false }: TasksProps) {
     projectId: projectIdParam ? parseInt(projectIdParam, 10) : -2,
     categoryId: -2,
     department: 'all',
-    status: 'all',
+    status: statusParam || 'all',
     priority: 'all',
     search: '',
     sortBy: 'dueDate',
