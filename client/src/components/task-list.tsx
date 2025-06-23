@@ -83,6 +83,10 @@ export default function TaskList({ filters }: TaskListProps) {
       params.append('search', filters.search);
     }
     
+    if (filters.customFilter) {
+      params.append('customFilter', filters.customFilter);
+    }
+    
     const queryString = params.toString() ? `?${params.toString()}` : '';
     console.log('Final query string:', queryString);
     return queryString;
