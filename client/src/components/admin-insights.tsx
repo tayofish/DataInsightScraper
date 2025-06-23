@@ -268,7 +268,7 @@ export default function AdminInsights() {
       </Card>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Task Priority Distribution */}
         <Card>
           <CardHeader>
@@ -353,6 +353,53 @@ export default function AdminInsights() {
                 </Pie>
                 <Tooltip />
               </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* User Activity Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp size={20} />
+              User Activity Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={insights.userActivityStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="period" 
+                  tick={{ fontSize: 10 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="activeUsers" 
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  name="Active Users"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="tasksCreated" 
+                  stroke="#82ca9d" 
+                  strokeWidth={2}
+                  name="Tasks Created"
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="tasksCompleted" 
+                  stroke="#ffc658" 
+                  strokeWidth={2}
+                  name="Tasks Completed"
+                />
+              </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
