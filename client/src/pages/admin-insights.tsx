@@ -44,6 +44,7 @@ interface AdminInsightsData {
     name: string;
     totalTasks: number;
     completedTasks: number;
+    overdueTasks: number;
     completionRate: number;
     status: string;
   }>;

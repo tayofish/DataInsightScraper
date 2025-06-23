@@ -2200,6 +2200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectStats = await Promise.all(projects.map(async (project) => {
         const projectTasks = allTasks.filter(task => task.projectId === project.id);
         const projectCompletedTasks = projectTasks.filter(task => task.status === 'completed').length;
+        const projectOverdueTasks = projectTasks.filter(task => 
+          task.dueDate && 
+          new Date(task.dueDate) < new Date() && 
+          task.status !== 'completed'
+        ).length;
         const completionRate = projectTasks.length > 0 ? Math.round((projectCompletedTasks / projectTasks.length) * 100) : 0;
         
         return {
@@ -2207,6 +2212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: project.name,
           totalTasks: projectTasks.length,
           completedTasks: projectCompletedTasks,
+          overdueTasks: projectOverdueTasks,
           completionRate,
           status: projectTasks.length === projectCompletedTasks ? 'completed' : 'active'
         };

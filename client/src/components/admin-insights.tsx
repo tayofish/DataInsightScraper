@@ -46,6 +46,7 @@ interface AdminInsightsData {
     name: string;
     totalTasks: number;
     completedTasks: number;
+    overdueTasks: number;
     completionRate: number;
     status: string;
   }>;
@@ -370,7 +371,7 @@ export default function AdminInsights() {
                   .sort((a, b) => a.completionRate - b.completionRate)
                   .map((project) => {
                   const inProgressTasks = project.totalTasks - project.completedTasks;
-                  const overdueTasks = 0; // Will be calculated from API if available
+                  const overdueTasks = project.overdueTasks;
                   
                   return (
                     <tr 
