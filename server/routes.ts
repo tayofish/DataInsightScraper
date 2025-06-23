@@ -2418,6 +2418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const mentions = extractMentions(commentData.comment);
           console.log(`DEBUG: Comment content: "${commentData.comment}"`);
           console.log(`DEBUG: Extracted mentions: [${mentions.join(', ')}]`);
+          console.log(`DEBUG: Available users:`, (await storage.getAllUsers()).map(u => `${u.username} (${u.id})`));
           
           // Collect users to notify (task assignee, mentioned users, task collaborators)
           const usersToNotify: any[] = [];
@@ -2436,7 +2437,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             for (const username of mentions) {
               try {
-                const mentionedUser = await storage.getUserByUsername(username);
+                // Try to find user with exact username first, then try variations
+                let mentionedUser = await storage.getUserByUsername(username);
+                
+                // If not found, try with dots instead of underscores and vice versa
+                if (!mentionedUser) {
+                  const alternativeUsername = username.includes('_') 
+                    ? username.replace(/_/g, '.') 
+                    : username.replace(/\./g, '_');
+                  mentionedUser = await storage.getUserByUsername(alternativeUsername);
+                }
+                
+                // If still not found, try case-insensitive search
+                if (!mentionedUser) {
+                  const allUsers = await storage.getAllUsers();
+                  mentionedUser = allUsers.find(user => 
+                    user.username.toLowerCase() === username.toLowerCase() ||
+                    user.username.toLowerCase() === username.replace(/_/g, '.').toLowerCase() ||
+                    user.username.toLowerCase() === username.replace(/\./g, '_').toLowerCase()
+                  );
+                }
+                
+                console.log(`DEBUG: Looking for username "${username}", found user:`, mentionedUser ? `${mentionedUser.username} (${mentionedUser.id})` : 'not found');
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== commentUser.id) {
@@ -2481,7 +2503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 } else if (mentionedUser) {
                   console.log(`Skipping self-mention for user ${username}`);
                 } else {
-                  console.log(`Could not find user with username ${username} for mention notification`);
+                  console.log(`Could not find user with username "${username}" for mention notification`);
                 }
               } catch (userLookupError) {
                 console.error(`Error looking up mentioned user ${username}:`, userLookupError);
