@@ -267,35 +267,82 @@ export default function AdminInsights() {
         </CardContent>
       </Card>
 
-      {/* Charts Section - First Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Top Projects by Completion */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FolderOpen size={20} />
-              Top Projects by Completion
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={insights.projectStats.slice(0, 8)} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  width={100}
-                  tick={{ fontSize: 10 }}
-                />
-                <Tooltip />
-                <Bar dataKey="totalTasks" fill="#8884d8" name="Total Tasks" />
-                <Bar dataKey="completedTasks" fill="#82ca9d" name="Completed Tasks" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Project Performance Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen size={20} />
+            Project Performance Overview
+          </CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            Comprehensive project metrics and completion status
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {insights.projectStats.slice(0, 6).map((project) => {
+              const inProgressTasks = project.totalTasks - project.completedTasks;
+              const overdueTasks = 0; // Will be calculated from API if available
+              
+              return (
+                <div key={project.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg">{project.name}</h3>
+                      <p className="text-sm text-muted-foreground">Status: {project.status}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-primary">
+                        {project.completionRate}%
+                      </div>
+                      <p className="text-xs text-muted-foreground">Complete</p>
+                    </div>
+                  </div>
+                  
+                  {/* Progress Bar */}
+                  <div className="mb-4">
+                    <Progress value={project.completionRate} className="h-2" />
+                  </div>
+                  
+                  {/* Task Metrics Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                      <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                        {project.totalTasks}
+                      </div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Total Tasks</p>
+                    </div>
+                    
+                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
+                      <div className="text-xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {inProgressTasks}
+                      </div>
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400">In Progress</p>
+                    </div>
+                    
+                    <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg">
+                      <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                        {project.completedTasks}
+                      </div>
+                      <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
+                    </div>
+                    
+                    <div className="text-center p-3 bg-red-50 dark:bg-red-950 rounded-lg">
+                      <div className="text-xl font-bold text-red-600 dark:text-red-400">
+                        {overdueTasks}
+                      </div>
+                      <p className="text-xs text-red-600 dark:text-red-400">Overdue</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
+      {/* Charts Section - First Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-6">
         {/* User Activity Timeline */}
         <Card>
           <CardHeader>
