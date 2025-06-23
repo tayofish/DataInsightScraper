@@ -233,6 +233,71 @@ export default function AdminInsights() {
         />
       </div>
 
+      {/* Task Distribution Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        {/* Task Priority Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target size={20} />
+              Task Priority Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={insights.taskPriorityDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ priority, count, percent }) => `${priority}: ${count} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {insights.taskPriorityDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Task Status Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity size={20} />
+              Task Status Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={insights.taskStatusDistribution}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ status, count, percent }) => `${status}: ${count} (${(percent * 100).toFixed(0)}%)`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {insights.taskStatusDistribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Unit Performance Chart - Full Width */}
       <Card className="mb-6">
         <CardHeader>
@@ -402,70 +467,7 @@ export default function AdminInsights() {
         </Card>
       </div>
 
-      {/* Charts Section - Second Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Task Priority Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target size={20} />
-              Task Priority Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={insights.taskPriorityDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ priority, count, percent }) => `${priority}: ${count} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {insights.taskPriorityDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
 
-        {/* Task Status Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity size={20} />
-              Task Status Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={insights.taskStatusDistribution}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ status, count, percent }) => `${status}: ${count} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="count"
-                >
-                  {insights.taskStatusDistribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Department Details Table */}
       <Card>
