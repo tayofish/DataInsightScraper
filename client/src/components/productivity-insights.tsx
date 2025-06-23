@@ -250,15 +250,24 @@ export default function ProductivityInsights() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Active Tasks"
           value={insights.activeTasks}
           icon={<Activity size={20} />}
           color="blue"
-          href="/tasks?status=pending,in_progress"
+          href="/tasks?status=todo,in_progress"
           trend={insights.activeTasks > 0 ? "neutral" : "up"}
           trendValue={insights.activeTasks > 0 ? "In Progress" : "All Clear"}
+        />
+        <MetricCard
+          title="Overdue Tasks"
+          value={insights.overdueTasks}
+          icon={<Clock size={20} />}
+          color="red"
+          href="/tasks?customFilter=overdue"
+          trend={insights.overdueTasks > 0 ? "down" : "up"}
+          trendValue={insights.overdueTasks > 0 ? "Needs Attention" : "On Track"}
         />
         <MetricCard
           title="Unread Messages"
