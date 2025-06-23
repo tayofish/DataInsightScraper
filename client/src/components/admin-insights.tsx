@@ -233,42 +233,42 @@ export default function AdminInsights() {
         />
       </div>
 
+      {/* Unit Performance Chart - Full Width */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 size={20} />
+            Unit Performance
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={insights.departmentStats}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fontSize: 12 }}
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis />
+              <Tooltip 
+                formatter={(value, name) => [
+                  name === 'completionRate' ? `${value}%` : value,
+                  name === 'completionRate' ? 'Completion Rate' : 
+                  name === 'totalTasks' ? 'Total Tasks' : 'Completed Tasks'
+                ]}
+              />
+              <Bar dataKey="totalTasks" fill="#8884d8" name="totalTasks" />
+              <Bar dataKey="completedTasks" fill="#82ca9d" name="completedTasks" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Department Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 size={20} />
-              Department Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={insights.departmentStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value, name) => [
-                    name === 'completionRate' ? `${value}%` : value,
-                    name === 'completionRate' ? 'Completion Rate' : 
-                    name === 'totalTasks' ? 'Total Tasks' : 'Completed Tasks'
-                  ]}
-                />
-                <Bar dataKey="totalTasks" fill="#8884d8" name="totalTasks" />
-                <Bar dataKey="completedTasks" fill="#82ca9d" name="completedTasks" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
         {/* Task Priority Distribution */}
         <Card>
           <CardHeader>
