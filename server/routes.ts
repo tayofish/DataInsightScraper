@@ -2416,6 +2416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check for mentions in the comment
           const mentions = extractMentions(commentData.comment);
+          console.log(`DEBUG: Comment content: "${commentData.comment}"`);
+          console.log(`DEBUG: Extracted mentions: [${mentions.join(', ')}]`);
           
           // Collect users to notify (task assignee, mentioned users, task collaborators)
           const usersToNotify: any[] = [];

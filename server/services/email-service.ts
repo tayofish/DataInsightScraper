@@ -164,9 +164,15 @@ export async function notifyTaskCreation(task: any, creator: any, assignee: any,
 }
 
 export async function notifyMention(task: any, mentionedUser: any, mentionedBy: any, content: string): Promise<void> {
-  const fromEmail = await getFromEmail();
+  console.log(`DEBUG: notifyMention called for user ${mentionedUser.username} (${mentionedUser.email}) by ${mentionedBy.username}`);
   
-  if (!mentionedUser.email) return;
+  const fromEmail = await getFromEmail();
+  console.log(`DEBUG: From email: ${fromEmail}`);
+  
+  if (!mentionedUser.email) {
+    console.log(`DEBUG: No email found for user ${mentionedUser.username}, skipping notification`);
+    return;
+  }
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -188,13 +194,21 @@ export async function notifyMention(task: any, mentionedUser: any, mentionedBy: 
     </div>
   `;
 
-  await sendEmail({
-    to: mentionedUser.email,
-    from: fromEmail,
-    subject: `You were mentioned in: ${task.title}`,
-    html,
-    text: `You were mentioned in task: ${task.title}`
-  });
+  console.log(`DEBUG: Attempting to send mention email to ${mentionedUser.email}`);
+  
+  try {
+    await sendEmail({
+      to: mentionedUser.email,
+      from: fromEmail,
+      subject: `You were mentioned in: ${task.title}`,
+      html,
+      text: `You were mentioned in task: ${task.title}`
+    });
+    console.log(`DEBUG: Successfully sent mention email to ${mentionedUser.email}`);
+  } catch (emailError) {
+    console.error(`DEBUG: Failed to send mention email to ${mentionedUser.email}:`, emailError);
+    throw emailError;
+  }
 }
 
 // NEW: End-of-day notification functionality
