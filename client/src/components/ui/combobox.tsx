@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
@@ -15,7 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-interface ComboboxProps {
+export interface ComboboxProps {
   options: Array<{ value: string; label: string }>
   value?: string
   onValueChange: (value: string) => void
@@ -38,28 +37,36 @@ export function Combobox({
 
   const selectedOption = options.find((option) => option.value === value)
 
+  const handleSelect = (selectedValue: string) => {
+    const option = options.find(opt => opt.label === selectedValue)
+    if (option) {
+      onValueChange(option.value === value ? "" : option.value)
+    }
+    setOpen(false)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <button
           type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className={cn("w-full justify-between text-left font-normal", className)}
+          className={cn(
+            "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            "hover:bg-accent hover:text-accent-foreground cursor-pointer",
+            disabled && "cursor-not-allowed opacity-50 pointer-events-none",
+            className
+          )}
           disabled={disabled}
-          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          role="combobox"
         >
-          <span className={cn(
-            selectedOption?.label ? "text-foreground" : "text-muted-foreground",
-            disabled && "opacity-50"
-          )}>
+          <span className={selectedOption?.label ? "text-foreground" : "text-muted-foreground"}>
             {selectedOption?.label || placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
           <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
           <CommandEmpty>{emptyText}</CommandEmpty>
@@ -68,11 +75,7 @@ export function Combobox({
               <CommandItem
                 key={option.value}
                 value={option.label}
-                onSelect={() => {
-                  const newValue = option.value === value ? "" : option.value;
-                  onValueChange(newValue);
-                  setOpen(false);
-                }}
+                onSelect={handleSelect}
                 className="cursor-pointer"
               >
                 <Check

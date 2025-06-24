@@ -112,6 +112,7 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
+- June 24, 2025: Fixed combobox component with reliable click functionality and selection handling
 - June 24, 2025: Added searchable dropdowns to calendar modal for all fields (unit, department, event type, users)
 - June 24, 2025: Added invite users feature to calendar modal with attendee selection and management
 - June 24, 2025: Fixed calendar modal labels - Units are called Departments, Categories are called Units
