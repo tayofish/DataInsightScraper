@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, Settings } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, Settings, X } from 'lucide-react';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useToast } from '@/hooks/use-toast';
 import type { CalendarEvent, InsertCalendarEvent } from '@shared/schema';
@@ -56,6 +56,11 @@ export default function Calendar() {
   // Fetch calendar events
   const { data: events = [], isLoading: eventsLoading } = useQuery<CalendarEventWithDetails[]>({
     queryKey: ['/api/calendar/events', format(currentDate, 'yyyy-MM')]
+  });
+
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user']
   });
 
   // Fetch users for attendee selection
