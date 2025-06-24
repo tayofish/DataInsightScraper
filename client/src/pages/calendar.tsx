@@ -133,7 +133,20 @@ export default function Calendar() {
       queryClient.invalidateQueries({ queryKey: ['/api/calendar/events'] });
       setIsCreateDialogOpen(false);
       setEditingEvent(null);
-      form.reset();
+      form.reset({
+        title: '',
+        description: '',
+        startDate: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        startTime: '09:00',
+        endTime: '10:00',
+        allDay: false,
+        eventType: 'meeting',
+        color: '#3b82f6',
+        departmentId: '',
+        categoryId: '',
+        attendees: [],
+        reminderMinutes: '15',
+      });
       toast({
         title: "Success",
         description: `Event ${editingEvent ? 'updated' : 'created'} successfully`,
@@ -581,7 +594,7 @@ export default function Calendar() {
                                         key={userId}
                                         className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
                                       >
-                                        <span>{user.name}</span>
+                                        <span>{user.name} ({user.username})</span>
                                         <button
                                           type="button"
                                           onClick={() => {
