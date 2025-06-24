@@ -33,8 +33,8 @@ const eventFormSchema = z.object({
   color: z.string().default('#3b82f6'),
   departmentId: z.string().optional(),
   categoryId: z.string().optional(),
-  attendees: z.array(z.string()).optional(),
   reminderMinutes: z.string().optional(),
+  attendees: z.array(z.string()).optional(),
 });
 
 type EventFormValues = z.infer<typeof eventFormSchema>;
@@ -112,7 +112,7 @@ export default function Calendar() {
         color: eventData.color,
         departmentId: eventData.departmentId ? parseInt(eventData.departmentId) : null,
         categoryId: eventData.categoryId ? parseInt(eventData.categoryId) : null,
-        attendees: eventData.attendees || [],
+        attendees: eventData.attendees && Array.isArray(eventData.attendees) ? eventData.attendees : [],
         reminderMinutes: eventData.reminderMinutes && eventData.reminderMinutes !== 'no_reminder' ? parseInt(eventData.reminderMinutes) : null,
       };
 
@@ -529,6 +529,66 @@ export default function Calendar() {
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="attendees"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Invite Users</FormLabel>
+                          <FormControl>
+                            <div className="space-y-2">
+                              <Select 
+                                onValueChange={(value) => {
+                                  if (value && !field.value?.includes(value)) {
+                                    const newAttendees = [...(field.value || []), value];
+                                    field.onChange(newAttendees);
+                                  }
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select users to invite" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {users?.filter(user => user.id !== currentUser?.id).map((user: any) => (
+                                    <SelectItem key={user.id} value={user.id.toString()}>
+                                      {user.name} ({user.username})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              
+                              {field.value && field.value.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {field.value.map((userId: string) => {
+                                    const user = users?.find((u: any) => u.id.toString() === userId);
+                                    return user ? (
+                                      <div
+                                        key={userId}
+                                        className="inline-flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm"
+                                      >
+                                        <span>{user.name}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const newAttendees = field.value.filter((id: string) => id !== userId);
+                                            field.onChange(newAttendees.length > 0 ? newAttendees : []);
+                                          }}
+                                          className="ml-1 hover:bg-destructive hover:text-destructive-foreground rounded-sm p-0.5"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </div>
+                                    ) : null;
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
