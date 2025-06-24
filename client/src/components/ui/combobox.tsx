@@ -45,24 +45,28 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn("w-full justify-between text-left font-normal", className)}
           disabled={disabled}
         >
-          {selectedOption?.label || placeholder}
+          <span className={cn(
+            selectedOption?.label ? "text-foreground" : "text-muted-foreground"
+          )}>
+            {selectedOption?.label || placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0">
+      <PopoverContent className="w-[400px] p-0">
         <Command>
           <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
           <CommandEmpty>{emptyText}</CommandEmpty>
-          <CommandGroup>
+          <CommandGroup className="max-h-64 overflow-auto">
             {options.map((option) => (
               <CommandItem
                 key={option.value}
-                value={option.value}
-                onSelect={(currentValue) => {
-                  onValueChange(currentValue === value ? "" : currentValue)
+                value={option.label}
+                onSelect={() => {
+                  onValueChange(option.value === value ? "" : option.value)
                   setOpen(false)
                 }}
               >
