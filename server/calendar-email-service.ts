@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import { emailService } from './email-service';
+import { emailService } from './email-service.js';
 import * as cron from 'node-cron';
 
 interface EventReminderEmail {

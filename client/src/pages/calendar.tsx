@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight, Clock, MapPin, Users, Settings, X } from 'lucide-react';
-import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Combobox } from '@/components/ui/combobox';
 import { useToast } from '@/hooks/use-toast';
 import type { CalendarEvent, InsertCalendarEvent } from '@shared/schema';
 
@@ -439,21 +439,22 @@ export default function Calendar() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Event Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select event type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="meeting">Meeting</SelectItem>
-                              <SelectItem value="deadline">Deadline</SelectItem>
-                              <SelectItem value="reminder">Reminder</SelectItem>
-                              <SelectItem value="task">Task</SelectItem>
-                              <SelectItem value="personal">Personal</SelectItem>
-                              <SelectItem value="holiday">Holiday</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Combobox
+                              options={[
+                                { value: "meeting", label: "Meeting" },
+                                { value: "deadline", label: "Deadline" },
+                                { value: "reminder", label: "Reminder" },
+                                { value: "task", label: "Task" },
+                                { value: "personal", label: "Personal" },
+                                { value: "holiday", label: "Holiday" },
+                              ]}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select event type"
+                              emptyText="No event type found."
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -493,21 +494,21 @@ export default function Calendar() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Unit</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select unit" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="no_department">No Unit</SelectItem>
-                              {departments.map((dept: any) => (
-                                <SelectItem key={dept.id} value={dept.id.toString()}>
-                                  {dept.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Combobox
+                              options={[
+                                { value: "no_department", label: "No Unit" },
+                                ...departments.map((dept: any) => ({
+                                  value: dept.id.toString(),
+                                  label: dept.name,
+                                }))
+                              ]}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select unit"
+                              emptyText="No unit found."
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -519,21 +520,21 @@ export default function Calendar() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Department</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select department" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="no_category">No Department</SelectItem>
-                              {categories.map((cat: any) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <Combobox
+                              options={[
+                                { value: "no_category", label: "No Department" },
+                                ...categories.map((cat: any) => ({
+                                  value: cat.id.toString(),
+                                  label: cat.name,
+                                }))
+                              ]}
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              placeholder="Select department"
+                              emptyText="No department found."
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -547,25 +548,21 @@ export default function Calendar() {
                           <FormLabel>Invite Users</FormLabel>
                           <FormControl>
                             <div className="space-y-2">
-                              <Select 
+                              <Combobox
+                                options={users?.filter(user => user.id !== currentUser?.id).map((user: any) => ({
+                                  value: user.id.toString(),
+                                  label: `${user.name} (${user.username})`,
+                                })) || []}
+                                value=""
                                 onValueChange={(value) => {
                                   if (value && !field.value?.includes(value)) {
                                     const newAttendees = [...(field.value || []), value];
                                     field.onChange(newAttendees);
                                   }
                                 }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select users to invite" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {users?.filter(user => user.id !== currentUser?.id).map((user: any) => (
-                                    <SelectItem key={user.id} value={user.id.toString()}>
-                                      {user.name} ({user.username})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Select users to invite"
+                                emptyText="No users found."
+                              />
                               
                               {field.value && field.value.length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
