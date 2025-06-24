@@ -107,7 +107,7 @@ export default function Units() {
   // Delete unit mutation
   const deleteUnitMutation = useMutation({
     mutationFn: async (unitId: number) => {
-      return await apiRequest('DELETE', `/api/units/${unitId}`);
+      return await apiRequest('DELETE', `/api/departments/${unitId}`);
     },
     onMutate: async (unitId) => {
       // Cancel any outgoing refetches
