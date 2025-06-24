@@ -9,6 +9,11 @@ export const statusEnum = pgEnum('status', ['todo', 'in_progress', 'completed'])
 export const channelTypeEnum = pgEnum('channel_type', ['public', 'private', 'direct']);
 export const messageTypeEnum = pgEnum('message_type', ['text', 'file', 'system']);
 
+// Enums for calendar events
+export const eventTypeEnum = pgEnum('event_type', ['meeting', 'deadline', 'reminder', 'task', 'personal', 'holiday']);
+export const eventStatusEnum = pgEnum('event_status', ['scheduled', 'in_progress', 'completed', 'cancelled']);
+export const reminderTypeEnum = pgEnum('reminder_type', ['email', 'notification', 'both']);
+
 // Users table 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -171,6 +176,52 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at"),
 });
 
+// Calendar events table
+export const calendarEvents = pgTable("calendar_events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  allDay: boolean("all_day").default(false),
+  location: text("location"),
+  eventType: eventTypeEnum("event_type").default('meeting'),
+  status: eventStatusEnum("status").default('scheduled'),
+  color: text("color").default('#3b82f6'), // Default blue color
+  createdBy: integer("created_by").references(() => users.id).notNull(),
+  departmentId: integer("department_id").references(() => departments.id),
+  categoryId: integer("category_id").references(() => categories.id),
+  taskId: integer("task_id").references(() => tasks.id), // Link to task if event is task-related
+  projectId: integer("project_id").references(() => projects.id), // Link to project if event is project-related
+  isRecurring: boolean("is_recurring").default(false),
+  recurrencePattern: text("recurrence_pattern"), // JSON string for recurrence rules
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Calendar event attendees table (many-to-many)
+export const eventAttendees = pgTable("event_attendees", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").references(() => calendarEvents.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  status: text("status").default('pending'), // pending, accepted, declined, maybe
+  invitedBy: integer("invited_by").references(() => users.id),
+  invitedAt: timestamp("invited_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+});
+
+// Calendar event reminders table
+export const eventReminders = pgTable("event_reminders", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").references(() => calendarEvents.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  reminderType: reminderTypeEnum("reminder_type").default('both'),
+  minutesBefore: integer("minutes_before").notNull(), // How many minutes before event to remind
+  isSent: boolean("is_sent").default(false),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Define relationships
 export const usersRelations = relations(users, ({ many, one }) => ({
   tasks: many(tasks),
@@ -301,6 +352,60 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     fields: [reports.createdBy],
     references: [users.id],
     relationName: "reportCreator",
+  }),
+}));
+
+// Calendar events relations
+export const calendarEventsRelations = relations(calendarEvents, ({ one, many }) => ({
+  creator: one(users, {
+    fields: [calendarEvents.createdBy],
+    references: [users.id],
+    relationName: "eventCreator",
+  }),
+  department: one(departments, {
+    fields: [calendarEvents.departmentId],
+    references: [departments.id],
+  }),
+  category: one(categories, {
+    fields: [calendarEvents.categoryId],
+    references: [categories.id],
+  }),
+  task: one(tasks, {
+    fields: [calendarEvents.taskId],
+    references: [tasks.id],
+  }),
+  project: one(projects, {
+    fields: [calendarEvents.projectId],
+    references: [projects.id],
+  }),
+  attendees: many(eventAttendees),
+  reminders: many(eventReminders),
+}));
+
+export const eventAttendeesRelations = relations(eventAttendees, ({ one }) => ({
+  event: one(calendarEvents, {
+    fields: [eventAttendees.eventId],
+    references: [calendarEvents.id],
+  }),
+  user: one(users, {
+    fields: [eventAttendees.userId],
+    references: [users.id],
+  }),
+  inviter: one(users, {
+    fields: [eventAttendees.invitedBy],
+    references: [users.id],
+    relationName: "attendeeInviter",
+  }),
+}));
+
+export const eventRemindersRelations = relations(eventReminders, ({ one }) => ({
+  event: one(calendarEvents, {
+    fields: [eventReminders.eventId],
+    references: [calendarEvents.id],
+  }),
+  user: one(users, {
+    fields: [eventReminders.userId],
+    references: [users.id],
   }),
 }));
 
@@ -470,9 +575,31 @@ export const appSettingInsertSchema = createInsertSchema(appSettings, {
   value: (schema) => schema.optional(),
 });
 
+export const calendarEventInsertSchema = createInsertSchema(calendarEvents, {
+  title: (schema) => schema.min(1, "Event title is required"),
+  startDate: (schema) => schema,
+  endDate: (schema) => schema.optional(),
+});
+
+export const eventAttendeeInsertSchema = createInsertSchema(eventAttendees);
+export const eventReminderInsertSchema = createInsertSchema(eventReminders, {
+  minutesBefore: (schema) => schema.min(0).max(10080), // Max 1 week in minutes
+});
+
 export const appSettingSelectSchema = createSelectSchema(appSettings);
 export type AppSetting = z.infer<typeof appSettingSelectSchema>;
 export type InsertAppSetting = z.infer<typeof appSettingInsertSchema>;
+
+export const calendarEventSelectSchema = createSelectSchema(calendarEvents);
+export const eventAttendeeSelectSchema = createSelectSchema(eventAttendees);
+export const eventReminderSelectSchema = createSelectSchema(eventReminders);
+
+export type CalendarEvent = z.infer<typeof calendarEventSelectSchema>;
+export type InsertCalendarEvent = z.infer<typeof calendarEventInsertSchema>;
+export type EventAttendee = z.infer<typeof eventAttendeeSelectSchema>;
+export type InsertEventAttendee = z.infer<typeof eventAttendeeInsertSchema>;
+export type EventReminder = z.infer<typeof eventReminderSelectSchema>;
+export type InsertEventReminder = z.infer<typeof eventReminderInsertSchema>;
 
 // Frontend specific schemas
 export const taskFormSchema = z.object({
