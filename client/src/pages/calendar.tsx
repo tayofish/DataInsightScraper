@@ -90,6 +90,8 @@ export default function Calendar() {
       allDay: false,
       eventType: 'meeting',
       color: '#3b82f6',
+      departmentId: '',
+      categoryId: '',
       attendees: [],
       reminderMinutes: '15',
     },
@@ -449,8 +451,10 @@ export default function Calendar() {
                                 { value: "personal", label: "Personal" },
                                 { value: "holiday", label: "Holiday" },
                               ]}
-                              value={field.value}
-                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                              }}
                               placeholder="Select event type"
                               emptyText="No event type found."
                             />
@@ -503,8 +507,10 @@ export default function Calendar() {
                                   label: dept.name,
                                 }))
                               ]}
-                              value={field.value}
-                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                              }}
                               placeholder="Select unit"
                               emptyText="No unit found."
                             />
@@ -529,8 +535,10 @@ export default function Calendar() {
                                   label: cat.name,
                                 }))
                               ]}
-                              value={field.value}
-                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                              }}
                               placeholder="Select department"
                               emptyText="No department found."
                             />
@@ -549,7 +557,7 @@ export default function Calendar() {
                           <FormControl>
                             <div className="space-y-2">
                               <Combobox
-                                options={users?.filter(user => user.id !== currentUser?.id).map((user: any) => ({
+                                options={users?.filter(user => user.id !== currentUser?.id && !field.value?.includes(user.id.toString())).map((user: any) => ({
                                   value: user.id.toString(),
                                   label: `${user.name} (${user.username})`,
                                 })) || []}
@@ -561,7 +569,7 @@ export default function Calendar() {
                                   }
                                 }}
                                 placeholder="Select users to invite"
-                                emptyText="No users found."
+                                emptyText="No more users to invite."
                               />
                               
                               {field.value && field.value.length > 0 && (

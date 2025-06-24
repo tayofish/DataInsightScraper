@@ -66,8 +66,9 @@ export function Combobox({
                 key={option.value}
                 value={option.label}
                 onSelect={() => {
-                  onValueChange(option.value === value ? "" : option.value)
-                  setOpen(false)
+                  const newValue = option.value === value ? "" : option.value;
+                  onValueChange(newValue);
+                  setOpen(false);
                 }}
               >
                 <Check
