@@ -442,7 +442,7 @@ export default function Calendar() {
                         <FormItem>
                           <FormLabel>Event Type</FormLabel>
                           <FormControl>
-                            <Combobox
+                            <SimpleSelect
                               options={[
                                 { value: "meeting", label: "Meeting" },
                                 { value: "deadline", label: "Deadline" },
@@ -456,7 +456,6 @@ export default function Calendar() {
                                 field.onChange(value);
                               }}
                               placeholder="Select event type"
-                              emptyText="No event type found."
                               disabled={false}
                             />
                           </FormControl>
@@ -500,7 +499,7 @@ export default function Calendar() {
                         <FormItem>
                           <FormLabel>Unit</FormLabel>
                           <FormControl>
-                            <Combobox
+                            <SimpleSelect
                               options={[
                                 { value: "no_department", label: "No Unit" },
                                 ...departments.map((dept: any) => ({
@@ -513,7 +512,6 @@ export default function Calendar() {
                                 field.onChange(value);
                               }}
                               placeholder="Select unit"
-                              emptyText="No unit found."
                               disabled={false}
                             />
                           </FormControl>
@@ -529,7 +527,7 @@ export default function Calendar() {
                         <FormItem>
                           <FormLabel>Department</FormLabel>
                           <FormControl>
-                            <Combobox
+                            <SimpleSelect
                               options={[
                                 { value: "no_category", label: "No Department" },
                                 ...categories.map((cat: any) => ({
@@ -542,7 +540,6 @@ export default function Calendar() {
                                 field.onChange(value);
                               }}
                               placeholder="Select department"
-                              emptyText="No department found."
                               disabled={false}
                             />
                           </FormControl>
@@ -559,7 +556,7 @@ export default function Calendar() {
                           <FormLabel>Invite Users</FormLabel>
                           <FormControl>
                             <div className="space-y-2">
-                              <Combobox
+                              <SimpleSelect
                                 options={users?.filter(user => user.id !== currentUser?.id && !field.value?.includes(user.id.toString())).map((user: any) => ({
                                   value: user.id.toString(),
                                   label: `${user.name} (${user.username})`,
@@ -572,7 +569,6 @@ export default function Calendar() {
                                   }
                                 }}
                                 placeholder="Select users to invite"
-                                emptyText="No more users to invite."
                                 disabled={false}
                               />
                               
