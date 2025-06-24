@@ -113,7 +113,7 @@ export default function Calendar() {
         departmentId: eventData.departmentId ? parseInt(eventData.departmentId) : null,
         categoryId: eventData.categoryId ? parseInt(eventData.categoryId) : null,
         attendees: eventData.attendees || [],
-        reminderMinutes: eventData.reminderMinutes ? parseInt(eventData.reminderMinutes) : null,
+        reminderMinutes: eventData.reminderMinutes && eventData.reminderMinutes !== 'no_reminder' ? parseInt(eventData.reminderMinutes) : null,
       };
 
       if (editingEvent) {

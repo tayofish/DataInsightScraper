@@ -1893,8 +1893,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventType: eventType || 'meeting',
         color: color || '#3b82f6',
         createdBy: req.user.id,
-        departmentId: departmentId || null,
-        categoryId: categoryId || null,
+        departmentId: departmentId && departmentId !== 'no_department' ? parseInt(departmentId) : null,
+        categoryId: categoryId && categoryId !== 'no_category' ? parseInt(categoryId) : null,
         taskId: taskId || null,
         projectId: projectId || null,
       };
@@ -1922,7 +1922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create reminder if specified
-      if (reminderMinutes) {
+      if (reminderMinutes && reminderMinutes !== 'no_reminder') {
         await storage.createEventReminder({
           eventId: newEvent.id,
           userId: req.user.id,
