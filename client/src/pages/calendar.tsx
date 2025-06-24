@@ -487,15 +487,15 @@ export default function Calendar() {
                       name="departmentId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Department</FormLabel>
+                          <FormLabel>Unit</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select department" />
+                                <SelectValue placeholder="Select unit" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="no_department">No Department</SelectItem>
+                              <SelectItem value="no_department">No Unit</SelectItem>
                               {departments.map((dept: any) => (
                                 <SelectItem key={dept.id} value={dept.id.toString()}>
                                   {dept.name}
@@ -513,15 +513,15 @@ export default function Calendar() {
                       name="categoryId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Category</FormLabel>
+                          <FormLabel>Department</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
+                                <SelectValue placeholder="Select department" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="no_category">No Category</SelectItem>
+                              <SelectItem value="no_category">No Department</SelectItem>
                               {categories.map((cat: any) => (
                                 <SelectItem key={cat.id} value={cat.id.toString()}>
                                   {cat.name}

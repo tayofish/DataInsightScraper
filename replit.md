@@ -112,6 +112,7 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
+- June 24, 2025: Fixed calendar modal labels - Units are called Departments, Categories are called Units
 - June 24, 2025: Enhanced Calendar modal with responsive design and vertical scroll
 - June 24, 2025: Moved Calendar menu between Projects and Reports
 - June 24, 2025: Fixed calendar database query issues for user events and reminders
