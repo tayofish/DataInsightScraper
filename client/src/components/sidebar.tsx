@@ -5,6 +5,7 @@ import { useMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
+  Calendar,
   CheckSquare, 
   FolderKanban, 
   Tag,
@@ -125,6 +126,9 @@ export function Sidebar() {
       <nav className="mt-2 flex-1 px-4 space-y-2 custom-scrollbar">
         <NavItem href="/" icon={<LayoutDashboard size={20} />} isActive={location === '/'}>
           Dashboard
+        </NavItem>
+        <NavItem href="/calendar" icon={<Calendar size={20} />} isActive={location === '/calendar'}>
+          Calendar
         </NavItem>
         <NavItem href="/tasks" icon={<CheckSquare size={20} />} isActive={location === '/tasks'}>
           Tasks

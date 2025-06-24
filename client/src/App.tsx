@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
+import Calendar from "@/pages/calendar";
 import Tasks from "@/pages/tasks";
 import Projects from "@/pages/projects";
 import ProjectDetailPage from "@/pages/project-detail";
@@ -85,6 +86,14 @@ function Router() {
         <OnboardingWrapper>
           <AppLayout>
             <Dashboard />
+          </AppLayout>
+        </OnboardingWrapper>
+      )} />
+      
+      <ProtectedRoute path="/calendar" component={() => (
+        <OnboardingWrapper>
+          <AppLayout>
+            <Calendar />
           </AppLayout>
         </OnboardingWrapper>
       )} />
