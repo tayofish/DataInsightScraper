@@ -2549,9 +2549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   } catch (updateError) {
                     console.error(`Error creating mention update for ${username} in task description:`, updateError);
                   }
-                } else if (mentionedUser) {
-                  console.log(`Skipping self-mention for user ${username} in task description`);
-                } else {
+                } else if (!mentionedUser) {
                   console.log(`Could not find user with username ${username} for task description mention notification`);
                 }
               } catch (userLookupError) {
@@ -2818,9 +2816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                 }
                 
-                if (!mentionedUser) {
-                  console.log(`Could not find user with username "${username}" for mention notification`);
-                }
+
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== commentUser.id) {

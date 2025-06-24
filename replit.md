@@ -112,7 +112,10 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
-- June 23, 2025. Initial setup
+- June 24, 2025: Disabled debug logging for mention extraction functionality
+- June 23, 2025: Fixed overdue task calculation bug in admin insights API
+- June 23, 2025: Added "Overdue" filter option to task status dropdown
+- June 23, 2025: Initial setup
 
 ## User Preferences
 
