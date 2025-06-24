@@ -2,13 +2,15 @@ import { db } from "@db";
 import { pool } from "@db";
 import { 
   users, tasks, projects, categories, departments, units, projectAssignments, taskUpdates, taskCollaborators, reports, notifications, appSettings, userDepartments,
+  calendarEvents, eventAttendees, eventReminders,
   type User, type Task, type Project, type Category, type Department, type Unit,
   type ProjectAssignment, type TaskUpdate, type TaskCollaborator, type Report, type Notification, type AppSetting,
+  type CalendarEvent, type EventAttendee, type EventReminder,
   type InsertUser, type InsertTask, type InsertProject, type InsertCategory, type InsertDepartment, type InsertUnit,
   type InsertProjectAssignment, type InsertTaskUpdate, type InsertTaskCollaborator, type InsertReport, type InsertNotification,
-  type InsertAppSetting, type UpdateTask
+  type InsertAppSetting, type InsertCalendarEvent, type InsertEventAttendee, type InsertEventReminder, type UpdateTask
 } from "@shared/schema";
-import { eq, and, or, desc, asc, isNull, sql, inArray } from "drizzle-orm";
+import { eq, and, or, desc, asc, isNull, sql, inArray, gte, lte, exists } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -404,6 +406,249 @@ export const storage = {
 
   deleteUnit: async (id: number): Promise<boolean> => {
     await db.delete(units).where(eq(units.id, id));
+    return true;
+  },
+
+  // Calendar event operations
+  getAllCalendarEvents: async (): Promise<CalendarEvent[]> => {
+    return db.query.calendarEvents.findMany({
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            name: true,
+            username: true,
+          }
+        },
+        department: {
+          columns: {
+            id: true,
+            name: true,
+          }
+        },
+        category: {
+          columns: {
+            id: true,
+            name: true,
+            color: true,
+          }
+        },
+        task: {
+          columns: {
+            id: true,
+            title: true,
+            status: true,
+          }
+        },
+        project: {
+          columns: {
+            id: true,
+            name: true,
+          }
+        },
+        attendees: {
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+              }
+            }
+          }
+        },
+        reminders: true,
+      },
+      orderBy: (events, { asc }) => [asc(events.startDate)]
+    });
+  },
+
+  getCalendarEventById: async (id: number): Promise<CalendarEvent | undefined> => {
+    return db.query.calendarEvents.findFirst({
+      where: eq(calendarEvents.id, id),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            name: true,
+            username: true,
+          }
+        },
+        attendees: {
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+              }
+            }
+          }
+        },
+        reminders: true,
+      }
+    });
+  },
+
+  getCalendarEventsByMonth: async (year: number, month: number): Promise<CalendarEvent[]> => {
+    const startOfMonth = new Date(year, month - 1, 1);
+    const endOfMonth = new Date(year, month, 0, 23, 59, 59);
+    
+    return db.query.calendarEvents.findMany({
+      where: and(
+        gte(calendarEvents.startDate, startOfMonth),
+        lte(calendarEvents.startDate, endOfMonth)
+      ),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            name: true,
+            username: true,
+          }
+        },
+        attendees: {
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+              }
+            }
+          }
+        },
+        reminders: true,
+      },
+      orderBy: (events, { asc }) => [asc(events.startDate)]
+    });
+  },
+
+  getUserCalendarEvents: async (userId: number): Promise<CalendarEvent[]> => {
+    return db.query.calendarEvents.findMany({
+      where: or(
+        eq(calendarEvents.createdBy, userId),
+        exists(
+          db.select().from(eventAttendees)
+            .where(and(
+              eq(eventAttendees.eventId, calendarEvents.id),
+              eq(eventAttendees.userId, userId)
+            ))
+        )
+      ),
+      with: {
+        creator: {
+          columns: {
+            id: true,
+            name: true,
+            username: true,
+          }
+        },
+        attendees: {
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+              }
+            }
+          }
+        },
+        reminders: true,
+      },
+      orderBy: (events, { asc }) => [asc(events.startDate)]
+    });
+  },
+
+  createCalendarEvent: async (eventData: InsertCalendarEvent): Promise<CalendarEvent> => {
+    const [newEvent] = await db.insert(calendarEvents).values(eventData).returning();
+    return newEvent;
+  },
+
+  updateCalendarEvent: async (id: number, eventData: Partial<InsertCalendarEvent>): Promise<CalendarEvent | undefined> => {
+    const [updatedEvent] = await db.update(calendarEvents)
+      .set({ ...eventData, updatedAt: new Date() })
+      .where(eq(calendarEvents.id, id))
+      .returning();
+    return updatedEvent;
+  },
+
+  deleteCalendarEvent: async (id: number): Promise<boolean> => {
+    await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
+    return true;
+  },
+
+  // Event attendee operations
+  addEventAttendee: async (attendeeData: InsertEventAttendee): Promise<EventAttendee> => {
+    const [newAttendee] = await db.insert(eventAttendees).values(attendeeData).returning();
+    return newAttendee;
+  },
+
+  removeEventAttendee: async (eventId: number, userId: number): Promise<boolean> => {
+    await db.delete(eventAttendees)
+      .where(and(
+        eq(eventAttendees.eventId, eventId),
+        eq(eventAttendees.userId, userId)
+      ));
+    return true;
+  },
+
+  updateAttendeeStatus: async (eventId: number, userId: number, status: string): Promise<EventAttendee | undefined> => {
+    const [updatedAttendee] = await db.update(eventAttendees)
+      .set({ status, respondedAt: new Date() })
+      .where(and(
+        eq(eventAttendees.eventId, eventId),
+        eq(eventAttendees.userId, userId)
+      ))
+      .returning();
+    return updatedAttendee;
+  },
+
+  // Event reminder operations
+  createEventReminder: async (reminderData: InsertEventReminder): Promise<EventReminder> => {
+    const [newReminder] = await db.insert(eventReminders).values(reminderData).returning();
+    return newReminder;
+  },
+
+  getPendingReminders: async (): Promise<EventReminder[]> => {
+    const now = new Date();
+    const reminderTime = new Date(now.getTime() + 5 * 60 * 1000); // Check 5 minutes ahead
+    
+    return db.query.eventReminders.findMany({
+      where: and(
+        eq(eventReminders.isSent, false),
+        gte(reminderTime, sql`${calendarEvents.startDate} - (${eventReminders.minutesBefore} * interval '1 minute')`)
+      ),
+      with: {
+        event: {
+          with: {
+            creator: {
+              columns: {
+                id: true,
+                name: true,
+                username: true,
+                email: true,
+              }
+            }
+          }
+        },
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+          }
+        }
+      }
+    });
+  },
+
+  markReminderAsSent: async (reminderId: number): Promise<boolean> => {
+    await db.update(eventReminders)
+      .set({ isSent: true, sentAt: new Date() })
+      .where(eq(eventReminders.id, reminderId));
     return true;
   },
 

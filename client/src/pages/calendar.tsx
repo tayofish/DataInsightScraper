@@ -494,7 +494,7 @@ export default function Calendar() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">No Department</SelectItem>
+                              <SelectItem value="no_department">No Department</SelectItem>
                               {departments.map((dept: any) => (
                                 <SelectItem key={dept.id} value={dept.id.toString()}>
                                   {dept.name}
@@ -520,7 +520,7 @@ export default function Calendar() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">No Category</SelectItem>
+                              <SelectItem value="no_category">No Category</SelectItem>
                               {categories.map((cat: any) => (
                                 <SelectItem key={cat.id} value={cat.id.toString()}>
                                   {cat.name}
@@ -546,7 +546,7 @@ export default function Calendar() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="">No Reminder</SelectItem>
+                              <SelectItem value="no_reminder">No Reminder</SelectItem>
                               <SelectItem value="5">5 minutes before</SelectItem>
                               <SelectItem value="15">15 minutes before</SelectItem>
                               <SelectItem value="30">30 minutes before</SelectItem>

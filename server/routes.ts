@@ -1821,6 +1821,285 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === CALENDAR ROUTES ===
+  // Get calendar events
+  app.get("/api/calendar/events", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { year, month } = req.query;
+      let events;
+
+      if (year && month) {
+        events = await storage.getCalendarEventsByMonth(parseInt(year as string), parseInt(month as string));
+      } else {
+        events = await storage.getUserCalendarEvents(req.user.id);
+      }
+
+      return res.json(events);
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      return res.status(500).json({ message: "Failed to fetch calendar events" });
+    }
+  });
+
+  // Get single calendar event
+  app.get("/api/calendar/events/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const event = await storage.getCalendarEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      return res.json(event);
+    } catch (error) {
+      console.error('Error fetching calendar event:', error);
+      return res.status(500).json({ message: "Failed to fetch calendar event" });
+    }
+  });
+
+  // Create calendar event
+  app.post("/api/calendar/events", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { title, description, startDate, endDate, allDay, location, eventType, color, departmentId, categoryId, taskId, projectId, attendees, reminderMinutes } = req.body;
+
+      if (!title || !startDate) {
+        return res.status(400).json({ message: "Event title and start date are required" });
+      }
+
+      // Create the event
+      const eventData = {
+        title,
+        description: description || null,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        allDay: allDay || false,
+        location: location || null,
+        eventType: eventType || 'meeting',
+        color: color || '#3b82f6',
+        createdBy: req.user.id,
+        departmentId: departmentId || null,
+        categoryId: categoryId || null,
+        taskId: taskId || null,
+        projectId: projectId || null,
+      };
+
+      const newEvent = await storage.createCalendarEvent(eventData);
+
+      // Add attendees if provided
+      if (attendees && Array.isArray(attendees) && attendees.length > 0) {
+        for (const attendeeId of attendees) {
+          await storage.addEventAttendee({
+            eventId: newEvent.id,
+            userId: parseInt(attendeeId),
+            invitedBy: req.user.id,
+          });
+        }
+        
+        // Send invitation emails
+        try {
+          const { calendarEmailService } = await import('./calendar-email-service');
+          await calendarEmailService.sendEventInvitationEmail(newEvent.id, attendees.map(id => parseInt(id)), req.user.id);
+        } catch (emailError) {
+          console.error('Error sending invitation emails:', emailError);
+          // Don't fail the request if emails fail
+        }
+      }
+
+      // Create reminder if specified
+      if (reminderMinutes) {
+        await storage.createEventReminder({
+          eventId: newEvent.id,
+          userId: req.user.id,
+          minutesBefore: parseInt(reminderMinutes),
+          reminderType: 'both',
+        });
+
+        // Also create reminders for attendees
+        if (attendees && Array.isArray(attendees)) {
+          for (const attendeeId of attendees) {
+            await storage.createEventReminder({
+              eventId: newEvent.id,
+              userId: parseInt(attendeeId),
+              minutesBefore: parseInt(reminderMinutes),
+              reminderType: 'both',
+            });
+          }
+        }
+      }
+
+      // Broadcast event creation to WebSocket clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: 'calendar_event_created',
+            data: newEvent
+          }));
+        }
+      });
+
+      return res.status(201).json(newEvent);
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      return res.status(500).json({ message: "Failed to create calendar event" });
+    }
+  });
+
+  // Update calendar event
+  app.patch("/api/calendar/events/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const event = await storage.getCalendarEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check if user has permission to edit this event
+      if (event.createdBy !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to edit this event" });
+      }
+
+      const { title, description, startDate, endDate, allDay, location, eventType, color, departmentId, categoryId, taskId, projectId } = req.body;
+
+      const updateData: any = {};
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description || null;
+      if (startDate !== undefined) updateData.startDate = new Date(startDate);
+      if (endDate !== undefined) updateData.endDate = endDate ? new Date(endDate) : null;
+      if (allDay !== undefined) updateData.allDay = allDay;
+      if (location !== undefined) updateData.location = location || null;
+      if (eventType !== undefined) updateData.eventType = eventType;
+      if (color !== undefined) updateData.color = color;
+      if (departmentId !== undefined) updateData.departmentId = departmentId || null;
+      if (categoryId !== undefined) updateData.categoryId = categoryId || null;
+      if (taskId !== undefined) updateData.taskId = taskId || null;
+      if (projectId !== undefined) updateData.projectId = projectId || null;
+
+      const updatedEvent = await storage.updateCalendarEvent(eventId, updateData);
+
+      // Send update notification emails
+      try {
+        const { calendarEmailService } = await import('./calendar-email-service');
+        await calendarEmailService.sendEventUpdateEmail(eventId);
+      } catch (emailError) {
+        console.error('Error sending update emails:', emailError);
+        // Don't fail the request if emails fail
+      }
+
+      // Broadcast event update to WebSocket clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: 'calendar_event_updated',
+            data: updatedEvent
+          }));
+        }
+      });
+
+      return res.json(updatedEvent);
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      return res.status(500).json({ message: "Failed to update calendar event" });
+    }
+  });
+
+  // Delete calendar event
+  app.delete("/api/calendar/events/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const event = await storage.getCalendarEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check if user has permission to delete this event
+      if (event.createdBy !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ message: "You don't have permission to delete this event" });
+      }
+
+      await storage.deleteCalendarEvent(eventId);
+
+      // Broadcast event deletion to WebSocket clients
+      wss.clients.forEach((client: ExtendedWebSocket) => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify({
+            type: 'calendar_event_deleted',
+            data: { id: eventId }
+          }));
+        }
+      });
+
+      return res.json({ message: "Event deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
+      return res.status(500).json({ message: "Failed to delete calendar event" });
+    }
+  });
+
+  // Update attendee status
+  app.patch("/api/calendar/events/:id/attendees/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      const userId = parseInt(req.params.userId);
+      const { status } = req.body;
+
+      if (isNaN(eventId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid event or user ID" });
+      }
+
+      if (!['pending', 'accepted', 'declined', 'maybe'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      // Users can only update their own attendance status
+      if (userId !== req.user.id && !req.user.isAdmin) {
+        return res.status(403).json({ message: "You can only update your own attendance status" });
+      }
+
+      const updatedAttendee = await storage.updateAttendeeStatus(eventId, userId, status);
+
+      return res.json(updatedAttendee);
+    } catch (error) {
+      console.error('Error updating attendee status:', error);
+      return res.status(500).json({ message: "Failed to update attendee status" });
+    }
+  });
+
   // === TASK ROUTES ===
   // Get all tasks with optional filters
   app.get("/api/tasks", async (req, res) => {
