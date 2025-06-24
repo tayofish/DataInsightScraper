@@ -525,17 +525,9 @@ export const storage = {
   },
 
   getUserCalendarEvents: async (userId: number): Promise<CalendarEvent[]> => {
-    return db.query.calendarEvents.findMany({
-      where: or(
-        eq(calendarEvents.createdBy, userId),
-        exists(
-          db.select().from(eventAttendees)
-            .where(and(
-              eq(eventAttendees.eventId, calendarEvents.id),
-              eq(eventAttendees.userId, userId)
-            ))
-        )
-      ),
+    // Get events created by user
+    const createdEvents = await db.query.calendarEvents.findMany({
+      where: eq(calendarEvents.createdBy, userId),
       with: {
         creator: {
           columns: {
@@ -559,6 +551,48 @@ export const storage = {
       },
       orderBy: (events, { asc }) => [asc(events.startDate)]
     });
+
+    // Get events where user is an attendee
+    const attendeeEventIds = await db.select({ eventId: eventAttendees.eventId })
+      .from(eventAttendees)
+      .where(eq(eventAttendees.userId, userId));
+
+    let attendingEvents: CalendarEvent[] = [];
+    if (attendeeEventIds.length > 0) {
+      attendingEvents = await db.query.calendarEvents.findMany({
+        where: inArray(calendarEvents.id, attendeeEventIds.map(e => e.eventId)),
+        with: {
+          creator: {
+            columns: {
+              id: true,
+              name: true,
+              username: true,
+            }
+          },
+          attendees: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  name: true,
+                  username: true,
+                }
+              }
+            }
+          },
+          reminders: true,
+        },
+        orderBy: (events, { asc }) => [asc(events.startDate)]
+      });
+    }
+
+    // Combine and deduplicate events
+    const allEvents = [...createdEvents, ...attendingEvents];
+    const uniqueEvents = allEvents.filter((event, index, self) => 
+      index === self.findIndex(e => e.id === event.id)
+    );
+
+    return uniqueEvents.sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   },
 
   createCalendarEvent: async (eventData: InsertCalendarEvent): Promise<CalendarEvent> => {
@@ -613,13 +647,10 @@ export const storage = {
 
   getPendingReminders: async (): Promise<EventReminder[]> => {
     const now = new Date();
-    const reminderTime = new Date(now.getTime() + 5 * 60 * 1000); // Check 5 minutes ahead
     
-    return db.query.eventReminders.findMany({
-      where: and(
-        eq(eventReminders.isSent, false),
-        gte(reminderTime, sql`${calendarEvents.startDate} - (${eventReminders.minutesBefore} * interval '1 minute')`)
-      ),
+    // Get all unsent reminders and check them individually
+    const allReminders = await db.query.eventReminders.findMany({
+      where: eq(eventReminders.isSent, false),
       with: {
         event: {
           with: {
@@ -642,6 +673,13 @@ export const storage = {
           }
         }
       }
+    });
+
+    // Filter reminders that should be sent now
+    return allReminders.filter(reminder => {
+      const eventStartTime = new Date(reminder.event.startDate);
+      const reminderTime = new Date(eventStartTime.getTime() - (reminder.minutesBefore * 60 * 1000));
+      return now >= reminderTime;
     });
   },
 

@@ -127,14 +127,14 @@ export function Sidebar() {
         <NavItem href="/" icon={<LayoutDashboard size={20} />} isActive={location === '/'}>
           Dashboard
         </NavItem>
-        <NavItem href="/calendar" icon={<Calendar size={20} />} isActive={location === '/calendar'}>
-          Calendar
-        </NavItem>
         <NavItem href="/tasks" icon={<CheckSquare size={20} />} isActive={location === '/tasks'}>
           Tasks
         </NavItem>
         <NavItem href="/projects" icon={<FolderKanban size={20} />} isActive={location === '/projects'}>
           Projects
+        </NavItem>
+        <NavItem href="/calendar" icon={<Calendar size={20} />} isActive={location === '/calendar'}>
+          Calendar
         </NavItem>
         {/* Common for all users */}
         <NavItem href="/reports" icon={<BarChart2 size={20} />} isActive={location === '/reports'}>

@@ -307,17 +307,18 @@ export default function Calendar() {
                 Add Event
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle>{editingEvent ? 'Edit Event' : 'Create New Event'}</DialogTitle>
                 <DialogDescription>
                   {editingEvent ? 'Update the event details below' : 'Fill in the details for your new calendar event'}
                 </DialogDescription>
               </DialogHeader>
               
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+              <div className="overflow-y-auto flex-1 px-1">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="title"
@@ -336,7 +337,7 @@ export default function Calendar() {
                       control={form.control}
                       name="description"
                       render={({ field }) => (
-                        <FormItem className="col-span-2">
+                        <FormItem className="sm:col-span-2">
                           <FormLabel>Description</FormLabel>
                           <FormControl>
                             <Textarea placeholder="Enter event description" {...field} />
@@ -350,7 +351,7 @@ export default function Calendar() {
                       control={form.control}
                       name="allDay"
                       render={({ field }) => (
-                        <FormItem className="col-span-2 flex flex-row items-center justify-between rounded-lg border p-4">
+                        <FormItem className="sm:col-span-2 flex flex-row items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">All Day Event</FormLabel>
                             <div className="text-sm text-muted-foreground">
@@ -471,7 +472,7 @@ export default function Calendar() {
                       control={form.control}
                       name="location"
                       render={({ field }) => (
-                        <FormItem className="col-span-2">
+                        <FormItem className="sm:col-span-2">
                           <FormLabel>Location</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter event location" {...field} />
@@ -561,30 +562,31 @@ export default function Calendar() {
                     />
                   </div>
 
-                  <div className="flex justify-end space-x-2 pt-4">
-                    {editingEvent && (
+                    <div className="flex justify-end space-x-2 pt-4 sticky bottom-0 bg-background border-t mt-6 -mx-1 px-1 py-4">
+                      {editingEvent && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => handleDeleteEvent(editingEvent.id)}
+                          disabled={deleteEventMutation.isPending}
+                        >
+                          Delete Event
+                        </Button>
+                      )}
                       <Button
                         type="button"
-                        variant="destructive"
-                        onClick={() => handleDeleteEvent(editingEvent.id)}
-                        disabled={deleteEventMutation.isPending}
+                        variant="outline"
+                        onClick={() => setIsCreateDialogOpen(false)}
                       >
-                        Delete Event
+                        Cancel
                       </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsCreateDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button type="submit" disabled={saveEventMutation.isPending}>
-                      {saveEventMutation.isPending ? 'Saving...' : editingEvent ? 'Update Event' : 'Create Event'}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                      <Button type="submit" disabled={saveEventMutation.isPending}>
+                        {saveEventMutation.isPending ? 'Saving...' : editingEvent ? 'Update Event' : 'Create Event'}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </div>
             </DialogContent>
           </Dialog>
         </div>

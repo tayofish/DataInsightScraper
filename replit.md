@@ -112,6 +112,9 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
+- June 24, 2025: Enhanced Calendar modal with responsive design and vertical scroll
+- June 24, 2025: Moved Calendar menu between Projects and Reports
+- June 24, 2025: Fixed calendar database query issues for user events and reminders
 - June 24, 2025: Implemented comprehensive Calendar feature with email notifications
 - June 24, 2025: Fixed unit deletion bug in frontend routing
 - June 24, 2025: Disabled debug logging for mention extraction functionality
