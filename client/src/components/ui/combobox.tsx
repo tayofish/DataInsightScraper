@@ -45,11 +45,12 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between text-left font-normal", className)}
+          className={cn("w-full justify-between text-left font-normal bg-background hover:bg-accent", className)}
           disabled={disabled}
         >
           <span className={cn(
-            selectedOption?.label ? "text-foreground" : "text-muted-foreground"
+            selectedOption?.label ? "text-foreground" : "text-muted-foreground",
+            disabled && "opacity-50"
           )}>
             {selectedOption?.label || placeholder}
           </span>

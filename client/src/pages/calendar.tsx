@@ -457,6 +457,7 @@ export default function Calendar() {
                               }}
                               placeholder="Select event type"
                               emptyText="No event type found."
+                              disabled={false}
                             />
                           </FormControl>
                           <FormMessage />
@@ -513,6 +514,7 @@ export default function Calendar() {
                               }}
                               placeholder="Select unit"
                               emptyText="No unit found."
+                              disabled={false}
                             />
                           </FormControl>
                           <FormMessage />
@@ -541,6 +543,7 @@ export default function Calendar() {
                               }}
                               placeholder="Select department"
                               emptyText="No department found."
+                              disabled={false}
                             />
                           </FormControl>
                           <FormMessage />
@@ -570,6 +573,7 @@ export default function Calendar() {
                                 }}
                                 placeholder="Select users to invite"
                                 emptyText="No more users to invite."
+                                disabled={false}
                               />
                               
                               {field.value && field.value.length > 0 && (
