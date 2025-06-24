@@ -2516,7 +2516,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (taskData.description && taskData.description !== currentTask.description) {
           const mentions = extractMentions(taskData.description);
           if (mentions.length > 0) {
-            console.log(`Found ${mentions.length} mentions in task description for task ${id}: [${mentions.join(', ')}]`);
             
             // Process mentions (e.g. notify mentioned users)
             for (const username of mentions) {
@@ -2525,8 +2524,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== userId) {
-                  console.log(`Processing description mention for user ${mentionedUser.username} (${mentionedUser.id})`);
-                  
                   try {
                     // Record mention update
                     const mentionUpdate = await storage.createTaskUpdate({
@@ -2538,8 +2535,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       comment: `@${username} mentioned in task description`
                     });
                     
-                    console.log(`Created mention update record: ${mentionUpdate.id}`);
-                    
                     // Send mention notification
                     try {
                       await emailService.notifyMention(
@@ -2548,7 +2543,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                         req.user, 
                         taskData.description || ''
                       );
-                      console.log(`Successfully sent mention notification to ${mentionedUser.username} for task description mention`);
                     } catch (mentionError) {
                       console.error(`Error sending mention notification to ${mentionedUser.username} for task description:`, mentionError);
                     }
@@ -2774,10 +2768,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check for mentions in the comment
           const mentions = extractMentions(commentData.comment);
-          console.log(`DEBUG: Comment content: "${commentData.comment}"`);
-          console.log(`DEBUG: Extracted mentions: [${mentions.join(', ')}]`);
-          // Debug: Show available users for mention matching
-          // console.log(`DEBUG: Available users:`, (await storage.getAllUsers()).map(u => `${u.username} (${u.id})`));
           
           // Collect users to notify (task assignee, mentioned users, task collaborators)
           const usersToNotify: any[] = [];
@@ -2792,7 +2782,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Add mentioned users
           if (mentions.length > 0) {
-            console.log(`Found ${mentions.length} mentions in comment for task ${taskId}: [${mentions.join(', ')}]`);
             
             for (const username of mentions) {
               try {
@@ -2829,20 +2818,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   });
                 }
                 
-                console.log(`DEBUG: Looking for username "${username}", found user:`, mentionedUser ? `${mentionedUser.username} (${mentionedUser.id}) [name: ${mentionedUser.name}]` : 'not found');
-                
                 if (!mentionedUser) {
-                  console.log(`DEBUG: Failed to find user for "${username}". Attempted matches:`);
-                  const allUsers = await storage.getAllUsers();
-                  allUsers.slice(0, 5).forEach(user => {
-                    console.log(`  - ${user.username} (name: ${user.name})`);
-                  });
+                  console.log(`Could not find user with username "${username}" for mention notification`);
                 }
                 
                 // Skip self-mentions
                 if (mentionedUser && mentionedUser.id !== commentUser.id) {
-                  console.log(`Processing mention for user ${mentionedUser.username} (${mentionedUser.id})`);
-                  
                   try {
                     // Record mention update
                     const mentionUpdate = await storage.createTaskUpdate({
@@ -2853,8 +2834,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                       newValue: username,
                       comment: `@${username} was mentioned in a comment`
                     });
-                    
-                    console.log(`Created mention update record: ${mentionUpdate.id}`);
                     
                     // Add to notification list if not already included
                     if (!usersToNotify.some(u => u.id === mentionedUser.id)) {
@@ -2868,21 +2847,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                           commentUser, 
                           commentData.comment
                         );
-                        console.log(`Successfully sent mention notification to ${mentionedUser.username}`);
                       } catch (mentionError) {
                         console.error(`Error sending mention notification to ${mentionedUser.username}:`, mentionError);
                         // Continue processing other mentions even if this one failed
                       }
-                    } else {
-                      console.log(`User ${mentionedUser.username} already in notification list, skipping duplicate mention notification`);
                     }
                   } catch (updateError) {
                     console.error(`Error creating mention update for ${username}:`, updateError);
                   }
-                } else if (mentionedUser) {
-                  console.log(`Skipping self-mention for user ${username}`);
-                } else {
-                  console.log(`Could not find user with username "${username}" for mention notification`);
                 }
               } catch (userLookupError) {
                 console.error(`Error looking up mentioned user ${username}:`, userLookupError);
