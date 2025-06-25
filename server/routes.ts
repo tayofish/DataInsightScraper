@@ -12,7 +12,9 @@ import {
   // Collaboration features
   channelInsertSchema, messageInsertSchema, directMessageInsertSchema, userActivityInsertSchema,
   channels, messages, directMessages, userActivities, InsertChannel, InsertMessage, InsertDirectMessage,
-  channelMembers, InsertChannelMember, channelMemberInsertSchema
+  channelMembers, InsertChannelMember, channelMemberInsertSchema,
+  // Calendar features
+  calendarEvents, eventAttendees, eventReminders
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
