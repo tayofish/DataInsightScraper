@@ -503,8 +503,115 @@ ORDER BY tc.table_name, kcu.column_name;
 */
 
 -- =============================================================================
+-- 7. CALENDAR FEATURE TABLES
+-- =============================================================================
+
+-- Calendar event types enum
+DO $$ BEGIN
+    CREATE TYPE event_type AS ENUM ('meeting', 'reminder', 'deadline', 'appointment', 'other');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Calendar event status enum
+DO $$ BEGIN
+    CREATE TYPE event_status AS ENUM ('scheduled', 'cancelled', 'completed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- Calendar events table
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    start_date TIMESTAMP NOT NULL,
+    end_date TIMESTAMP NOT NULL,
+    all_day BOOLEAN DEFAULT false,
+    location TEXT,
+    event_type event_type DEFAULT 'other',
+    status event_status DEFAULT 'scheduled',
+    color TEXT DEFAULT '#3b82f6',
+    created_by INTEGER REFERENCES users(id) NOT NULL,
+    department_id INTEGER REFERENCES departments(id),
+    category_id INTEGER REFERENCES categories(id),
+    task_id INTEGER REFERENCES tasks(id),
+    project_id INTEGER REFERENCES projects(id),
+    is_recurring BOOLEAN DEFAULT false,
+    recurrence_pattern TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Event attendees table
+CREATE TABLE IF NOT EXISTS event_attendees (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER REFERENCES calendar_events(id) ON DELETE CASCADE NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    status TEXT DEFAULT 'pending',
+    invited_by INTEGER REFERENCES users(id) NOT NULL,
+    invited_at TIMESTAMP DEFAULT NOW(),
+    responded_at TIMESTAMP,
+    UNIQUE(event_id, user_id)
+);
+
+-- Event reminders table
+CREATE TABLE IF NOT EXISTS event_reminders (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER REFERENCES calendar_events(id) ON DELETE CASCADE NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    reminder_time TIMESTAMP NOT NULL,
+    minutes_before INTEGER NOT NULL,
+    is_sent BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Create indexes for calendar tables
+CREATE INDEX IF NOT EXISTS idx_calendar_events_start_date ON calendar_events(start_date);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_created_by ON calendar_events(created_by);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_department ON calendar_events(department_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_events_category ON calendar_events(category_id);
+CREATE INDEX IF NOT EXISTS idx_event_attendees_event_id ON event_attendees(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_attendees_user_id ON event_attendees(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_reminders_event_id ON event_reminders(event_id);
+CREATE INDEX IF NOT EXISTS idx_event_reminders_user_id ON event_reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_reminders_time ON event_reminders(reminder_time);
+
+-- =============================================================================
+-- 8. FIX PRODUCTION SCHEMA ISSUES
+-- =============================================================================
+
+-- Fix direct_messages table to add missing recipient_id column if it doesn't exist
+DO $$ BEGIN
+    ALTER TABLE direct_messages ADD COLUMN recipient_id INTEGER REFERENCES users(id);
+EXCEPTION
+    WHEN duplicate_column THEN null;
+END $$;
+
+-- Fix user_activities table to add missing created_at column if it doesn't exist
+DO $$ BEGIN
+    ALTER TABLE user_activities ADD COLUMN created_at TIMESTAMP DEFAULT NOW();
+EXCEPTION
+    WHEN duplicate_column THEN null;
+END $$;
+
+-- Create the missing indexes after fixing columns
+-- Note: These indexes will be created after the column fixes above
+
+-- =============================================================================
 -- DEPLOYMENT COMPLETE
 -- =============================================================================
 
--- The database schema is now ready for production deployment
+-- Update sequences to current max values including calendar tables
+SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+SELECT setval('tasks_id_seq', COALESCE((SELECT MAX(id) FROM tasks), 1));
+SELECT setval('projects_id_seq', COALESCE((SELECT MAX(id) FROM projects), 1));
+SELECT setval('categories_id_seq', COALESCE((SELECT MAX(id) FROM categories), 1));
+SELECT setval('departments_id_seq', COALESCE((SELECT MAX(id) FROM departments), 1));
+SELECT setval('units_id_seq', COALESCE((SELECT MAX(id) FROM units), 1));
+SELECT setval('calendar_events_id_seq', COALESCE((SELECT MAX(id) FROM calendar_events), 1));
+SELECT setval('event_attendees_id_seq', COALESCE((SELECT MAX(id) FROM event_attendees), 1));
+SELECT setval('event_reminders_id_seq', COALESCE((SELECT MAX(id) FROM event_reminders), 1));
+
+-- The database schema is now ready for production deployment with calendar features
 -- Make sure to configure SMTP settings and create admin user after deployment
