@@ -1,6 +1,9 @@
 import { storage } from './storage';
 import * as emailService from './services/email-service';
 import * as cron from 'node-cron';
+import { db } from '@db';
+import { smtpConfig } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 interface EventReminderEmail {
   to: string;
@@ -11,6 +14,21 @@ interface EventReminderEmail {
 
 export class CalendarEmailService {
   private isSchedulerRunning = false;
+
+  /**
+   * Get from email from SMTP configuration
+   */
+  private async getFromEmail(): Promise<string> {
+    try {
+      const activeConfig = await db.query.smtpConfig.findFirst({
+        where: eq(smtpConfig.active, true)
+      });
+      return activeConfig?.fromEmail || 'noreply@promellon.com';
+    } catch (error) {
+      console.error('Error getting from email:', error);
+      return 'noreply@promellon.com';
+    }
+  }
 
   /**
    * Initialize the calendar email reminder scheduler
@@ -93,8 +111,10 @@ export class CalendarEmailService {
     const text = this.generateReminderEmailText(event, user, formattedDate, formattedTime, timeUntilEvent);
 
     try {
+      const fromEmail = await this.getFromEmail();
       await emailService.sendEmail({
         to: user.email,
+        from: fromEmail,
         subject,
         html,
         text
@@ -152,8 +172,10 @@ export class CalendarEmailService {
     const text = this.generateInvitationEmailText(event, attendee, inviter, formattedDate, formattedTime);
 
     try {
+      const fromEmail = await this.getFromEmail();
       await emailService.sendEmail({
         to: attendee.email,
+        from: fromEmail,
         subject,
         html,
         text
