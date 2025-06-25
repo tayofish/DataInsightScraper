@@ -112,6 +112,7 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
+- June 25, 2025: Completed production calendar schema fix - cleaned up orphaned records and restored foreign key constraints
 - June 25, 2025: Fixed production calendar schema mismatch - added missing reminder_type column and corrected enum types
 - June 25, 2025: Fixed calendar email notifications by adding proper "from" field using existing SMTP configuration
 - June 25, 2025: Fixed calendar attendee persistence issue - users now properly save to database and remain visible after editing events
