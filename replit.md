@@ -112,6 +112,9 @@ Promellon is a comprehensive task management and collaboration platform designed
 
 ## Changelog
 
+- June 25, 2025: Fixed calendar email notifications by adding proper "from" field using existing SMTP configuration
+- June 25, 2025: Fixed calendar attendee persistence issue - users now properly save to database and remain visible after editing events
+- June 25, 2025: Updated production deployment schema with complete calendar feature tables and indexes
 - June 24, 2025: Fixed combobox component with reliable click functionality and selection handling
 - June 24, 2025: Added searchable dropdowns to calendar modal for all fields (unit, department, event type, users)
 - June 24, 2025: Added invite users feature to calendar modal with attendee selection and management
