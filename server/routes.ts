@@ -1982,7 +1982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You don't have permission to edit this event" });
       }
 
-      const { title, description, startDate, endDate, allDay, location, eventType, color, departmentId, categoryId, taskId, projectId } = req.body;
+      const { title, description, startDate, endDate, allDay, location, eventType, color, departmentId, categoryId, taskId, projectId, attendees, reminderMinutes } = req.body;
 
       const updateData: any = {};
       if (title !== undefined) updateData.title = title;
@@ -1999,6 +1999,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (projectId !== undefined) updateData.projectId = projectId || null;
 
       const updatedEvent = await storage.updateCalendarEvent(eventId, updateData);
+
+      // Handle attendees update
+      if (attendees !== undefined) {
+        // Remove all existing attendees
+        await db.delete(eventAttendees).where(eq(eventAttendees.eventId, eventId));
+        
+        // Add new attendees
+        if (Array.isArray(attendees) && attendees.length > 0) {
+          for (const attendeeId of attendees) {
+            await storage.addEventAttendee({
+              eventId: eventId,
+              userId: parseInt(attendeeId),
+              invitedBy: req.user.id,
+            });
+          }
+          
+          // Send invitation emails to new attendees
+          try {
+            const { calendarEmailService } = await import('./calendar-email-service');
+            await calendarEmailService.sendEventInvitationEmail(eventId, attendees.map(id => parseInt(id)), req.user.id);
+          } catch (emailError) {
+            console.error('Error sending invitation emails:', emailError);
+            // Don't fail the request if emails fail
+          }
+        }
+      }
+
+      // Handle reminder update
+      if (reminderMinutes !== undefined) {
+        // Remove existing reminders for this event
+        await db.delete(eventReminders).where(eq(eventReminders.eventId, eventId));
+        
+        // Create new reminder if specified
+        if (reminderMinutes && reminderMinutes !== 'no_reminder') {
+          await storage.createEventReminder({
+            eventId: eventId,
+            userId: req.user.id,
+            minutesBefore: parseInt(reminderMinutes),
+            reminderType: 'both',
+          });
+
+          // Also create reminders for attendees
+          if (attendees && Array.isArray(attendees)) {
+            for (const attendeeId of attendees) {
+              await storage.createEventReminder({
+                eventId: eventId,
+                userId: parseInt(attendeeId),
+                minutesBefore: parseInt(reminderMinutes),
+                reminderType: 'both',
+              });
+            }
+          }
+        }
+      }
 
       // Send update notification emails
       try {
