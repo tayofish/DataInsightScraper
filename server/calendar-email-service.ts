@@ -1,5 +1,5 @@
 import { storage } from './storage';
-import { emailService } from './email-service.js';
+import * as emailService from './services/email-service';
 import * as cron from 'node-cron';
 
 interface EventReminderEmail {
@@ -92,12 +92,17 @@ export class CalendarEmailService {
     const html = this.generateReminderEmailHTML(event, user, formattedDate, formattedTime, timeUntilEvent);
     const text = this.generateReminderEmailText(event, user, formattedDate, formattedTime, timeUntilEvent);
 
-    await emailService.sendEmail({
-      to: user.email,
-      subject,
-      html,
-      text
-    });
+    try {
+      await emailService.sendEmail({
+        to: user.email,
+        subject,
+        html,
+        text
+      });
+      console.log(`Reminder email sent to ${user.email} for event: ${event.title}`);
+    } catch (error) {
+      console.error(`Failed to send reminder email to ${user.email}:`, error);
+    }
   }
 
   /**
@@ -146,12 +151,18 @@ export class CalendarEmailService {
     const html = this.generateInvitationEmailHTML(event, attendee, inviter, formattedDate, formattedTime);
     const text = this.generateInvitationEmailText(event, attendee, inviter, formattedDate, formattedTime);
 
-    await emailService.sendEmail({
-      to: attendee.email,
-      subject,
-      html,
-      text
-    });
+    try {
+      await emailService.sendEmail({
+        to: attendee.email,
+        subject,
+        html,
+        text
+      });
+      console.log(`Invitation email sent to ${attendee.email} for event: ${event.title}`);
+    } catch (error) {
+      console.error(`Failed to send invitation email to ${attendee.email}:`, error);
+      throw error;
+    }
   }
 
   /**
